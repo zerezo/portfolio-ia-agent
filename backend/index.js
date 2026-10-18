@@ -1,45 +1,46 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import Anthropic from '@anthropic-ai/sdk';
 
-// Inyección de variables de entorno locales
-dotenv.config();
+const MODEL = 'claude-sonnet-5-5';
+const MAX_TOKENS = 1024;
+const SYSTEM_PROMPT =
+  'Eres el asistente de un portfolio profesional. Respondes preguntas sobre la ' +
+  'trayectoria de un ingeniero de Telecomunicaciones con experiencia en ciberseguridad. ' +
+  'Si no dispones de un dato, lo indicas en lugar de inventarlo.';
+
+// TODO(tools): definir aquí el Tool Calling (consulta RAG del CV, agendar reuniones).
+// TODO(sesión): persistir el historial de conversación en PostgreSQL.
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const app = express();
 app.use(express.json());
 
-// Inicialización del cliente
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY, 
-});
-
-// Endpoint principal del agente
 app.post('/api/chat', async (req, res) => {
-  try {
-    const { message } = req.body;
+  const { message } = req.body ?? {};
 
-    // Llamada base. Más adelante inyectaremos las Tools y el RAG de PostgreSQL
+  try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-5-5",
-      max_tokens: 1024,
-      system: "Eres un ingeniero Forward Deployed en ciberseguridad actuando como representante autónomo...",
-      messages: [
-        { role: "user", content: message }
-      ],
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: message }],
     });
 
     const reply = response.content
-      .filter((block) => block.type === "text")
+      .filter((block) => block.type === 'text')
       .map((block) => block.text)
-      .join("\n");
+      .join('\n');
+
     res.json({ reply });
   } catch (error) {
-    console.error("Fallo en la comunicación del orquestador:", error);
-    res.status(500).json({ error: "Interrupción de enlace con el razonamiento del agente." });
+    console.error('Error en la llamada al modelo:', error);
+    res.status(500).json({ error: 'No se pudo generar una respuesta.' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor local activo y orquestando peticiones en el puerto ${PORT}`);
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });

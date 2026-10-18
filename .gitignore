@@ -1,14 +1,10 @@
 # Dependencias
 node_modules/
-__pycache__/
-venv/
-env/
 
 # Entorno y variables secretas
 .env
 .env.*
 !.env.example
-**/.env
 
 # Logs y compilaciones
 *.log
