@@ -1,4 +1,4 @@
-﻿name: CI - Entorno de Desarrollo
+name: CI - Entorno de Desarrollo
 
 on:
   push:
@@ -33,6 +33,10 @@ jobs:
       - name: Verificar sintaxis del servidor
         working-directory: backend
         run: node --check index.js
+
+      - name: Ejecutar tests
+        working-directory: backend
+        run: npm test
 
       - name: Bloquear secretos versionados
         run: |

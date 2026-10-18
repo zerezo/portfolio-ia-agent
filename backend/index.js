@@ -1,46 +1,33 @@
 import 'dotenv/config';
-import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { createApp } from './app.js';
+import { loadConfig } from './config.js';
 
-const MODEL = 'claude-sonnet-5-5';
-const MAX_TOKENS = 1024;
-const SYSTEM_PROMPT =
-  'Eres el asistente de un portfolio profesional. Respondes preguntas sobre la ' +
-  'trayectoria de un ingeniero de Telecomunicaciones con experiencia en ciberseguridad. ' +
-  'Si no dispones de un dato, lo indicas en lugar de inventarlo.';
+let config;
+try {
+  config = loadConfig();
+} catch (error) {
+  console.error(`Configuración inválida: ${error.message}`);
+  process.exit(1);
+}
 
-// TODO(tools): definir aquí el Tool Calling (consulta RAG del CV, agendar reuniones).
-// TODO(sesión): persistir el historial de conversación en PostgreSQL.
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const app = express();
-app.use(express.json());
-
-app.post('/api/chat', async (req, res) => {
-  const { message } = req.body ?? {};
-
-  try {
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: message }],
-    });
-
-    const reply = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n');
-
-    res.json({ reply });
-  } catch (error) {
-    console.error('Error en la llamada al modelo:', error);
-    res.status(500).json({ error: 'No se pudo generar una respuesta.' });
-  }
+const anthropic = new Anthropic({
+  apiKey: config.apiKey,
+  timeout: 30 * 1000,
+  maxRetries: 2,
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+const app = createApp({ anthropic, config });
+
+const server = app.listen(config.port, () => {
+  console.log(`Servidor escuchando en el puerto ${config.port} (perfil: ${config.profileName})`);
 });
+
+// Railway envía SIGTERM al redesplegar: se terminan las peticiones en curso antes de salir.
+const shutdown = (signal) => {
+  console.log(`${signal} recibido, cerrando servidor...`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10 * 1000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
