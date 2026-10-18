@@ -20,7 +20,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Llamada base. Más adelante inyectaremos las Tools y el RAG de PostgreSQL
     const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-sonnet-5-5",
       max_tokens: 1024,
       system: "Eres un ingeniero Forward Deployed en ciberseguridad actuando como representante autónomo...",
       messages: [
@@ -28,7 +28,11 @@ app.post('/api/chat', async (req, res) => {
       ],
     });
 
-    res.json({ reply: response.content[0].text });
+    const reply = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("\n");
+    res.json({ reply });
   } catch (error) {
     console.error("Fallo en la comunicación del orquestador:", error);
     res.status(500).json({ error: "Interrupción de enlace con el razonamiento del agente." });

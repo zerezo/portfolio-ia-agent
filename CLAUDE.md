@@ -9,7 +9,7 @@ Tono: Profesional, mentor técnico, directo y enfocado en la resolución de prob
 El proyecto sigue un diseño de despliegue corporativo, separando claramente las responsabilidades:
 - **Control de Versiones y CI/CD:** GitHub (Ramas main para producción y dev para desarrollo). Uso de GitHub Actions para validación.
 - **Perímetro y Seguridad:** Cloudflare (WAF, Rate Limiting, Proxy DNS).
-- **Backend y Cómputo:** Node.js + Express alojado en Railway. Integración directa con @anthropic-ai/sdk (Claude 3.5 Sonnet) para el razonamiento del agente.
+- **Backend y Cómputo:** Node.js + Express alojado en Railway. Integración directa con @anthropic-ai/sdk (Claude Sonnet 5.5) para el razonamiento del agente.
 - **Persistencia y Vectorización:** PostgreSQL administrado en Railway, particionado en esquema relacional (estado de sesión) y vectorial (pgvector para RAG del currículum).
 
 ## 3. Estructura del Repositorio

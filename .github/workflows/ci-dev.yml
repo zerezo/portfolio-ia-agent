@@ -3,7 +3,7 @@
 on:
   push:
     branches:
-      - develop
+      - dev
   pull_request:
     branches:
       - main
@@ -21,7 +21,20 @@ jobs:
         with:
           node-version: '20'
           
-      - name: Validar dependencias y seguridad base
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Auditoría de seguridad de dependencias
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Verificar sintaxis del servidor
+        working-directory: backend
+        run: node --check index.js
+
+      - name: Bloquear secretos versionados
         run: |
-          echo "Validando estructura del repositorio..."
-          echo "Pipeline preparado para escalar."
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "ERROR: archivo .env versionado"; exit 1
+          fi
