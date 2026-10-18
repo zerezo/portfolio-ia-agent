@@ -1,0 +1,14 @@
+# Dependencias
+node_modules/
+__pycache__/
+venv/
+env/
+
+# Entorno y variables secretas (Crucial para las API Keys de OpenAI/Railway)
+.env
+.env.local
+
+# Logs y compilaciones
+*.log
+dist/
+build/
