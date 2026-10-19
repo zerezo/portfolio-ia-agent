@@ -1,49 +1,50 @@
-# Política de privacidad
+# Privacy Policy
 
-Última actualización: 19 de octubre de 2026.
+Last updated: 19 October 2026.
 
-Esta política explica qué datos personales trata el portfolio de Alejandro Cerezo Gilarranz (el asistente de chat y el formulario de contacto), para qué y durante cuánto tiempo.
+This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (the chat assistant and the contact form) processes, why, and for how long.
 
-## Responsable del tratamiento
+## Data controller
 
-- **Responsable:** Alejandro Cerezo Gilarranz.
-- **Contacto:** portfolioiaalejandro@gmail.com
+- **Controller:** Alejandro Cerezo Gilarranz.
+- **Contact:** portfolioiaalejandro@gmail.com
 
-## Qué datos se tratan y para qué
+## What data is processed and why
 
-### Asistente de chat
-- **Datos:** los mensajes que escribes en el chat.
-- **Finalidad:** responder a tus preguntas sobre la trayectoria profesional de Alejandro.
-- **Conservación:** la conversación se guarda en memoria durante un máximo de 30 minutos sin actividad, para que el asistente entienda las preguntas de seguimiento. Después se elimina.
-- **Recomendación:** no escribas datos personales en el chat. Para contactar con Alejandro, usa el formulario de contacto.
+### Chat assistant
+- **Data:** the messages you write in the chat.
+- **Purpose:** to answer your questions about Alejandro's professional background.
+- **Retention:** the conversation is kept in memory for up to 30 minutes of inactivity, so the assistant can understand follow-up questions. It is then deleted.
+- **Recommendation:** please do not include personal data in the chat. To contact Alejandro, use the contact form.
 
-### Formulario de contacto
-- **Datos:** nombre, email, empresa (opcional), motivo del contacto, modalidad elegida (videollamada, llamada o email), fecha y hora elegidas y, si eliges una llamada, tu número de teléfono.
-- **Finalidad:** gestionar tu solicitud de contacto: avisar a Alejandro, confirmarte o rechazar la cita y enviarte la invitación de calendario.
-- **Base legal:** tu consentimiento, que das al marcar la casilla del formulario. Puedes retirarlo en cualquier momento escribiendo al email de contacto.
-- **Conservación:** las solicitudes se eliminan automáticamente a los 30 días.
+### Contact form
+- **Data:** name, email address, company (optional), reason for contact, chosen contact type (video call, phone call or email), chosen date and time and, if you choose a phone call, your phone number.
+- **Purpose:** to handle your contact request: notify Alejandro, confirm or decline the meeting and send you the calendar invitation.
+- **Legal basis:** your consent, given by ticking the box on the form. You can withdraw it at any time by writing to the contact address.
+- **Retention:** requests are deleted automatically after 30 days.
 
-### Datos técnicos
-- **Datos:** la dirección IP desde la que accedes.
-- **Finalidad:** aplicar límites de uso para proteger el servicio frente a abusos.
-- **Conservación:** solo en memoria, durante la ventana del límite (como máximo 24 horas). No se usa para ningún otro fin.
+### Technical data
+- **Data:** the IP address you connect from.
+- **Purpose:** to apply usage limits that protect the service against abuse.
+- **Retention:** in memory only, for the duration of the limit window (24 hours at most). It is not used for any other purpose.
 
-## Con quién se comparten
+## Who the data is shared with
 
-Los datos no se venden ni se ceden a terceros. Para prestar el servicio intervienen estos proveedores:
+Your data is not sold or passed on to third parties. The following providers are involved in running the service:
 
-- **Google (Gmail):** envío de los emails del formulario de contacto.
-- **Railway:** alojamiento del servicio.
-- **Proveedor del modelo de IA:** procesa los mensajes del chat para generar las respuestas.
+- **Google (Gmail):** sending the contact form emails.
+- **Railway:** hosting the backend.
+- **Cloudflare:** hosting the website and protecting the service.
+- **AI model provider:** processing chat messages to generate answers.
 
-Algunos de estos proveedores pueden tratar los datos fuera del Espacio Económico Europeo, con las garantías previstas en el RGPD.
+Some of these providers may process data outside the European Economic Area, with the safeguards provided for in the GDPR.
 
-## Tus derechos
+## Your rights
 
-Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad escribiendo al email de contacto.
+You can exercise your rights of access, rectification, erasure, objection, restriction of processing and data portability by writing to the contact address.
 
-Si consideras que el tratamiento de tus datos no es adecuado, puedes presentar una reclamación ante la Agencia Española de Protección de Datos ([www.aepd.es](https://www.aepd.es)).
+If you believe your data has not been processed properly, you can lodge a complaint with the Spanish Data Protection Agency ([www.aepd.es](https://www.aepd.es)).
 
-## Cambios en esta política
+## Changes to this policy
 
-Si esta política cambia, se actualizará la fecha del principio de este documento.
+If this policy changes, the date at the top of this document will be updated.

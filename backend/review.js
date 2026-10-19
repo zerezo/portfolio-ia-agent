@@ -3,8 +3,25 @@ import { describeSlot } from './calendar.js';
 import { createInvite } from './ics.js';
 
 // Revisión de solicitudes de contacto: páginas de aprobar/rechazar y emails de cada caso.
+// Idiomas: lo que recibe el solicitante va en inglés (la web es en inglés); lo que ve
+// Alejandro (avisos y páginas de revisión), en español.
 
-export const MODE_LABELS = { video: 'Videollamada', phone: 'Llamada telefónica', email: 'Contacto por email' };
+const TEXT = {
+  es: {
+    modes: { video: 'Videollamada', phone: 'Llamada telefónica', email: 'Contacto por email' },
+    when: (label, time, minutes) => `${label}, ${time} (hora de Madrid, ${minutes} min)`,
+    fields: { mode: 'Modalidad', date: 'Fecha', name: 'Nombre', email: 'Email', company: 'Empresa', phone: 'Teléfono', reason: 'Motivo' },
+    locale: 'es-ES',
+  },
+  en: {
+    modes: { video: 'Video call', phone: 'Phone call', email: 'Email contact' },
+    when: (label, time, minutes) => `${label}, ${time} (Madrid time, ${minutes} min)`,
+    fields: { mode: 'Type', date: 'Date', name: 'Name', email: 'Email', company: 'Company', phone: 'Phone', reason: 'Reason' },
+    locale: 'en-GB',
+  },
+};
+
+export const MODE_LABELS = TEXT.es.modes;
 
 // Los datos los escribe el solicitante: todo lo que va al HTML se escapa (XSS).
 export const escapeHtml = (text) =>
@@ -16,24 +33,27 @@ export const escapeHtml = (text) =>
 // Sala de Jitsi con nombre aleatorio: no se puede adivinar ni reutilizar.
 export const createJitsiUrl = () => `https://meet.jit.si/portfolio-${randomBytes(12).toString('hex')}`;
 
-// "martes, 20 de octubre, 17:00 (hora de Madrid, 20 min)", o null si no hay hueco.
-export function describeWhen(request, schedule) {
+// "martes, 20 de octubre, 17:00 (hora de Madrid, 20 min)" / "Tuesday 20 October, 17:00
+// (Madrid time, 20 min)", o null si no hay hueco.
+export function describeWhen(request, schedule, lang = 'es') {
   if (!request.slotId) return null;
-  const slot = describeSlot(request.slotId, schedule.timeZone);
-  return `${slot.label}, ${slot.time} (hora de Madrid, ${schedule.slotMinutes} min)`;
+  const t = TEXT[lang];
+  const slot = describeSlot(request.slotId, schedule.timeZone, t.locale);
+  return t.when(slot.label, slot.time, schedule.slotMinutes);
 }
 
-export function summarize(request, schedule) {
-  const when = describeWhen(request, schedule);
+export function summarize(request, schedule, lang = 'es') {
+  const t = TEXT[lang];
+  const when = describeWhen(request, schedule, lang);
   return [
-    `Modalidad: ${MODE_LABELS[request.mode]}`,
-    ...(when ? [`Fecha: ${when}`] : []),
-    `Nombre: ${request.name}`,
-    `Email: ${request.email}`,
-    ...(request.company ? [`Empresa: ${request.company}`] : []),
-    ...(request.phone ? [`Teléfono: ${request.phone}`] : []),
+    `${t.fields.mode}: ${t.modes[request.mode]}`,
+    ...(when ? [`${t.fields.date}: ${when}`] : []),
+    `${t.fields.name}: ${request.name}`,
+    `${t.fields.email}: ${request.email}`,
+    ...(request.company ? [`${t.fields.company}: ${request.company}`] : []),
+    ...(request.phone ? [`${t.fields.phone}: ${request.phone}`] : []),
     '',
-    'Motivo:',
+    `${t.fields.reason}:`,
     request.reason,
   ].join('\n');
 }
@@ -42,23 +62,24 @@ export function summarize(request, schedule) {
 // Reply-To cruzado: Alejandro responde directamente al solicitante, y las respuestas del
 // solicitante llegan al email personal de Alejandro, no a la cuenta que envía.
 export function newRequestEmails(request, { schedule, ownerEmail, reviewUrl }) {
-  const summary = summarize(request, schedule);
   return [
     {
       to: ownerEmail,
       replyTo: request.email,
-      subject: `Nueva solicitud de contacto: ${request.name} (${MODE_LABELS[request.mode]})`,
-      text: `${summary}\n\nRevísala aquí para aprobarla o rechazarla (el enlace caduca en 7 días):\n${reviewUrl}\n`,
+      subject: `Nueva solicitud de contacto: ${request.name} (${TEXT.es.modes[request.mode]})`,
+      text:
+        `${summarize(request, schedule, 'es')}\n\n` +
+        `Revísala aquí para aprobarla o rechazarla (el enlace caduca en 7 días):\n${reviewUrl}\n`,
     },
     {
       to: request.email,
       replyTo: ownerEmail,
-      subject: 'Hemos recibido tu solicitud de contacto',
+      subject: 'We have received your contact request',
       text:
-        `Hola, ${request.name}:\n\n` +
-        'Gracias por tu interés. Alejandro revisará tu solicitud y te responderá por email.\n' +
-        `${request.slotId ? 'El hueco elegido queda reservado hasta entonces.\n' : ''}\n` +
-        `Resumen de tu solicitud:\n${summary}\n`,
+        `Hi ${request.name},\n\n` +
+        'Thank you for your interest. Alejandro will review your request and reply by email.\n' +
+        `${request.slotId ? 'The time slot you chose is held for you until then.\n' : ''}\n` +
+        `Summary of your request:\n${summarize(request, schedule, 'en')}\n`,
     },
   ];
 }
@@ -66,23 +87,24 @@ export function newRequestEmails(request, { schedule, ownerEmail, reviewUrl }) {
 // Emails al aprobar. Videollamada y llamada llevan la invitación .ics para ambos, para que
 // aparezca en el calendario de los dos; el contacto por email no tiene cita.
 export function approvalEmails(request, { schedule, ownerEmail, ownerName, now = new Date() }) {
-  const when = describeWhen(request, schedule);
+  const whenEn = describeWhen(request, schedule, 'en');
   const details = {
-    video: `Enlace de la videollamada (Jitsi, sin registro): ${request.meetingUrl}`,
-    phone: `${ownerName} te llamará al ${request.phone}.`,
-    email: `${ownerName} te escribirá en breve a este email.`,
+    video: `Video call link (Jitsi, no sign-up needed): ${request.meetingUrl}`,
+    phone: `${ownerName} will call you at ${request.phone}.`,
+    email: `${ownerName} will write to you at this email address shortly.`,
   }[request.mode];
 
   let attachments = [];
   if (request.slotId) {
     const slot = describeSlot(request.slotId, schedule.timeZone);
+    // La invitación la ven los dos: en inglés, como el resto de lo que recibe el solicitante.
     const ics = createInvite({
       uid: `${request.id}@portfolio-ia-agent`,
       start: slot.start,
       minutes: schedule.slotMinutes,
-      summary: `${MODE_LABELS[request.mode]}: ${ownerName} y ${request.name}`,
-      description: `${details}\n\nMotivo: ${request.reason}`,
-      location: request.mode === 'video' ? request.meetingUrl : `Teléfono: ${request.phone}`,
+      summary: `${TEXT.en.modes[request.mode]}: ${ownerName} and ${request.name}`,
+      description: `${details}\n\nReason: ${request.reason}`,
+      location: request.mode === 'video' ? request.meetingUrl : `Phone: ${request.phone}`,
       organizer: { name: ownerName, email: ownerEmail },
       attendees: [
         { name: request.name, email: request.email },
@@ -90,29 +112,31 @@ export function approvalEmails(request, { schedule, ownerEmail, ownerName, now =
       ],
       now,
     });
-    attachments = [{ filename: 'invitacion.ics', contentType: 'text/calendar; method=REQUEST; charset=utf-8', content: ics }];
+    attachments = [{ filename: 'invite.ics', contentType: 'text/calendar; method=REQUEST; charset=utf-8', content: ics }];
   }
 
-  const subject = when
-    ? `${MODE_LABELS[request.mode]} confirmada: ${when}`
-    : 'Tu solicitud de contacto ha sido aceptada';
+  const whenEs = describeWhen(request, schedule, 'es');
   return [
     {
       to: request.email,
       replyTo: ownerEmail,
-      subject,
+      subject: whenEn ? `${TEXT.en.modes[request.mode]} confirmed: ${whenEn}` : 'Your contact request has been accepted',
       text:
-        `Hola, ${request.name}:\n\n` +
-        `${ownerName} ha aceptado tu solicitud.\n` +
-        `${when ? `Fecha: ${when}\n` : ''}${details}\n\n` +
-        `${attachments.length ? 'Adjuntamos la invitación para tu calendario.\n' : ''}`,
+        `Hi ${request.name},\n\n` +
+        `${ownerName} has accepted your request.\n` +
+        `${whenEn ? `Date: ${whenEn}\n` : ''}${details}\n\n` +
+        `${attachments.length ? 'The calendar invitation is attached.\n' : ''}`,
       attachments,
     },
     {
       to: ownerEmail,
       replyTo: request.email,
-      subject: `[Aprobada] ${subject}`,
-      text: `Has aprobado esta solicitud.\n${details}\n\n${summarize(request, schedule)}\n`,
+      subject: `[Aprobada] ${TEXT.es.modes[request.mode]}${whenEs ? `: ${whenEs}` : ''} con ${request.name}`,
+      text:
+        'Has aprobado esta solicitud. El solicitante ha recibido la confirmación' +
+        `${attachments.length ? ' y la invitación' : ''}.\n` +
+        `${request.meetingUrl ? `Enlace de la videollamada: ${request.meetingUrl}\n` : ''}\n` +
+        `${summarize(request, schedule, 'es')}\n`,
       attachments,
     },
   ];
@@ -122,13 +146,13 @@ export function rejectionEmail(request, { ownerName, ownerEmail }) {
   return {
     to: request.email,
     replyTo: ownerEmail,
-    subject: 'Sobre tu solicitud de contacto',
+    subject: 'About your contact request',
     text:
-      `Hola, ${request.name}:\n\n` +
-      `Gracias por tu interés. Ahora mismo ${ownerName} no puede atender tu solicitud en el formato ` +
-      'o la fecha propuestos.\n' +
-      'Puedes enviar otra con un formato o una fecha diferente desde el formulario de contacto, ' +
-      'o escribirle por LinkedIn.\n',
+      `Hi ${request.name},\n\n` +
+      `Thank you for your interest. Unfortunately ${ownerName} cannot take your request in the ` +
+      'proposed format or at the proposed time.\n' +
+      'You can send a new request with a different format or time through the contact form, ' +
+      'or reach out on LinkedIn.\n',
   };
 }
 

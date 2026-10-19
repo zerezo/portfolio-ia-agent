@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 // Solicitudes de contacto del formulario. Sin IA: validación determinista.
+// Los mensajes de error los ve el visitante: en inglés, como la web.
 // Modalidades: video (videollamada, con hueco), phone (llamada, con hueco y teléfono), email.
 
 export const CONTACT_MODES = ['video', 'phone', 'email'];
@@ -21,15 +22,15 @@ const PHONE_PATTERN = /^\+?[0-9 ()-]{7,20}$/;
 
 function textField(value, { label, min, max, required = true, allowNewlines = false }) {
   if (value === undefined || value === null || value === '') {
-    return required ? { error: `El campo "${label}" es obligatorio.` } : { value: undefined };
+    return required ? { error: `The "${label}" field is required.` } : { value: undefined };
   }
-  if (typeof value !== 'string') return { error: `El campo "${label}" debe ser texto.` };
+  if (typeof value !== 'string') return { error: `The "${label}" field must be text.` };
   const trimmed = value.trim();
   if (trimmed.length < min || trimmed.length > max) {
-    return { error: `El campo "${label}" debe tener entre ${min} y ${max} caracteres.` };
+    return { error: `The "${label}" field must be between ${min} and ${max} characters.` };
   }
   if ((allowNewlines ? CONTROL_CHARS_EXCEPT_NEWLINES : CONTROL_CHARS).test(trimmed)) {
-    return { error: `El campo "${label}" contiene caracteres no permitidos.` };
+    return { error: `The "${label}" field contains characters that are not allowed.` };
   }
   return { value: trimmed };
 }
@@ -49,19 +50,19 @@ export function validateContactRequest(body, { freeSlotIds }) {
   take('company', textField(body?.company, { label: 'company', min: 2, max: 100, required: false }));
   take('reason', textField(body?.reason, { label: 'reason', min: 10, max: 1000, allowNewlines: true }));
 
-  if (value.email && !EMAIL_PATTERN.test(value.email)) errors.push('El email no es válido.');
+  if (value.email && !EMAIL_PATTERN.test(value.email)) errors.push('The email address is not valid.');
   if (value.email) value.email = value.email.toLowerCase();
 
   const mode = body?.mode;
   if (!CONTACT_MODES.includes(mode)) {
-    errors.push(`El campo "mode" debe ser uno de: ${CONTACT_MODES.join(', ')}.`);
+    errors.push(`The "mode" field must be one of: ${CONTACT_MODES.join(', ')}.`);
   } else {
     value.mode = mode;
   }
 
   if (MODES_WITH_SLOT.has(mode)) {
     if (typeof body?.slotId !== 'string' || !freeSlotIds.has(body.slotId)) {
-      errors.push('El hueco elegido no está disponible. Vuelve a cargar la disponibilidad y elige otro.');
+      errors.push('The selected time slot is no longer available. Please reload the availability and choose another one.');
     } else {
       value.slotId = body.slotId;
     }
@@ -70,12 +71,12 @@ export function validateContactRequest(body, { freeSlotIds }) {
   if (mode === 'phone') {
     const phone = textField(body?.phone, { label: 'phone', min: 7, max: 20 });
     if (phone.error) errors.push(phone.error);
-    else if (!PHONE_PATTERN.test(phone.value)) errors.push('El teléfono no es válido.');
+    else if (!PHONE_PATTERN.test(phone.value)) errors.push('The phone number is not valid.');
     else value.phone = phone.value;
   }
 
   // Consentimiento explícito para tratar los datos (RGPD): debe ser exactamente true.
-  if (body?.consent !== true) errors.push('Debes aceptar el tratamiento de tus datos para enviar la solicitud.');
+  if (body?.consent !== true) errors.push('You must accept the privacy policy to send the request.');
 
   return errors.length ? { errors } : { value };
 }

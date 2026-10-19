@@ -38,6 +38,18 @@ jobs:
         working-directory: backend
         run: npm test
 
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Auditoría de seguridad del frontend
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Compilar el frontend
+        working-directory: frontend
+        run: npm run build
+
       - name: Bloquear secretos versionados
         run: |
           if git ls-files | grep -E '(^|/)\.env$'; then

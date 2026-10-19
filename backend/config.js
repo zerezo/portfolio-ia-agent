@@ -119,8 +119,21 @@ export function loadConfig(env = process.env) {
     throw new Error('OWNER_EMAIL no es un email válido');
   }
 
+  // Orígenes del frontend con acceso a la API desde el navegador (p. ej. el dominio de
+  // Cloudflare Pages). Cada uno exactamente "https://host[:puerto]", sin ruta ni barra final.
+  const corsOrigins = (env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of corsOrigins) {
+    if (!/^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) {
+      throw new Error(`CORS_ORIGINS contiene un origen inválido: "${origin}"`);
+    }
+  }
+
   return {
     llm,
+    corsOrigins,
     // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
     contact: {
       ownerEmail,

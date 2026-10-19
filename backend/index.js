@@ -17,7 +17,8 @@ try {
 }
 
 const llm = createLlm(config);
-const tools = [createCvTool(loadCv())];
+const profile = loadCv();
+const tools = [createCvTool(profile)];
 
 const sessions = createMemorySessionStore();
 const contacts = createMemoryContactStore();
@@ -28,7 +29,7 @@ if (!config.contact.reviewSecret) {
 }
 const reviewTokens = createReviewTokens({ secret: config.contact.reviewSecret ?? randomSecret() });
 
-const app = createApp({ llm, tools, sessions, contacts, mailer, reviewTokens, config });
+const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config });
 
 const server = app.listen(config.port, () => {
   console.log(
