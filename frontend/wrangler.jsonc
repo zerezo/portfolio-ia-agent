@@ -1,0 +1,12 @@
+// Despliegue del frontend en Cloudflare Workers (solo archivos estáticos, sin código de
+// servidor). Cloudflare ejecuta `npm run build` y después `npx wrangler deploy`, que publica
+// la carpeta dist. El archivo dist/_headers (generado en vite.config.js) aplica las cabeceras
+// de seguridad, igual que en Cloudflare Pages.
+{
+  "name": "portfolio-ia-agent",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}
