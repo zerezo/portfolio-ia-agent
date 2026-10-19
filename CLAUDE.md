@@ -9,7 +9,7 @@ Tono: Profesional, mentor técnico, directo y enfocado en la resolución de prob
 El proyecto sigue un diseño de despliegue corporativo, separando claramente las responsabilidades:
 - **Control de Versiones y CI/CD:** GitHub (Ramas main para producción y dev para desarrollo). Uso de GitHub Actions para validación.
 - **Perímetro y Seguridad:** Cloudflare (WAF, Rate Limiting, Proxy DNS) con dominio propio.
-- **Frontend:** React + Vite, desplegado aparte en Cloudflare Pages (estático, CDN). La API en Railway, con CORS limitado a los orígenes del frontend (`CORS_ORIGINS`).
+- **Frontend:** React + Vite, desplegado aparte en Cloudflare Workers como archivos estáticos (CDN; frontend/wrangler.jsonc publica dist). La API en Railway, con CORS limitado a los orígenes del frontend (`CORS_ORIGINS`).
 - **Backend y Cómputo:** Node.js + Express alojado en Railway.
 - **Modelo (agnóstico de proveedor):** el backend habla con el modelo a través de una interfaz común (`llm.js`), seleccionada con `LLM_PROVIDER`:
   - `ollama` (por defecto): modelo local y gratuito (`qwen2.5:7b`) para desarrollo.
@@ -18,7 +18,7 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
 
 ## 3. Estructura del Repositorio
 - /backend: Orquestador en Node.js. index.js (arranque), app.js (rutas y límites), config.js (perfiles, proveedor y variables de entorno), llm.js (adaptadores Ollama y Anthropic con soporte de herramientas), agent.js (bucle de Tool Calling), guard.js (filtro previo al modelo: manipulación y preguntas fuera de tema), tools.js (herramientas, p. ej. search_cv), sessions.js (historial de conversación: memoria y PostgreSQL), calendar.js (huecos libres para reuniones, sin APIs externas), contacts.js (validación y almacenes de solicitudes: memoria y PostgreSQL), db.js (conexión y migraciones), db/ (migraciones SQL y script de la base de tests), mailer.js (envío de emails: MAIL_TRANSPORT=file → archivos .eml en outbox/, ignorada en Git; gmail → API de Gmail por HTTPS), scripts/gmail-auth.js (obtiene el refresh token de Gmail: npm run gmail:auth), approvals.js (tokens firmados de revisión), review.js (páginas y emails de aprobar/rechazar), ics.js (invitaciones de calendario), data/cv.json (CV público, sin datos privados), railway.json (arranque y comprobación de salud en Railway), test/ (tests sin llamadas reales). .env ignorado en Git; plantilla en .env.example.
-- /frontend: React + Vite. src/api.js (cliente de la API; `VITE_API_URL` en producción, proxy de Vite a localhost:3000 en desarrollo), src/components/ (Header, ProfilePanel, Chat, ContactForm, SlotPicker, Sections, Footer), src/styles.css. vite.config.js (con tools/markdown.js) genera al compilar privacy.html (desde PRIVACY.md, la única fuente del texto) y _headers (cabeceras de seguridad de Cloudflare Pages, con la CSP limitada a la propia web y a VITE_API_URL). Primera pantalla: CV y chat al 50 % (chat abierto con preguntas sugeridas); debajo, el formulario de contacto y el resto del CV.
+- /frontend: React + Vite. src/api.js (cliente de la API; `VITE_API_URL` en producción, proxy de Vite a localhost:3000 en desarrollo), src/components/ (Header, ProfilePanel, Chat, ContactForm, SlotPicker, Sections, Footer), src/styles.css. vite.config.js (con tools/markdown.js) genera al compilar privacy.html (desde PRIVACY.md, la única fuente del texto) y _headers (cabeceras de seguridad que aplica Cloudflare, con la CSP limitada a la propia web y a VITE_API_URL). wrangler.jsonc: despliegue en Cloudflare Workers (Root directory `frontend`, build `npm run build`, deploy `npx wrangler deploy`). Primera pantalla: CV y chat al 50 % (chat abierto con preguntas sugeridas); debajo, el formulario de contacto y el resto del CV.
 - /.github/workflows: Contiene los pipelines de integración continua (ci-dev.yml).
 
 ## 4. Reglas de Desarrollo y Comportamiento Técnico
@@ -33,10 +33,10 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
   - El despliegue en Railway se retrasa hasta que backend, base de datos y frontend funcionen juntos en local.
   - El desarrollo usa Ollama en local (coste cero). Las llamadas reales a Claude, si se usan, se hacen manualmente y de forma puntual.
   - Los tests usan proveedores y `fetch` falsos y nunca contactan con ningún modelo.
-  - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`).
+  - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`); en producción, `normal`.
 
 ## 5. Entornos y Flujo de Trabajo
-Un solo código; el entorno lo decide la configuración (`.env` en local, variables en Railway y Cloudflare Pages). No hay ramas por entorno.
+Un solo código; el entorno lo decide la configuración (`.env` en local, variables en Railway y Cloudflare). No hay ramas por entorno.
 
 | | Local (`backend/.env`) | Producción (Railway) |
 |---|---|---|
@@ -45,7 +45,8 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
 | Base de datos | PostgreSQL en Docker (`DATABASE_URL`) | PostgreSQL de Railway (`DATABASE_URL`) |
 | Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL` https, `CORS_ORIGINS` https, `TRUST_PROXY=2` (Cloudflare + Railway) |
 | Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de los visitantes (`LOG_USER_CONTENT` prohibido) |
-| Frontend | `npm run dev` (proxy /api) | Cloudflare Pages con `VITE_API_URL` |
+| Límites | `LIMIT_PROFILE=funcional` (10 mensajes/día por IP) | `LIMIT_PROFILE=normal` (4/min y 25/día por IP, 200/día en total) |
+| Frontend | `npm run dev` (proxy /api) | Cloudflare Workers (estáticos) con `VITE_API_URL` y `NODE_VERSION=22` |
 
 - Con `NODE_ENV=production` el backend no arranca si falta algo crítico (lo comprueba config.js y lo dice).
 - Flujo: desarrollar y probar en local en `dev` → PR a `main` (CI) → Railway despliega `main` automáticamente.
