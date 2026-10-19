@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import Anthropic from '@anthropic-ai/sdk';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
+import { createLlm } from './llm.js';
 
 let config;
 try {
@@ -11,16 +11,14 @@ try {
   process.exit(1);
 }
 
-const anthropic = new Anthropic({
-  apiKey: config.apiKey,
-  timeout: 30 * 1000,
-  maxRetries: 2,
-});
+const llm = createLlm(config);
 
-const app = createApp({ anthropic, config });
+const app = createApp({ llm, config });
 
 const server = app.listen(config.port, () => {
-  console.log(`Servidor escuchando en el puerto ${config.port} (perfil: ${config.profileName})`);
+  console.log(
+    `Servidor escuchando en el puerto ${config.port} (perfil: ${config.profileName}, modelo: ${llm.name})`,
+  );
 });
 
 // Railway envía SIGTERM al redesplegar: se terminan las peticiones en curso antes de salir.

@@ -2,7 +2,6 @@ import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { FLOOD_LIMIT, WINDOWS } from './config.js';
 
-const MODEL = 'claude-sonnet-5-5';
 const SYSTEM_PROMPT =
   'Eres el asistente de un portfolio profesional. Respondes preguntas sobre la ' +
   'trayectoria de un ingeniero de Telecomunicaciones con experiencia en ciberseguridad. ' +
@@ -11,8 +10,8 @@ const SYSTEM_PROMPT =
 // TODO(tools): definir aquí el Tool Calling (consulta RAG del CV, agendar reuniones).
 // TODO(sesión): persistir el historial de conversación en PostgreSQL.
 
-// Estados de la API de Anthropic que indican saturación temporal, no un fallo nuestro.
-const UPSTREAM_BUSY = new Set([429, 529]);
+// Estados del proveedor que indican saturación o indisponibilidad temporal, no un fallo nuestro.
+const UPSTREAM_BUSY = new Set([429, 503, 529]);
 
 function limiter({ windowMs, limit, message, keyGenerator }) {
   return rateLimit({
@@ -25,7 +24,7 @@ function limiter({ windowMs, limit, message, keyGenerator }) {
   });
 }
 
-export function createApp({ anthropic, config }) {
+export function createApp({ llm, config }) {
   const { limits, trustProxy } = config;
   const app = express();
 
@@ -81,17 +80,11 @@ export function createApp({ anthropic, config }) {
   // La validación va antes de los límites: un mensaje inválido no consume cupo.
   app.post('/api/chat', validateMessage, chatLimiters, async (req, res) => {
     try {
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: limits.maxTokens,
+      const reply = await llm.complete({
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: req.body.message.trim() }],
+        message: req.body.message.trim(),
+        maxTokens: limits.maxTokens,
       });
-
-      const reply = response.content
-        .filter((block) => block.type === 'text')
-        .map((block) => block.text)
-        .join('\n');
 
       res.json({ reply });
     } catch (error) {

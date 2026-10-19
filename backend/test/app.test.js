@@ -4,44 +4,53 @@ import request from 'supertest';
 import { createApp } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 
-// Cliente falso: registra las llamadas y nunca contacta con Anthropic.
-function fakeAnthropic({ fail } = {}) {
+// Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
+function fakeLlm({ fail } = {}) {
   const calls = [];
   return {
+    name: 'fake',
     calls,
-    messages: {
-      create: async (params) => {
-        calls.push(params);
-        if (fail) throw fail;
-        return { content: [{ type: 'text', text: 'respuesta' }] };
-      },
+    complete: async (params) => {
+      calls.push(params);
+      if (fail) throw fail;
+      return 'respuesta';
     },
   };
 }
 
 function buildApp({ limits = {}, fail } = {}) {
-  const anthropic = fakeAnthropic({ fail });
+  const llm = fakeLlm({ fail });
   const config = {
     trustProxy: 1,
     limits: { ...LIMIT_PROFILES.funcional, ...limits },
   };
-  return { app: createApp({ anthropic, config }), anthropic };
+  return { app: createApp({ llm, config }), llm };
 }
 
 describe('loadConfig', () => {
-  test('falla si falta la API key', () => {
-    assert.throws(() => loadConfig({}), /ANTHROPIC_API_KEY/);
-  });
-
-  test('usa el perfil funcional por defecto', () => {
-    assert.equal(loadConfig({ ANTHROPIC_API_KEY: 'x' }).profileName, 'funcional');
+  test('usa Ollama y el perfil funcional por defecto, sin API key', () => {
+    const config = loadConfig({});
+    assert.equal(config.profileName, 'funcional');
+    assert.equal(config.llm.provider, 'ollama');
+    assert.equal(config.llm.ollama.url, 'http://localhost:11434');
   });
 
   test('rechaza un perfil desconocido', () => {
+    assert.throws(() => loadConfig({ LIMIT_PROFILE: 'infinito' }), /LIMIT_PROFILE inválido/);
+  });
+
+  test('rechaza un proveedor desconocido', () => {
+    assert.throws(() => loadConfig({ LLM_PROVIDER: 'otro' }), /LLM_PROVIDER inválido/);
+  });
+
+  test('anthropic exige una API key con formato válido', () => {
+    assert.throws(() => loadConfig({ LLM_PROVIDER: 'anthropic' }), /ANTHROPIC_API_KEY/);
     assert.throws(
-      () => loadConfig({ ANTHROPIC_API_KEY: 'x', LIMIT_PROFILE: 'infinito' }),
-      /LIMIT_PROFILE inválido/,
+      () => loadConfig({ LLM_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'tu_api_key_aqui' }),
+      /ANTHROPIC_API_KEY/,
     );
+    const config = loadConfig({ LLM_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'sk-ant-x' });
+    assert.equal(config.llm.anthropic.model, 'claude-sonnet-5-5');
   });
 });
 
@@ -65,8 +74,9 @@ describe('POST /api/chat', () => {
   });
 
   test('responde con el texto del modelo', async () => {
-    await request(ctx.app).post('/api/chat').send({ message: 'hola' }).expect(200, { reply: 'respuesta' });
-    assert.equal(ctx.anthropic.calls[0].max_tokens, LIMIT_PROFILES.funcional.maxTokens);
+    await request(ctx.app).post('/api/chat').send({ message: ' hola ' }).expect(200, { reply: 'respuesta' });
+    assert.equal(ctx.llm.calls[0].maxTokens, LIMIT_PROFILES.funcional.maxTokens);
+    assert.equal(ctx.llm.calls[0].message, 'hola');
   });
 
   for (const [caso, body] of [
@@ -76,14 +86,14 @@ describe('POST /api/chat', () => {
   ]) {
     test(`400 si ${caso}, sin llamar al modelo`, async () => {
       await request(ctx.app).post('/api/chat').send(body).expect(400);
-      assert.equal(ctx.anthropic.calls.length, 0);
+      assert.equal(ctx.llm.calls.length, 0);
     });
   }
 
   test('400 si el mensaje supera la longitud máxima', async () => {
     const message = 'a'.repeat(LIMIT_PROFILES.funcional.maxMessageLength + 1);
     await request(ctx.app).post('/api/chat').send({ message }).expect(400);
-    assert.equal(ctx.anthropic.calls.length, 0);
+    assert.equal(ctx.llm.calls.length, 0);
   });
 
   test('400 si el JSON está mal formado', async () => {
@@ -94,20 +104,28 @@ describe('POST /api/chat', () => {
       .expect(400, { error: 'JSON mal formado.' });
   });
 
-  test('503 si Anthropic está saturado', async () => {
-    const { app } = buildApp({ fail: Object.assign(new Error('overloaded'), { status: 529 }) });
-    await request(app).post('/api/chat').send({ message: 'hola' }).expect(503);
+  for (const status of [429, 503, 529]) {
+    test(`503 si el proveedor devuelve ${status}`, async () => {
+      const { app } = buildApp({ fail: Object.assign(new Error('busy'), { status }) });
+      await request(app).post('/api/chat').send({ message: 'hola' }).expect(503);
+    });
+  }
+
+  test('500 genérico si el proveedor falla de otra forma', async () => {
+    const { app } = buildApp({ fail: new Error('boom') });
+    const res = await request(app).post('/api/chat').send({ message: 'hola' }).expect(500);
+    assert.doesNotMatch(res.body.error, /boom/);
   });
 });
 
 describe('límites', () => {
   test('429 al superar el límite por minuto de una IP', async () => {
-    const { app, anthropic } = buildApp({ limits: { chatPerMinute: 2 } });
+    const { app, llm } = buildApp({ limits: { chatPerMinute: 2 } });
     for (let i = 0; i < 2; i++) {
       await request(app).post('/api/chat').send({ message: 'hola' }).expect(200);
     }
     await request(app).post('/api/chat').send({ message: 'hola' }).expect(429);
-    assert.equal(anthropic.calls.length, 2);
+    assert.equal(llm.calls.length, 2);
   });
 
   test('el tope global bloquea aunque cambie la IP', async () => {
