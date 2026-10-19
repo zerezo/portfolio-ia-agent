@@ -8,6 +8,8 @@ import Anthropic from '@anthropic-ai/sdk';
 //   { role: 'tool', toolCallId, name, content }
 // app.js y agent.js solo conocen esta interfaz, así se cambia de modelo sin tocar el agente.
 
+const OLLAMA_TEMPERATURE = 0.2;
+
 // Ollama: modelo local, sin coste. En CPU las respuestas pueden tardar bastante.
 export function createOllamaLlm({ url, model, timeoutMs = 120 * 1000, fetchFn = fetch }) {
   const toOllamaMessage = (m) => {
@@ -40,7 +42,8 @@ export function createOllamaLlm({ url, model, timeoutMs = 120 * 1000, fetchFn = 
                 function: { name: t.name, description: t.description, parameters: t.inputSchema },
               })),
             }),
-            options: { num_predict: maxTokens },
+            // Temperatura baja: respuestas factuales; con la de defecto (0.8) el modelo alteraba datos.
+            options: { num_predict: maxTokens, temperature: OLLAMA_TEMPERATURE },
           }),
           signal: AbortSignal.timeout(timeoutMs),
         });

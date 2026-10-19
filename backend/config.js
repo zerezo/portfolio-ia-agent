@@ -32,6 +32,17 @@ export const FLOOD_LIMIT = { windowMs: MINUTE, limit: 30 };
 
 export const WINDOWS = { MINUTE, DAY };
 
+// Disponibilidad para reuniones (hora local de timeZone). weekdays: 1 = lunes ... 5 = viernes.
+export const AVAILABILITY = {
+  timeZone: 'Europe/Madrid',
+  weekdays: [1, 2, 3, 4, 5],
+  start: '17:00',
+  end: '20:00',
+  slotMinutes: 20,
+  minNoticeHours: 24,
+  maxDaysAhead: 14,
+};
+
 // Proveedores de modelo. ollama (local, gratuito) es el de desarrollo.
 export const LLM_PROVIDERS = ['ollama', 'anthropic'];
 

@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, forcedCvSearch } from '../app.js';
+import { createApp, forcedToolCall, systemPromptFor } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 
@@ -155,8 +155,26 @@ describe('límites', () => {
   });
 });
 
-describe('forcedCvSearch', () => {
-  const forced = forcedCvSearch('buscar_en_cv');
+describe('systemPromptFor', () => {
+  test('incluye la fecha de hoy en hora de Madrid', () => {
+    // 23:30 UTC del 19-10 ya es día 20 en Madrid.
+    const prompt = systemPromptFor(new Date('2026-10-19T23:30:00Z'));
+    assert.match(prompt, /Hoy es martes, 20 de octubre de 2026 \(2026-10-20\)/);
+  });
+});
+
+describe('forcedToolCall', () => {
+  const forced = forcedToolCall(['buscar_en_cv', 'consultar_disponibilidad']);
+
+  test('las preguntas de agenda van a consultar_disponibilidad', () => {
+    for (const message of ['¿Tiene huecos este sábado?', 'Quiero una reunión', 'Can we book a call?']) {
+      assert.equal(forced(message, []).name, 'consultar_disponibilidad', message);
+    }
+  });
+
+  test('sin la herramienta de agenda, todo va al CV', () => {
+    assert.equal(forcedToolCall(['buscar_en_cv'])('Quiero una reunión', []).name, 'buscar_en_cv');
+  });
 
   test('sin historial busca con el mensaje', () => {
     assert.deepEqual(forced('¿Dónde trabaja?', []), { name: 'buscar_en_cv', input: { consulta: '¿Dónde trabaja?' } });

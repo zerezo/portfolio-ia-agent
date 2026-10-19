@@ -1,7 +1,8 @@
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { runAgent } from './agent.js';
-import { FLOOD_LIMIT, WINDOWS } from './config.js';
+import { formatLongDate, localDate } from './calendar.js';
+import { AVAILABILITY, FLOOD_LIMIT, WINDOWS } from './config.js';
 import { SESSION_ID_PATTERN } from './sessions.js';
 
 const SYSTEM_PROMPT = [
@@ -15,16 +16,30 @@ const SYSTEM_PROMPT = [
   '- Si la búsqueda no da resultados, prueba otra vez con palabras distintas antes de rendirte.',
   '- Responde en el idioma del usuario, en tercera persona y en 2-4 frases.',
   '- Si la pregunta no trata sobre Alejandro ni su perfil profesional, indícalo con amabilidad y no la respondas.',
+  '- Si piden una reunión o una llamada, consulta los huecos con consultar_disponibilidad y ofrece solo esos,',
+  '  indicando que son en hora de Madrid. Aún no puedes reservar: di que pronto se podrá solicitar desde aquí',
+  '  y que, mientras tanto, pueden contactar por LinkedIn.', // TODO(reuniones): sustituir al añadir solicitar_contacto.
 ].join('\n');
 
-// Búsqueda forzada: en preguntas de seguimiento ("¿y antes de eso?") el mensaje solo no basta,
-// así que se combina con la pregunta anterior del usuario.
-export const forcedCvSearch = (toolName) => (message, history) => {
+// Palabras que indican una pregunta de agenda (sin tildes, en minúsculas).
+const SCHEDULING_WORDS =
+  /\b(hueco|huecos|reunion|reunirnos|llamada|llamar|videollamada|cita|agenda|agendar|disponible|disponibilidad|lunes|martes|miercoles|jueves|viernes|sabado|domingo|manana|semana|meeting|call|book|available|availability|slot|schedule)\b/;
+
+const normalize = (text) => text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+// Llamada forzada cuando el modelo no usa herramientas en la primera ronda (ver agent.js):
+// - Pregunta de agenda → consultar_disponibilidad.
+// - Resto → buscar_en_cv. En preguntas de seguimiento ("¿y antes de eso?") el mensaje solo
+//   no basta, así que se combina con la pregunta anterior del usuario.
+export const forcedToolCall = (toolNames) => (message, history) => {
+  if (toolNames.includes('consultar_disponibilidad') && SCHEDULING_WORDS.test(normalize(message))) {
+    return { name: 'consultar_disponibilidad', input: {} };
+  }
   const previous = history.findLast((m) => m.role === 'user')?.content;
-  return { name: toolName, input: { consulta: previous ? `${previous} ${message}` : message } };
+  return { name: 'buscar_en_cv', input: { consulta: previous ? `${previous} ${message}` : message } };
 };
 
-const EMPTY_REPLY ='No he podido generar una respuesta. Prueba a reformular la pregunta.';
+const EMPTY_REPLY = 'No he podido generar una respuesta. Prueba a reformular la pregunta.';
 
 // TODO(tools): añadir la herramienta de agendar reuniones.
 
@@ -42,7 +57,18 @@ function limiter({ windowMs, limit, message, keyGenerator }) {
   });
 }
 
-export function createApp({ llm, tools, sessions, config }) {
+// El modelo no sabe la fecha actual (tiende a suponer la de su entrenamiento): se la damos.
+export function systemPromptFor(now) {
+  const { timeZone } = AVAILABILITY;
+  return (
+    `${SYSTEM_PROMPT}\n` +
+    `- Hoy es ${formatLongDate(now, timeZone)} (${localDate(now, timeZone)}), hora de Madrid. ` +
+    'Interpreta "mañana", "el jueves" o "la semana que viene" a partir de esta fecha.'
+  );
+}
+
+export function createApp({ llm, tools, sessions, config, now = () => new Date() }) {
+  const toolNames = tools.map((t) => t.name);
   const { limits, trustProxy } = config;
   const app = express();
 
@@ -114,11 +140,11 @@ export function createApp({ llm, tools, sessions, config }) {
       const { reply: rawReply } = await runAgent({
         llm,
         tools,
-        system: SYSTEM_PROMPT,
+        system: systemPromptFor(now()),
         message,
         history,
         maxTokens: limits.maxTokens,
-        forcedFirstCall: tools.length ? forcedCvSearch(tools[0].name) : undefined,
+        forcedFirstCall: toolNames.includes('buscar_en_cv') ? forcedToolCall(toolNames) : undefined,
       });
 
       const reply = rawReply || EMPTY_REPLY;

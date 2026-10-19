@@ -16,7 +16,7 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
 - **Persistencia y Vectorización:** PostgreSQL administrado en Railway, particionado en esquema relacional (estado de sesión) y vectorial (pgvector para RAG del currículum).
 
 ## 3. Estructura del Repositorio
-- /backend: Orquestador en Node.js. index.js (arranque), app.js (rutas y límites), config.js (perfiles, proveedor y variables de entorno), llm.js (adaptadores Ollama y Anthropic con soporte de herramientas), agent.js (bucle de Tool Calling), tools.js (herramientas, p. ej. buscar_en_cv), sessions.js (historial de conversación, en memoria por ahora), data/cv.json (CV público, sin datos privados), test/ (tests sin llamadas reales). .env ignorado en Git; plantilla en .env.example.
+- /backend: Orquestador en Node.js. index.js (arranque), app.js (rutas y límites), config.js (perfiles, proveedor y variables de entorno), llm.js (adaptadores Ollama y Anthropic con soporte de herramientas), agent.js (bucle de Tool Calling), tools.js (herramientas, p. ej. buscar_en_cv), sessions.js (historial de conversación, en memoria por ahora), calendar.js (disponibilidad para reuniones, sin APIs externas), data/cv.json (CV público, sin datos privados), test/ (tests sin llamadas reales). .env ignorado en Git; plantilla en .env.example.
 - /frontend: (En desarrollo) Contendrá la interfaz de usuario.
 - /.github/workflows: Contiene los pipelines de integración continua (ci-dev.yml).
 

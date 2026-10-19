@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 // Herramientas del agente. Cada una: { name, description, inputSchema, run(input) -> texto }.
 // La definición es neutral; cada adaptador de llm.js la traduce al formato de su proveedor.
 
-const MAX_RESULTS = 4;
+// Cubre una sección completa (6 certificaciones, 5 experiencias) sin inflar el contexto.
+const MAX_RESULTS = 6;
 
 // Minúsculas y sin tildes, para que "aptitudes" encuentre "Aptitudes" y "maraton" encuentre "maratón".
 const normalize = (text) =>

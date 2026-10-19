@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
-import { loadConfig } from './config.js';
+import { createAvailabilityTool } from './calendar.js';
+import { AVAILABILITY, loadConfig } from './config.js';
 import { createLlm } from './llm.js';
 import { createMemorySessionStore } from './sessions.js';
 import { createCvTool, loadCv } from './tools.js';
@@ -14,7 +15,7 @@ try {
 }
 
 const llm = createLlm(config);
-const tools = [createCvTool(loadCv())];
+const tools =[createCvTool(loadCv()), createAvailabilityTool({ schedule: AVAILABILITY })];
 
 const sessions = createMemorySessionStore();
 
