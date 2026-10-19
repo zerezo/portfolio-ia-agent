@@ -1,21 +1,24 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp } from '../app.js';
+import { createApp, forcedCvSearch } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
+import { createMemorySessionStore } from '../sessions.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
+// `fail` se puede cambiar durante el test para simular un fallo a mitad de conversación.
 function fakeLlm({ fail } = {}) {
-  const calls = [];
-  return {
+  const llm = {
     name: 'fake',
-    calls,
+    calls: [],
+    fail,
     chat: async (params) => {
-      calls.push(params);
-      if (fail) throw fail;
+      llm.calls.push({ ...params, messages: [...params.messages] });
+      if (llm.fail) throw llm.fail;
       return { text: 'respuesta', toolCalls: [] };
     },
   };
+  return llm;
 }
 
 function buildApp({ limits = {}, fail } = {}) {
@@ -24,7 +27,8 @@ function buildApp({ limits = {}, fail } = {}) {
     trustProxy: 1,
     limits: { ...LIMIT_PROFILES.funcional, ...limits },
   };
-  return { app: createApp({ llm, tools: [], config }), llm };
+  const sessions = createMemorySessionStore();
+  return { app: createApp({ llm, tools: [], sessions, config }), llm, sessions };
 }
 
 describe('loadConfig', () => {
@@ -74,7 +78,8 @@ describe('POST /api/chat', () => {
   });
 
   test('responde con el texto del modelo', async () => {
-    await request(ctx.app).post('/api/chat').send({ message: ' hola ' }).expect(200, { reply: 'respuesta' });
+    const res = await request(ctx.app).post('/api/chat').send({ message: ' hola ' }).expect(200);
+    assert.equal(res.body.reply, 'respuesta');
     assert.equal(ctx.llm.calls[0].maxTokens, LIMIT_PROFILES.funcional.maxTokens);
     assert.deepEqual(ctx.llm.calls[0].messages, [{ role: 'user', content: 'hola' }]);
   });
@@ -89,6 +94,13 @@ describe('POST /api/chat', () => {
       assert.equal(ctx.llm.calls.length, 0);
     });
   }
+
+  test('400 si sessionId no es un UUID, sin llamar al modelo', async () => {
+    for (const sessionId of ['abc', 42, '../../etc']) {
+      await request(ctx.app).post('/api/chat').send({ message: 'hola', sessionId }).expect(400);
+    }
+    assert.equal(ctx.llm.calls.length, 0);
+  });
 
   test('400 si el mensaje supera la longitud máxima', async () => {
     const message = 'a'.repeat(LIMIT_PROFILES.funcional.maxMessageLength + 1);
@@ -140,5 +152,62 @@ describe('límites', () => {
     const { app } = buildApp({ limits: { chatPerMinute: 1 } });
     await request(app).post('/api/chat').send({}).expect(400);
     await request(app).post('/api/chat').send({ message: 'hola' }).expect(200);
+  });
+});
+
+describe('forcedCvSearch', () => {
+  const forced = forcedCvSearch('buscar_en_cv');
+
+  test('sin historial busca con el mensaje', () => {
+    assert.deepEqual(forced('¿Dónde trabaja?', []), { name: 'buscar_en_cv', input: { consulta: '¿Dónde trabaja?' } });
+  });
+
+  test('con historial añade la pregunta anterior del usuario', () => {
+    const history = [
+      { role: 'user', content: '¿Dónde trabaja?' },
+      { role: 'assistant', content: 'En IndraMind.' },
+    ];
+    assert.equal(forced('¿Y antes?', history).input.consulta, '¿Dónde trabaja? ¿Y antes?');
+  });
+});
+
+describe('historial de conversación', () => {
+  const chat = (app, body) => request(app).post('/api/chat').send(body).expect(200);
+
+  test('la primera respuesta crea una sesión y devuelve su id', async () => {
+    const { app } = buildApp();
+    const res = await chat(app, { message: 'hola' });
+    assert.match(res.body.sessionId, /^[0-9a-f-]{36}$/);
+  });
+
+  test('con el sessionId, el modelo recibe los turnos anteriores', async () => {
+    const { app, llm } = buildApp({ limits: { chatPerMinute: 10 } });
+    const { sessionId } = (await chat(app, { message: 'primera' })).body;
+    const res = await chat(app, { message: 'segunda', sessionId });
+
+    assert.equal(res.body.sessionId, sessionId);
+    assert.deepEqual(llm.calls[1].messages, [
+      { role: 'user', content: 'primera' },
+      { role: 'assistant', content: 'respuesta' },
+      { role: 'user', content: 'segunda' },
+    ]);
+  });
+
+  test('un sessionId desconocido no da error: se crea una sesión nueva', async () => {
+    const { app, llm } = buildApp();
+    const unknown = '00000000-0000-4000-8000-000000000000';
+    const res = await chat(app, { message: 'hola', sessionId: unknown });
+    assert.notEqual(res.body.sessionId, unknown);
+    assert.equal(llm.calls[0].messages.length, 1);
+  });
+
+  test('si el modelo falla, el turno no se guarda en el historial', async () => {
+    const { app, llm, sessions } = buildApp({ limits: { chatPerMinute: 10 } });
+    const { sessionId } = (await chat(app, { message: 'primera' })).body;
+
+    llm.fail = Object.assign(new Error('busy'), { status: 529 });
+    await request(app).post('/api/chat').send({ message: 'perdida', sessionId }).expect(503);
+
+    assert.deepEqual(sessions.get(sessionId).map((m) => m.content), ['primera', 'respuesta']);
   });
 });

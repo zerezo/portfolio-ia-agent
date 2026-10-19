@@ -2,6 +2,7 @@ import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { runAgent } from './agent.js';
 import { FLOOD_LIMIT, WINDOWS } from './config.js';
+import { SESSION_ID_PATTERN } from './sessions.js';
 
 const SYSTEM_PROMPT = [
   'Eres el asistente del portfolio profesional de Alejandro Cerezo Gilarranz, ingeniero de',
@@ -16,10 +17,16 @@ const SYSTEM_PROMPT = [
   '- Si la pregunta no trata sobre Alejandro ni su perfil profesional, indícalo con amabilidad y no la respondas.',
 ].join('\n');
 
-const EMPTY_REPLY = 'No he podido generar una respuesta. Prueba a reformular la pregunta.';
+// Búsqueda forzada: en preguntas de seguimiento ("¿y antes de eso?") el mensaje solo no basta,
+// así que se combina con la pregunta anterior del usuario.
+export const forcedCvSearch = (toolName) => (message, history) => {
+  const previous = history.findLast((m) => m.role === 'user')?.content;
+  return { name: toolName, input: { consulta: previous ? `${previous} ${message}` : message } };
+};
+
+const EMPTY_REPLY ='No he podido generar una respuesta. Prueba a reformular la pregunta.';
 
 // TODO(tools): añadir la herramienta de agendar reuniones.
-// TODO(sesión): persistir el historial de conversación en PostgreSQL.
 
 // Estados del proveedor que indican saturación o indisponibilidad temporal, no un fallo nuestro.
 const UPSTREAM_BUSY = new Set([429, 503, 529]);
@@ -35,7 +42,7 @@ function limiter({ windowMs, limit, message, keyGenerator }) {
   });
 }
 
-export function createApp({ llm, tools, config }) {
+export function createApp({ llm, tools, sessions, config }) {
   const { limits, trustProxy } = config;
   const app = express();
 
@@ -75,7 +82,11 @@ export function createApp({ llm, tools, config }) {
   ];
 
   const validateMessage = (req, res, next) => {
-    const { message } = req.body ?? {};
+    const { message, sessionId } = req.body ?? {};
+
+    if (sessionId !== undefined && (typeof sessionId !== 'string' || !SESSION_ID_PATTERN.test(sessionId))) {
+      return res.status(400).json({ error: 'El campo "sessionId" no es válido.' });
+    }
 
     if (typeof message !== 'string' || message.trim() === '') {
       return res.status(400).json({ error: 'El campo "message" debe ser un texto no vacío.' });
@@ -90,19 +101,35 @@ export function createApp({ llm, tools, config }) {
 
   // La validación va antes de los límites: un mensaje inválido no consume cupo.
   app.post('/api/chat', validateMessage, chatLimiters, async (req, res) => {
+    // Una sesión desconocida o caducada se sustituye por una nueva: el id siempre lo crea el servidor.
+    let { sessionId } = req.body;
+    let history = sessionId && sessions.get(sessionId);
+    if (!history) {
+      sessionId = sessions.create();
+      history = [];
+    }
+    const message = req.body.message.trim();
+
     try {
-      const { reply } = await runAgent({
+      const { reply: rawReply } = await runAgent({
         llm,
         tools,
         system: SYSTEM_PROMPT,
-        message: req.body.message.trim(),
+        message,
+        history,
         maxTokens: limits.maxTokens,
-        forcedFirstCall: tools.length
-          ? (message) => ({ name: tools[0].name, input: { consulta: message } })
-          : undefined,
+        forcedFirstCall: tools.length ? forcedCvSearch(tools[0].name) : undefined,
       });
 
-      res.json({ reply: reply || EMPTY_REPLY });
+      const reply = rawReply || EMPTY_REPLY;
+      // Solo se guarda el turno si hubo respuesta: un fallo no deja preguntas huérfanas en el historial.
+      sessions.save(sessionId, [
+        ...history,
+        { role: 'user', content: message },
+        { role: 'assistant', content: reply },
+      ]);
+
+      res.json({ reply, sessionId });
     } catch (error) {
       console.error('Error en la llamada al modelo:', error);
       if (UPSTREAM_BUSY.has(error.status)) {

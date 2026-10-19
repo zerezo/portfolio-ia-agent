@@ -4,19 +4,20 @@
 // Tope de rondas con herramientas por mensaje: acota el coste y evita bucles infinitos.
 export const MAX_TOOL_STEPS = 3;
 
-// forcedFirstCall(message) -> { name, input }: si el modelo no usa ninguna herramienta en la
+// forcedFirstCall(message, history) -> { name, input }: si el modelo no usa ninguna herramienta en la
 // primera ronda, el backend hace esa llamada por él. Los modelos pequeños a veces responden
 // "no tengo esa información" sin buscar; así cada respuesta parte siempre de datos reales.
 export async function runAgent({
   llm,
   system,
   message,
+  history = [],
   tools,
   maxTokens,
   maxSteps = MAX_TOOL_STEPS,
   forcedFirstCall,
 }) {
-  const messages = [{ role: 'user', content: message }];
+  const messages = [...history, { role: 'user', content: message }];
   const byName = new Map(tools.map((t) => [t.name, t]));
   const toolsUsed = [];
 
@@ -26,7 +27,7 @@ export async function runAgent({
     let { text, toolCalls } = await llm.chat({ system, messages, tools: offered, maxTokens });
 
     if (step === 0 && toolCalls.length === 0 && forcedFirstCall) {
-      toolCalls = [{ id: 'forced_0', ...forcedFirstCall(message) }];
+      toolCalls = [{ id: 'forced_0', ...forcedFirstCall(message, history) }];
       text = '';
     }
 

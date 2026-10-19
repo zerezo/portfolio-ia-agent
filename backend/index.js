@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { createLlm } from './llm.js';
+import { createMemorySessionStore } from './sessions.js';
 import { createCvTool, loadCv } from './tools.js';
 
 let config;
@@ -15,7 +16,9 @@ try {
 const llm = createLlm(config);
 const tools = [createCvTool(loadCv())];
 
-const app = createApp({ llm, tools, config });
+const sessions = createMemorySessionStore();
+
+const app = createApp({ llm, tools, sessions, config });
 
 const server = app.listen(config.port, () => {
   console.log(
