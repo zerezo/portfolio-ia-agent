@@ -75,6 +75,14 @@ export function listFreeSlots({ schedule, now = new Date(), taken = new Set() })
   return slots;
 }
 
+// Datos de un hueco a partir de su id ('YYYY-MM-DDTHH:MM', hora local de timeZone):
+// { start: Date, label: 'martes, 20 de octubre', time: '17:00' }.
+export function describeSlot(slotId, timeZone) {
+  const [, year, month, day, hour, minute] = slotId.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/).map(Number);
+  const start = zonedToUtc({ year, month, day, hour, minute }, timeZone);
+  return { start, label: formatDay(start, timeZone), time: slotId.slice(11) };
+}
+
 const formatDay = (date, timeZone) =>
   new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 

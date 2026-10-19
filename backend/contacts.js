@@ -104,6 +104,17 @@ export function createMemoryContactStore({ now = Date.now, retentionMs = CONTACT
       return request && { ...request };
     },
 
+    // Cierra una solicitud pendiente (approved | rejected) y guarda datos extra (p. ej. el
+    // enlace de la videollamada). Devuelve la solicitud actualizada, o undefined si no existe
+    // o ya estaba cerrada: así cada enlace de revisión solo funciona una vez.
+    resolve(id, status, extra = {}) {
+      purgeExpired();
+      const request = requests.get(id);
+      if (!request || request.status !== 'pending') return undefined;
+      Object.assign(request, extra, { status, resolvedAt: now() });
+      return { ...request };
+    },
+
     hasPendingFor(email) {
       purgeExpired();
       return [...requests.values()].some((r) => r.status === 'pending' && r.email === email);

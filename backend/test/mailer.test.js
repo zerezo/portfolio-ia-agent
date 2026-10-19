@@ -22,6 +22,28 @@ describe('toEml', () => {
   });
 });
 
+describe('toEml con adjuntos', () => {
+  const eml = toEml({
+    from: 'a@x.com',
+    to: 'b@y.com',
+    subject: 'Invitación',
+    text: 'Te adjunto la invitación.',
+    attachments: [{ filename: 'invitacion.ics', contentType: 'text/calendar; method=REQUEST; charset=utf-8', content: 'BEGIN:VCALENDAR' }],
+  });
+
+  test('usa multipart/mixed con el texto y el adjunto', () => {
+    const boundary = eml.match(/boundary="([^"]+)"/)[1];
+    assert.equal(eml.split(`--${boundary}\r\n`).length, 3);
+    assert.ok(eml.includes(`--${boundary}--`));
+    assert.match(eml, /Content-Type: text\/calendar; method=REQUEST; charset=utf-8; name="invitacion\.ics"/);
+    assert.match(eml, /Content-Disposition: attachment; filename="invitacion\.ics"/);
+  });
+
+  test('el adjunto va en base64', () => {
+    assert.ok(eml.includes(Buffer.from('BEGIN:VCALENDAR').toString('base64')));
+  });
+});
+
 describe('createFileMailer', () => {
   test('guarda cada email como un archivo .eml', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'outbox-'));

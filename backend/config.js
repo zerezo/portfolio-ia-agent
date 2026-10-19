@@ -93,6 +93,11 @@ export function loadConfig(env = process.env) {
     throw new Error('TRUST_PROXY debe ser un entero >= 0');
   }
 
+  // Un secreto corto se puede adivinar por fuerza bruta: mínimo 32 caracteres.
+  if (env.REVIEW_SECRET && env.REVIEW_SECRET.length < 32) {
+    throw new Error('REVIEW_SECRET debe tener al menos 32 caracteres');
+  }
+
   const ownerEmail = env.OWNER_EMAIL || 'owner@localhost';
   if (!/^[^\s@]+@[^\s@]+$/.test(ownerEmail)) {
     throw new Error('OWNER_EMAIL no es un email válido');
@@ -103,8 +108,13 @@ export function loadConfig(env = process.env) {
     // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
     contact: {
       ownerEmail,
+      ownerName: env.OWNER_NAME || 'Alejandro',
       from: env.MAIL_FROM || 'Portfolio <no-reply@localhost>',
       outboxDir: env.OUTBOX_DIR || 'outbox',
+      // URL pública del backend, para los enlaces de revisión de los emails.
+      publicUrl: (env.PUBLIC_URL || `http://localhost:${Number(env.PORT) || 3000}`).replace(/\/+$/, ''),
+      // Secreto para firmar esos enlaces. Opcional en desarrollo (ver index.js).
+      reviewSecret: env.REVIEW_SECRET || undefined,
     },
     port: Number(env.PORT) || 3000,
     profileName,
