@@ -33,7 +33,7 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
   - El despliegue en Railway se retrasa hasta que backend, base de datos y frontend funcionen juntos en local.
   - El desarrollo usa Ollama en local (coste cero). Las llamadas reales a Claude, si se usan, se hacen manualmente y de forma puntual.
   - Los tests usan proveedores y `fetch` falsos y nunca contactan con ningún modelo.
-  - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`).
+  - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`); en producción, `normal`.
 
 ## 5. Entornos y Flujo de Trabajo
 Un solo código; el entorno lo decide la configuración (`.env` en local, variables en Railway y Cloudflare Pages). No hay ramas por entorno.
@@ -45,6 +45,7 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
 | Base de datos | PostgreSQL en Docker (`DATABASE_URL`) | PostgreSQL de Railway (`DATABASE_URL`) |
 | Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL` https, `CORS_ORIGINS` https, `TRUST_PROXY=2` (Cloudflare + Railway) |
 | Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de los visitantes (`LOG_USER_CONTENT` prohibido) |
+| Límites | `LIMIT_PROFILE=funcional` (10 mensajes/día por IP) | `LIMIT_PROFILE=normal` (4/min y 25/día por IP, 200/día en total) |
 | Frontend | `npm run dev` (proxy /api) | Cloudflare Pages con `VITE_API_URL` |
 
 - Con `NODE_ENV=production` el backend no arranca si falta algo crítico (lo comprueba config.js y lo dice).
