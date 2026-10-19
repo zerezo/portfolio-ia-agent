@@ -137,10 +137,31 @@ export function loadConfig(env = process.env) {
     throw new Error('DATABASE_URL debe empezar por postgres:// o postgresql://');
   }
 
+  // En producción (NODE_ENV=production) los valores por defecto de desarrollo serían un fallo
+  // silencioso: el servidor no arranca si falta algo crítico.
+  const production = env.NODE_ENV === 'production';
+  if (production) {
+    const problems = [
+      !env.REVIEW_SECRET && 'REVIEW_SECRET (sin él, los enlaces de aprobación caducan en cada despliegue)',
+      !databaseUrl && 'DATABASE_URL (sin ella, las solicitudes se pierden en cada despliegue)',
+      !env.PUBLIC_URL?.startsWith('https://') && 'PUBLIC_URL con https:// (enlaces de los emails)',
+      corsOrigins.length === 0 && 'CORS_ORIGINS (el frontend no podría llamar a la API)',
+      corsOrigins.some((o) => !o.startsWith('https://')) && 'CORS_ORIGINS solo con orígenes https://',
+      transport !== 'gmail' && 'MAIL_TRANSPORT=gmail (con file los emails no salen)',
+      env.LOG_USER_CONTENT === 'true' && 'LOG_USER_CONTENT desactivado (no registrar mensajes de visitantes)',
+    ].filter(Boolean);
+    if (problems.length) {
+      throw new Error(`Configuración de producción incompleta: ${problems.join('; ')}`);
+    }
+  }
+
   return {
     llm,
+    production,
     corsOrigins,
     databaseUrl,
+    // Registrar las consultas que el agente hace con el mensaje del visitante: solo desarrollo.
+    logUserContent: env.LOG_USER_CONTENT === 'true',
     // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
     contact: {
       ownerEmail,

@@ -17,8 +17,8 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
 - **Persistencia:** PostgreSQL (Docker en local, administrado en Railway en producción) para solicitudes de contacto y sesiones del chat. Migraciones SQL en backend/db/migrations, aplicadas al arrancar. pgvector para RAG del CV: opcional (con un CV pequeño basta la búsqueda por palabras clave).
 
 ## 3. Estructura del Repositorio
-- /backend: Orquestador en Node.js. index.js (arranque), app.js (rutas y límites), config.js (perfiles, proveedor y variables de entorno), llm.js (adaptadores Ollama y Anthropic con soporte de herramientas), agent.js (bucle de Tool Calling), guard.js (filtro previo al modelo: manipulación y preguntas fuera de tema), tools.js (herramientas, p. ej. buscar_en_cv), sessions.js (historial de conversación, en memoria por ahora), calendar.js (huecos libres para reuniones, sin APIs externas), contacts.js (validación y almacenes de solicitudes: memoria y PostgreSQL), db.js (conexión y migraciones), db/ (migraciones SQL y script de la base de tests), mailer.js (envío de emails: MAIL_TRANSPORT=file → archivos .eml en outbox/, ignorada en Git; gmail → API de Gmail por HTTPS), scripts/gmail-auth.js (obtiene el refresh token de Gmail: npm run gmail:auth), approvals.js (tokens firmados de revisión), review.js (páginas y emails de aprobar/rechazar), ics.js (invitaciones de calendario), data/cv.json (CV público, sin datos privados), test/ (tests sin llamadas reales). .env ignorado en Git; plantilla en .env.example.
-- /frontend: React + Vite. src/api.js (cliente de la API; `VITE_API_URL` en producción, proxy de Vite a localhost:3000 en desarrollo), src/components/ (Header, ProfilePanel, Chat, ContactForm, Sections, Footer), src/styles.css. Primera pantalla: CV y chat al 50 % (chat abierto con preguntas sugeridas); debajo, el formulario de contacto y el resto del CV.
+- /backend: Orquestador en Node.js. index.js (arranque), app.js (rutas y límites), config.js (perfiles, proveedor y variables de entorno), llm.js (adaptadores Ollama y Anthropic con soporte de herramientas), agent.js (bucle de Tool Calling), guard.js (filtro previo al modelo: manipulación y preguntas fuera de tema), tools.js (herramientas, p. ej. search_cv), sessions.js (historial de conversación: memoria y PostgreSQL), calendar.js (huecos libres para reuniones, sin APIs externas), contacts.js (validación y almacenes de solicitudes: memoria y PostgreSQL), db.js (conexión y migraciones), db/ (migraciones SQL y script de la base de tests), mailer.js (envío de emails: MAIL_TRANSPORT=file → archivos .eml en outbox/, ignorada en Git; gmail → API de Gmail por HTTPS), scripts/gmail-auth.js (obtiene el refresh token de Gmail: npm run gmail:auth), approvals.js (tokens firmados de revisión), review.js (páginas y emails de aprobar/rechazar), ics.js (invitaciones de calendario), data/cv.json (CV público, sin datos privados), railway.json (arranque y comprobación de salud en Railway), test/ (tests sin llamadas reales). .env ignorado en Git; plantilla en .env.example.
+- /frontend: React + Vite. src/api.js (cliente de la API; `VITE_API_URL` en producción, proxy de Vite a localhost:3000 en desarrollo), src/components/ (Header, ProfilePanel, Chat, ContactForm, SlotPicker, Sections, Footer), src/styles.css. vite.config.js (con tools/markdown.js) genera al compilar privacy.html (desde PRIVACY.md, la única fuente del texto) y _headers (cabeceras de seguridad de Cloudflare Pages, con la CSP limitada a la propia web y a VITE_API_URL). Primera pantalla: CV y chat al 50 % (chat abierto con preguntas sugeridas); debajo, el formulario de contacto y el resto del CV.
 - /.github/workflows: Contiene los pipelines de integración continua (ci-dev.yml).
 
 ## 4. Reglas de Desarrollo y Comportamiento Técnico
@@ -35,9 +35,25 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
   - Los tests usan proveedores y `fetch` falsos y nunca contactan con ningún modelo.
   - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`).
 
-## 5. Comandos Frecuentes
+## 5. Entornos y Flujo de Trabajo
+Un solo código; el entorno lo decide la configuración (`.env` en local, variables en Railway y Cloudflare Pages). No hay ramas por entorno.
+
+| | Local (`backend/.env`) | Producción (Railway) |
+|---|---|---|
+| Modelo | `LLM_PROVIDER=ollama` (gratis) o `anthropic` para probar Haiku puntualmente | `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` |
+| Emails | `MAIL_TRANSPORT=file` (archivos .eml) o `gmail` | `MAIL_TRANSPORT=gmail` + `GMAIL_*`, `MAIL_FROM`, `OWNER_EMAIL` |
+| Base de datos | PostgreSQL en Docker (`DATABASE_URL`) | PostgreSQL de Railway (`DATABASE_URL`) |
+| Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL` https, `CORS_ORIGINS` https, `TRUST_PROXY=2` (Cloudflare + Railway) |
+| Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de los visitantes (`LOG_USER_CONTENT` prohibido) |
+| Frontend | `npm run dev` (proxy /api) | Cloudflare Pages con `VITE_API_URL` |
+
+- Con `NODE_ENV=production` el backend no arranca si falta algo crítico (lo comprueba config.js y lo dice).
+- Flujo: desarrollar y probar en local en `dev` → PR a `main` (CI) → Railway despliega `main` automáticamente.
+- Probar en local evita romper la web pública, ensuciar datos reales y gastar despliegues.
+
+## 6. Comandos Frecuentes
 - Iniciar el servidor local de desarrollo: cd backend && npm run dev (requiere Ollama en marcha y el modelo descargado: `ollama pull qwen2.5:7b`).
 - Iniciar el frontend: cd frontend && npm run dev (http://localhost:5173; /api se redirige al backend).
 - Base de datos local: docker compose up -d (parar: docker compose down; borrar datos: docker compose down -v).
 - Ejecutar los tests: cd backend && npm test (los de PostgreSQL solo se ejecutan con TEST_DATABASE_URL, base `portfolio_test`; en CI hay un Postgres de servicio).
-- Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio).
+- Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway despliega main.

@@ -14,7 +14,7 @@ This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (
 ### Chat assistant
 - **Data:** the messages you write in the chat.
 - **Purpose:** to answer your questions about Alejandro's professional background.
-- **Retention:** the conversation is kept in memory for up to 30 minutes of inactivity, so the assistant can understand follow-up questions. It is then deleted.
+- **Retention:** the conversation is stored for up to 30 minutes of inactivity, so the assistant can understand follow-up questions. It is then deleted.
 - **Recommendation:** please do not include personal data in the chat. To contact Alejandro, use the contact form.
 
 ### Contact form

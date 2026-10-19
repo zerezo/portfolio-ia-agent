@@ -167,6 +167,19 @@ export function createApp({
   // Railway (y después Cloudflare) actúan como proxy: sin esto todas las IPs serían la del proxy.
   app.set('trust proxy', trustProxy);
 
+  // Cabeceras de seguridad comunes. La API devuelve JSON (y las páginas de revisión, que
+  // añaden su propia CSP): nada debe incrustarla, interpretarla como otro tipo ni cachearla.
+  app.use((req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cache-Control': 'no-store',
+    });
+    next();
+  });
+
   app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
   });
@@ -396,6 +409,7 @@ export function createApp({
         history,
         maxTokens: limits.maxTokens,
         forcedFirstCall: cvTool ? forcedCvSearch(cvTool) : undefined,
+        logUserContent: config.logUserContent,
       });
 
       const reply = rawReply || EMPTY_REPLY;

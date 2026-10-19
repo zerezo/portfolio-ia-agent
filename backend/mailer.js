@@ -74,7 +74,8 @@ export function createFileMailer({ dir, from, now = () => new Date() }) {
       const date = now();
       const file = join(dir, `${date.toISOString().replace(/[:.]/g, '-')}-${++counter}.eml`);
       writeFileSync(file, toEml({ ...email, from, date }));
-      console.log(`[mailer] email para ${email.to} guardado en ${file}`);
+      // Sin la dirección del destinatario: el log no guarda datos personales.
+      console.log(`[mailer] email guardado en ${file}`);
     },
   };
 }
@@ -131,7 +132,7 @@ export function createGmailMailer({ clientId, clientSecret, refreshToken, from, 
           status: res.status,
         });
       }
-      console.log(`[mailer] email para ${email.to} enviado con Gmail`);
+      console.log('[mailer] email enviado con Gmail');
     },
   };
 }
