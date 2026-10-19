@@ -10,10 +10,10 @@ function fakeLlm({ fail } = {}) {
   return {
     name: 'fake',
     calls,
-    complete: async (params) => {
+    chat: async (params) => {
       calls.push(params);
       if (fail) throw fail;
-      return 'respuesta';
+      return { text: 'respuesta', toolCalls: [] };
     },
   };
 }
@@ -24,7 +24,7 @@ function buildApp({ limits = {}, fail } = {}) {
     trustProxy: 1,
     limits: { ...LIMIT_PROFILES.funcional, ...limits },
   };
-  return { app: createApp({ llm, config }), llm };
+  return { app: createApp({ llm, tools: [], config }), llm };
 }
 
 describe('loadConfig', () => {
@@ -76,7 +76,7 @@ describe('POST /api/chat', () => {
   test('responde con el texto del modelo', async () => {
     await request(ctx.app).post('/api/chat').send({ message: ' hola ' }).expect(200, { reply: 'respuesta' });
     assert.equal(ctx.llm.calls[0].maxTokens, LIMIT_PROFILES.funcional.maxTokens);
-    assert.equal(ctx.llm.calls[0].message, 'hola');
+    assert.deepEqual(ctx.llm.calls[0].messages, [{ role: 'user', content: 'hola' }]);
   });
 
   for (const [caso, body] of [

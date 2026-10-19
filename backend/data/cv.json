@@ -1,0 +1,103 @@
+{
+  "perfil": {
+    "nombre": "Alejandro Cerezo Gilarranz",
+    "titular": "Analista de Ciberseguridad en IndraMind Cybersecurity (Cyber Risk & Compliance) | Ingeniero de Telecomunicaciones",
+    "ubicacion": "Segovia, Castilla y León, España",
+    "resumen": "Graduado en Ingeniería de Tecnologías y Servicios de Telecomunicación por la Universidad Politécnica de Madrid. Trabaja en IndraMind Cybersecurity (antes SIA), empresa del grupo Indra especializada en ciberseguridad, donde empezó como becario en el departamento de GRC (Gobernanza, Riesgo y Cumplimiento) y actualmente es analista en el área de Cyber Risk & Compliance. Le interesan la gestión de riesgos, el cumplimiento normativo y el desarrollo de soluciones seguras en entornos tecnológicos."
+  },
+  "contacto": {
+    "linkedin": "https://www.linkedin.com/in/alejandrocerezo-gilarranz-1145b6228"
+  },
+  "experiencia": [
+    {
+      "empresa": "IndraMind Cybersecurity (grupo Indra, antes SIA)",
+      "puesto": "CRC Analyst (Cyber Risk & Compliance)",
+      "inicio": "2026-05",
+      "fin": null,
+      "ubicacion": "Madrid",
+      "descripcion": "Analista de ciberseguridad en el área de Cyber Risk & Compliance para clientes de servicios financieros y auditoría. Seguimiento de KPIs y análisis de riesgos.",
+      "etiquetas": ["ciberseguridad", "riesgos", "cumplimiento", "auditoría", "KPIs", "servicios financieros"]
+    },
+    {
+      "empresa": "IndraMind Cybersecurity (grupo Indra, antes SIA)",
+      "puesto": "Cybersecurity Intern",
+      "inicio": "2025-09",
+      "fin": "2026-05",
+      "ubicacion": "Madrid",
+      "descripcion": "Prácticas curriculares en el departamento de GRC (Gobernanza, Riesgo y Cumplimiento). Apoyo en tareas de gobernanza, riesgo y cumplimiento, con participación principal en proyectos de análisis de riesgos de terceros.",
+      "etiquetas": ["ciberseguridad", "GRC", "gobernanza", "riesgos", "cumplimiento", "riesgo de terceros", "prácticas"]
+    },
+    {
+      "empresa": "Fotomatón y Más",
+      "puesto": "Comercial",
+      "inicio": "2025-02",
+      "fin": "2025-12",
+      "ubicacion": "Madrid",
+      "descripcion": "Contacto con clientes para ofrecer propuestas personalizadas según sus necesidades y la disponibilidad de la empresa.",
+      "etiquetas": ["ventas", "atención al cliente", "comunicación"]
+    },
+    {
+      "empresa": "Fotomatón y Más",
+      "puesto": "Azafato de fotomatón",
+      "inicio": "2024-04",
+      "fin": "2026-09",
+      "ubicacion": "Segovia",
+      "descripcion": "Atención del servicio de fotomatón en bodas y fiestas privadas.",
+      "etiquetas": ["eventos", "atención al cliente"]
+    },
+    {
+      "empresa": "Maxieventos",
+      "puesto": "Monitor y coordinador",
+      "inicio": "2023-05",
+      "fin": "2024-04",
+      "ubicacion": "Segovia",
+      "descripcion": "Monitor y coordinador en eventos infantiles con castillos hinchables.",
+      "etiquetas": ["eventos", "coordinación", "trabajo en equipo"]
+    }
+  ],
+  "educacion": [
+    {
+      "centro": "Universidad Politécnica de Madrid",
+      "titulo": "Grado en Ingeniería de Tecnologías y Servicios de Telecomunicación",
+      "inicio": "2021",
+      "fin": "2026-06",
+      "etiquetas": ["telecomunicaciones", "ingeniería", "redes"]
+    }
+  ],
+  "aptitudes": [
+    "Seguridad de redes",
+    "Gestión de redes",
+    "Gestión de infraestructuras de tecnologías de la información",
+    "Gobernanza, Riesgo y Cumplimiento (GRC)",
+    "Análisis de riesgos de terceros"
+  ],
+  "certificaciones": [
+    { "nombre": "ISO/IEC 27001: Implementando Seguridad de la Información", "etiquetas": ["ISO 27001", "SGSI", "cumplimiento"] },
+    { "nombre": "DORA - The EU Digital Operational Resilience Act", "etiquetas": ["DORA", "regulación", "servicios financieros", "resiliencia"] },
+    { "nombre": "Inglés C1 - Advanced (puntuación 190)", "etiquetas": ["inglés", "idiomas"] },
+    { "nombre": "MATLAB Onramp", "etiquetas": ["MATLAB", "programación"] },
+    { "nombre": "Tablas dinámicas en Excel", "etiquetas": ["Excel", "datos"] },
+    { "nombre": "Dashboards y análisis de datos", "etiquetas": ["análisis de datos", "dashboards", "KPIs"] }
+  ],
+  "idiomas": [
+    { "idioma": "Español", "nivel": "Nativo" },
+    { "idioma": "Inglés", "nivel": "Fluido, C1 (Cambridge C1 Advanced, puntuación 190)" }
+  ],
+  "intereses": [
+    {
+      "tema": "Running",
+      "descripcion": "Ha corrido 4 medias maratones (3 en Segovia y 1 en Madrid) y la Behobia-San Sebastián (20 km).",
+      "etiquetas": ["deporte", "running", "media maratón", "Behobia", "constancia"]
+    },
+    {
+      "tema": "Ciclismo",
+      "descripcion": "Practica ciclismo de forma habitual.",
+      "etiquetas": ["deporte", "ciclismo"]
+    },
+    {
+      "tema": "Fútbol",
+      "descripcion": "Jugó al fútbol en categorías inferiores durante el instituto y fue capitán de su equipo local durante varios años.",
+      "etiquetas": ["deporte", "fútbol", "liderazgo", "trabajo en equipo", "capitán"]
+    }
+  ]
+}
