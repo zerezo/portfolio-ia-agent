@@ -1,9 +1,18 @@
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { runAgent } from './agent.js';
-import { availabilityByDay, formatLongDate, listFreeSlots, localDate } from './calendar.js';
+import { availabilityByDay, describeSlot, formatLongDate, listFreeSlots, localDate } from './calendar.js';
 import { AVAILABILITY, CONTACT_LIMITS, FLOOD_LIMIT, WINDOWS } from './config.js';
 import { validateContactRequest } from './contacts.js';
+import {
+  approvalEmails,
+  createJitsiUrl,
+  escapeHtml,
+  newRequestEmails,
+  page,
+  rejectionEmail,
+  reviewPage,
+} from './review.js';
 import { SESSION_ID_PATTERN } from './sessions.js';
 
 const SYSTEM_PROMPT = [
@@ -81,49 +90,36 @@ export function systemPromptFor(now) {
   );
 }
 
-const MODE_LABELS = { video: 'Videollamada', phone: 'Llamada telefónica', email: 'Contacto por email' };
-
-// Textos de los emails de una solicitud nueva: aviso a Alejandro y acuse para quien la envía.
-function contactEmails(request, slot, { ownerEmail }) {
-  const when = slot ? `${slot.label}, ${slot.time} (hora de Madrid, ${AVAILABILITY.slotMinutes} min)` : null;
-  const summary = [
-    `Modalidad: ${MODE_LABELS[request.mode]}`,
-    ...(when ? [`Fecha: ${when}`] : []),
-    `Nombre: ${request.name}`,
-    `Email: ${request.email}`,
-    ...(request.company ? [`Empresa: ${request.company}`] : []),
-    ...(request.phone ? [`Teléfono: ${request.phone}`] : []),
-    '',
-    'Motivo:',
-    request.reason,
-  ].join('\n');
-
-  return [
-    {
-      to: ownerEmail,
-      subject: `Nueva solicitud de contacto: ${request.name} (${MODE_LABELS[request.mode]})`,
-      // TODO(reuniones): enlaces firmados para aprobar o rechazar.
-      text: `${summary}\n\nId de la solicitud: ${request.id}\n`,
-    },
-    {
-      to: request.email,
-      subject: 'Hemos recibido tu solicitud de contacto',
-      text:
-        `Hola, ${request.name}:\n\n` +
-        'Gracias por tu interés. Alejandro revisará tu solicitud y te responderá por email.\n' +
-        `${when ? 'El hueco elegido queda reservado hasta entonces.\n' : ''}\n` +
-        `Resumen de tu solicitud:\n${summary}\n`,
-    },
-  ];
+// Cabeceras de las páginas de revisión: sin scripts ni incrustación en otras webs, sin caché,
+// y sin Referer (el token va en la URL y no debe filtrarse a otros sitios).
+function setPageHeaders(res) {
+  res.set({
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+    'Referrer-Policy': 'no-referrer',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
 }
 
-// contacts: almacén de solicitudes (contacts.js). mailer: send({ to, subject, text }) (mailer.js).
-export function createApp({ llm, tools, sessions, contacts, mailer, config, now = () => new Date() }) {
+// contacts: almacén de solicitudes (contacts.js). mailer: send({ to, subject, text, attachments })
+// (mailer.js). reviewTokens: firma y verifica los enlaces de revisión (approvals.js).
+export function createApp({ llm, tools, sessions, contacts, mailer, reviewTokens, config, now = () => new Date() }) {
   const hasCvTool = tools.some((t) => t.name === 'buscar_en_cv');
   const freeSlots = () =>
     listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set(contacts?.takenSlotIds() ?? []) });
   const { limits, trustProxy } = config;
   const app = express();
+
+  // Envía varios emails; un fallo se registra pero no interrumpe el resto ni la respuesta.
+  const sendAll = async (emails, requestId) => {
+    for (const email of emails) {
+      try {
+        await mailer.send(email);
+      } catch (error) {
+        console.error(`Error al enviar un email de la solicitud ${requestId}:`, error);
+      }
+    }
+  };
 
   app.disable('x-powered-by');
   // Railway (y después Cloudflare) actúan como proxy: sin esto todas las IPs serían la del proxy.
@@ -179,17 +175,14 @@ export function createApp({ llm, tools, sessions, contacts, mailer, config, now 
     }
 
     const request = contacts.create(value);
-    const slot = slots.find((s) => s.id === request.slotId);
-    const label = slot && availabilityByDay([slot], AVAILABILITY.timeZone)[0].label;
+    const token = reviewTokens.create(request.id);
+    const reviewUrl = `${config.contact.publicUrl}/api/contact/${request.id}/review?token=${encodeURIComponent(token)}`;
 
     // La solicitud ya está guardada: si falla un email se registra, pero no se pierde.
-    for (const email of contactEmails(request, slot && { ...slot, label }, config.contact)) {
-      try {
-        await mailer.send(email);
-      } catch (error) {
-        console.error(`Error al enviar el email de la solicitud ${request.id}:`, error);
-      }
-    }
+    await sendAll(
+      newRequestEmails(request, { schedule: AVAILABILITY, ownerEmail: config.contact.ownerEmail, reviewUrl }),
+      request.id,
+    );
 
     res.status(201).json({
       id: request.id,
@@ -197,6 +190,73 @@ export function createApp({ llm, tools, sessions, contacts, mailer, config, now 
       message: 'Solicitud enviada. Alejandro la revisará y te responderá por email.',
     });
   });
+
+  // Revisión de solicitudes desde el enlace del email. GET solo muestra la página: los
+  // clientes de correo y antivirus abren los enlaces para analizarlos, y eso no debe aprobar
+  // nada. El cambio de estado lo hacen los botones (POST).
+  // Enlace inválido, caducado o de una solicitud inexistente dan la misma respuesta.
+  const INVALID_LINK = page('Enlace no válido', '<p>El enlace no es válido o ha caducado.</p>');
+  const ALREADY_REVIEWED = page('Solicitud ya revisada', '<p>Esta solicitud ya fue revisada.</p>');
+
+  app.get('/api/contact/:id/review', (req, res) => {
+    setPageHeaders(res);
+    const request = contacts.get(req.params.id);
+    if (!request || !reviewTokens.verify(request.id, req.query.token)) {
+      return res.status(404).type('html').send(INVALID_LINK);
+    }
+    if (request.status !== 'pending') {
+      return res.type('html').send(ALREADY_REVIEWED);
+    }
+    res.type('html').send(reviewPage(request, { schedule: AVAILABILITY, token: req.query.token }));
+  });
+
+  const reviewForm = express.urlencoded({ extended: false, limit: '2kb' });
+
+  const handleDecision = (decision) => async (req, res) => {
+    setPageHeaders(res);
+    const pending = contacts.get(req.params.id);
+    if (!pending || !reviewTokens.verify(pending.id, req.body?.token)) {
+      return res.status(404).type('html').send(INVALID_LINK);
+    }
+    // Una cita cuya hora ya pasó no se puede aprobar (sí rechazar, para cerrar la solicitud).
+    if (
+      decision === 'approve' &&
+      pending.slotId &&
+      describeSlot(pending.slotId, AVAILABILITY.timeZone).start <= now()
+    ) {
+      return res
+        .status(409)
+        .type('html')
+        .send(page('Fuera de plazo', '<p>La hora de esta cita ya ha pasado. Puedes rechazarla.</p>'));
+    }
+
+    const { ownerEmail, ownerName } = config.contact;
+    const extra = decision === 'approve' && pending.mode === 'video' ? { meetingUrl: createJitsiUrl() } : {};
+    // resolve solo cierra solicitudes pendientes: si dos clics llegan a la vez, gana uno.
+    const request = contacts.resolve(pending.id, decision === 'approve' ? 'approved' : 'rejected', extra);
+    if (!request) {
+      return res.status(409).type('html').send(ALREADY_REVIEWED);
+    }
+
+    if (decision === 'approve') {
+      await sendAll(approvalEmails(request, { schedule: AVAILABILITY, ownerEmail, ownerName, now: now() }), request.id);
+      return res.type('html').send(
+        page(
+          'Solicitud aprobada',
+          `<p>Se ha enviado la confirmación a ${escapeHtml(request.email)}` +
+            `${request.slotId ? ', con la invitación para los dos calendarios' : ''}.</p>`,
+        ),
+      );
+    }
+
+    await sendAll([rejectionEmail(request, { ownerName, ownerEmail })], request.id);
+    res
+      .type('html')
+      .send(page('Solicitud rechazada', `<p>Se ha avisado a ${escapeHtml(request.email)} y el hueco queda libre.</p>`));
+  };
+
+  app.post('/api/contact/:id/approve', reviewForm, handleDecision('approve'));
+  app.post('/api/contact/:id/reject', reviewForm, handleDecision('reject'));
 
   const chatLimiters = [
     limiter({

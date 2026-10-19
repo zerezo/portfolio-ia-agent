@@ -5,6 +5,7 @@ import { createApp, detectContactIntent, forcedCvSearch, systemPromptFor } from 
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
+import { createReviewTokens } from '../approvals.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
 // `fail` se puede cambiar durante el test para simular un fallo a mitad de conversación.
@@ -42,6 +43,34 @@ describe('loadConfig', () => {
 
   test('rechaza un perfil desconocido', () => {
     assert.throws(() => loadConfig({ LIMIT_PROFILE: 'infinito' }), /LIMIT_PROFILE inválido/);
+  });
+
+  test('REVIEW_SECRET debe tener al menos 32 caracteres', () => {
+    assert.throws(() => loadConfig({ REVIEW_SECRET: 'corto' }), /REVIEW_SECRET/);
+    assert.equal(loadConfig({ REVIEW_SECRET: 'x'.repeat(32) }).contact.reviewSecret, 'x'.repeat(32));
+  });
+
+  test('PUBLIC_URL por defecto apunta al puerto local y sin barra final', () => {
+    assert.equal(loadConfig({ PORT: '4000' }).contact.publicUrl, 'http://localhost:4000');
+    assert.equal(loadConfig({ PUBLIC_URL: 'https://x.com/' }).contact.publicUrl, 'https://x.com');
+  });
+
+  test('MAIL_TRANSPORT=gmail exige las credenciales, MAIL_FROM y OWNER_EMAIL', () => {
+    assert.equal(loadConfig({}).contact.transport, 'file');
+    assert.throws(() => loadConfig({ MAIL_TRANSPORT: 'smtp' }), /MAIL_TRANSPORT inválido/);
+    assert.throws(
+      () => loadConfig({ MAIL_TRANSPORT: 'gmail', GMAIL_CLIENT_ID: 'x' }),
+      /GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, MAIL_FROM, OWNER_EMAIL/,
+    );
+    const config = loadConfig({
+      MAIL_TRANSPORT: 'gmail',
+      GMAIL_CLIENT_ID: 'id',
+      GMAIL_CLIENT_SECRET: 'secret',
+      GMAIL_REFRESH_TOKEN: 'refresh',
+      MAIL_FROM: 'Portfolio <p@gmail.com>',
+      OWNER_EMAIL: 'yo@x.com',
+    });
+    assert.deepEqual(config.contact.gmail, { clientId: 'id', clientSecret: 'secret', refreshToken: 'refresh' });
   });
 
   test('rechaza un proveedor desconocido', () => {
@@ -302,7 +331,8 @@ describe('POST /api/contact', () => {
     consent: true,
   };
 
-  function contactApp({ failMail = false } = {}) {
+  // clock.now se puede adelantar en un test para simular que la cita ya ha pasado.
+  function contactApp({ failMail = false, clock = { now } } = {}) {
     const sent = [];
     const mailer = {
       send: async (email) => {
@@ -311,8 +341,22 @@ describe('POST /api/contact', () => {
       },
     };
     const contacts = createMemoryContactStore();
-    const config = { trustProxy: 1, limits: LIMIT_PROFILES.funcional, contact: { ownerEmail: 'yo@x.com' } };
-    const app = createApp({ llm: fakeLlm(), tools: [], sessions: createMemorySessionStore(), contacts, mailer, config, now });
+    const reviewTokens = createReviewTokens({ secret: 'secreto-de-test', now: () => clock.now().getTime() });
+    const config = {
+      trustProxy: 1,
+      limits: LIMIT_PROFILES.funcional,
+      contact: { ownerEmail: 'yo@x.com', ownerName: 'Alejandro', publicUrl: 'https://portfolio.test' },
+    };
+    const app = createApp({
+      llm: fakeLlm(),
+      tools: [],
+      sessions: createMemorySessionStore(),
+      contacts,
+      mailer,
+      reviewTokens,
+      config,
+      now: () => clock.now(),
+    });
     return { app, sent, contacts };
   }
 
@@ -325,6 +369,9 @@ describe('POST /api/contact', () => {
     assert.deepEqual(sent.map((e) => e.to), ['yo@x.com', 'ana@empresa.com']);
     assert.match(sent[0].text, /martes, 20 de octubre, 17:00 \(hora de Madrid/);
     assert.match(sent[0].text, /Videollamada/);
+    // Reply-To cruzado: Alejandro responde al solicitante y viceversa.
+    assert.equal(sent[0].replyTo, 'ana@empresa.com');
+    assert.equal(sent[1].replyTo, 'yo@x.com');
   });
 
   test('el hueco solicitado desaparece de la disponibilidad', async () => {
@@ -366,5 +413,188 @@ describe('POST /api/contact', () => {
       await request(app).post('/api/contact').send({}).expect(400);
     }
     await request(app).post('/api/contact').send(form).expect(429);
+  });
+});
+
+describe('revisión de solicitudes (aprobar / rechazar)', () => {
+  // Lunes 19-10-2026 a las 10:00 en Madrid; el hueco pedido es el martes a las 17:00.
+  const MONDAY = new Date('2026-10-19T08:00:00Z');
+  const form = {
+    name: 'Ana Recruiter',
+    email: 'ana@empresa.com',
+    reason: 'Me gustaría hablar sobre una posición de GRC.',
+    mode: 'video',
+    slotId: '2026-10-20T17:00',
+    consent: true,
+  };
+
+  function setup() {
+    const clock = { current: MONDAY, now: () => clock.current };
+    const sent = [];
+    const contacts = createMemoryContactStore({ now: () => clock.current.getTime() });
+    const reviewTokens = createReviewTokens({ secret: 'secreto-de-test', now: () => clock.current.getTime() });
+    const config = {
+      trustProxy: 1,
+      limits: LIMIT_PROFILES.funcional,
+      contact: { ownerEmail: 'yo@x.com', ownerName: 'Alejandro', publicUrl: 'https://portfolio.test' },
+    };
+    const app = createApp({
+      llm: fakeLlm(),
+      tools: [],
+      sessions: createMemorySessionStore(),
+      contacts,
+      mailer: { send: async (email) => sent.push(email) },
+      reviewTokens,
+      config,
+      now: clock.now,
+    });
+
+    // Envía el formulario y extrae el enlace de revisión del email que recibe Alejandro.
+    const submit = async (body = form) => {
+      await request(app).post('/api/contact').send(body).expect(201);
+      const link = sent.findLast((e) => e.to === 'yo@x.com').text.match(/https:\/\/portfolio\.test(\S+)/)[1];
+      const url = new URL(link, 'https://portfolio.test');
+      return { path: url.pathname, id: url.pathname.split('/')[3], token: url.searchParams.get('token') };
+    };
+    const decide = (id, decision, token) =>
+      request(app).post(`/api/contact/${id}/${decision}`).type('form').send(token === undefined ? {} : { token });
+
+    return { app, sent, contacts, clock, submit, decide };
+  }
+
+  test('el email a Alejandro incluye un enlace de revisión con token', async () => {
+    const { submit } = setup();
+    const { path, token } = await submit();
+    assert.match(path, /^\/api\/contact\/[0-9a-f-]{36}\/review$/);
+    assert.match(token, /^\d+\.[\w-]+$/);
+  });
+
+  test('GET muestra la página sin cambiar el estado, con cabeceras de seguridad', async () => {
+    const { app, contacts, submit } = setup();
+    const { path, id, token } = await submit();
+    const res = await request(app).get(path).query({ token }).expect(200);
+
+    assert.match(res.text, /Ana Recruiter/);
+    assert.match(res.text, /action="\/api\/contact\/[0-9a-f-]+\/approve"/);
+    assert.equal(res.headers['referrer-policy'], 'no-referrer');
+    assert.match(res.headers['content-security-policy'], /default-src 'none'/);
+    assert.equal(res.headers['cache-control'], 'no-store');
+    assert.equal(contacts.get(id).status, 'pending');
+  });
+
+  test('token inválido, de otra solicitud o id inexistente: 404 con el mismo mensaje', async () => {
+    const { app, submit } = setup();
+    const a = await submit();
+    const b = await submit({ ...form, email: 'otro@x.com', slotId: '2026-10-20T17:20' });
+
+    for (const [path, token] of [
+      [a.path, 'basura'],
+      [a.path, b.token],
+      ['/api/contact/00000000-0000-4000-8000-000000000000/review', a.token],
+    ]) {
+      const res = await request(app).get(path).query({ token }).expect(404);
+      assert.match(res.text, /no es válido o ha caducado/);
+    }
+  });
+
+  test('el token caduca a los 7 días', async () => {
+    const { app, clock, submit } = setup();
+    const { path, token } = await submit();
+    clock.current = new Date(MONDAY.getTime() + 7 * 24 * 60 * 60 * 1000 + 1);
+    await request(app).get(path).query({ token }).expect(404);
+  });
+
+  test('aprobar una videollamada: Jitsi + invitación .ics para ambos', async () => {
+    const { contacts, sent, submit, decide } = setup();
+    const { id, token } = await submit();
+    sent.length = 0;
+
+    const res = await decide(id, 'approve', token).expect(200);
+    assert.match(res.text, /Solicitud aprobada/);
+
+    const approved = contacts.get(id);
+    assert.equal(approved.status, 'approved');
+    assert.match(approved.meetingUrl, /^https:\/\/meet\.jit\.si\/portfolio-[0-9a-f]{24}$/);
+
+    assert.deepEqual(sent.map((e) => e.to), ['ana@empresa.com', 'yo@x.com']);
+    for (const email of sent) {
+      const [ics] = email.attachments;
+      assert.match(ics.contentType, /text\/calendar; method=REQUEST/);
+      assert.match(ics.content, /DTSTART:20261020T150000Z/);
+      // La URL puede quedar plegada en varias líneas del .ics: se despliega antes de buscarla.
+      assert.ok(ics.content.replace(/\r\n /g, '').includes(approved.meetingUrl));
+    }
+    assert.ok(sent[0].text.includes(approved.meetingUrl));
+  });
+
+  test('aprobar una llamada: invitación con el teléfono y sin Jitsi', async () => {
+    const { contacts, sent, submit, decide } = setup();
+    const { id, token } = await submit({ ...form, mode: 'phone', phone: '+34 600 000 000' });
+    sent.length = 0;
+    await decide(id, 'approve', token).expect(200);
+
+    assert.equal(contacts.get(id).meetingUrl, undefined);
+    assert.match(sent[0].text, /te llamará al \+34 600 000 000/);
+    assert.match(sent[0].attachments[0].content, /LOCATION:Teléfono: \+34 600 000 000/);
+  });
+
+  test('aprobar un contacto por email: sin invitación', async () => {
+    const { sent, submit, decide } = setup();
+    const { id, token } = await submit({ ...form, mode: 'email', slotId: undefined });
+    sent.length = 0;
+    await decide(id, 'approve', token).expect(200);
+    assert.deepEqual(sent[0].attachments, []);
+    assert.match(sent[0].text, /te escribirá en breve/);
+  });
+
+  test('cada enlace funciona una sola vez', async () => {
+    const { app, sent, submit, decide } = setup();
+    const { path, id, token } = await submit();
+    await decide(id, 'approve', token).expect(200);
+    const emails = sent.length;
+
+    await decide(id, 'approve', token).expect(409);
+    await decide(id, 'reject', token).expect(409);
+    assert.equal(sent.length, emails);
+    const res = await request(app).get(path).query({ token }).expect(200);
+    assert.match(res.text, /ya fue revisada/);
+  });
+
+  test('rechazar avisa al solicitante y libera el hueco', async () => {
+    const { app, contacts, sent, submit, decide } = setup();
+    const { id, token } = await submit();
+    sent.length = 0;
+
+    await decide(id, 'reject', token).expect(200);
+    assert.equal(contacts.get(id).status, 'rejected');
+    assert.deepEqual(sent.map((e) => e.to), ['ana@empresa.com']);
+    assert.match(sent[0].text, /formulario de contacto/);
+
+    const res = await request(app).get('/api/availability').expect(200);
+    assert.equal(res.body.days[0].slots[0].id, '2026-10-20T17:00');
+  });
+
+  test('no se puede aprobar una cita cuya hora ya pasó, pero sí rechazarla', async () => {
+    const { clock, submit, decide } = setup();
+    const { id, token } = await submit();
+    clock.current = new Date('2026-10-20T15:00:00Z'); // martes 17:00 en Madrid
+    await decide(id, 'approve', token).expect(409);
+    await decide(id, 'reject', token).expect(200);
+  });
+
+  test('POST sin token o con token incorrecto: 404 sin cambios', async () => {
+    const { contacts, submit, decide } = setup();
+    const { id } = await submit();
+    await decide(id, 'approve', undefined).expect(404);
+    await decide(id, 'approve', 'basura').expect(404);
+    assert.equal(contacts.get(id).status, 'pending');
+  });
+
+  test('los datos del solicitante se escapan en la página (XSS)', async () => {
+    const { app, submit } = setup();
+    const { path, token } = await submit({ ...form, name: '<script>alert(1)</script>' });
+    const res = await request(app).get(path).query({ token }).expect(200);
+    assert.ok(!res.text.includes('<script>'));
+    assert.ok(res.text.includes('&lt;script&gt;'));
   });
 });

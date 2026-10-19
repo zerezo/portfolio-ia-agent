@@ -95,6 +95,30 @@ describe('createMemoryContactStore', () => {
     assert.deepEqual(store.takenSlotIds(), []);
   });
 
+  test('resolve cierra una solicitud pendiente una sola vez', () => {
+    const store = createMemoryContactStore();
+    const { id } = store.create({ email: 'a@b.com', slotId: 's1' });
+    const approved = store.resolve(id, 'approved', { meetingUrl: 'https://meet.jit.si/x' });
+    assert.equal(approved.status, 'approved');
+    assert.equal(approved.meetingUrl, 'https://meet.jit.si/x');
+    assert.equal(store.resolve(id, 'rejected'), undefined);
+    assert.equal(store.get(id).status, 'approved');
+  });
+
+  test('aprobada mantiene el hueco ocupado; rechazada lo libera y permite otra solicitud', () => {
+    const store = createMemoryContactStore();
+    const a = store.create({ email: 'a@b.com', slotId: 's1' });
+    const b = store.create({ email: 'c@d.com', slotId: 's2' });
+    store.resolve(a.id, 'approved');
+    store.resolve(b.id, 'rejected');
+    assert.deepEqual(store.takenSlotIds(), ['s1']);
+    assert.ok(!store.hasPendingFor('c@d.com'));
+  });
+
+  test('resolve de un id inexistente devuelve undefined', () => {
+    assert.equal(createMemoryContactStore().resolve('nada', 'approved'), undefined);
+  });
+
   test('get devuelve una copia', () => {
     const store = createMemoryContactStore();
     const { id } = store.create({ email: 'a@b.com' });
