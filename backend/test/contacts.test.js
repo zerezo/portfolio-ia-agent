@@ -31,27 +31,27 @@ describe('validateContactRequest', () => {
 
   test('llamada: exige un teléfono válido', () => {
     assert.match(errorsOf({ ...valid, mode: 'phone' }).join(), /phone/);
-    assert.match(errorsOf({ ...valid, mode: 'phone', phone: 'llámame' }).join(), /teléfono no es válido/);
+    assert.match(errorsOf({ ...valid, mode: 'phone', phone: 'llámame' }).join(), /phone number is not valid/);
     assert.deepEqual(errorsOf({ ...valid, mode: 'phone', phone: '+34 600 000 000' }), []);
   });
 
   test('videollamada y llamada exigen un hueco libre', () => {
-    assert.match(errorsOf({ ...valid, slotId: undefined }).join(), /hueco/);
-    assert.match(errorsOf({ ...valid, slotId: '2026-10-20T19:40' }).join(), /hueco/);
+    assert.match(errorsOf({ ...valid, slotId: undefined }).join(), /time slot/);
+    assert.match(errorsOf({ ...valid, slotId: '2026-10-20T19:40' }).join(), /time slot/);
   });
 
   test('exige consentimiento explícito (true, no "true")', () => {
-    assert.match(errorsOf({ ...valid, consent: 'true' }).join(), /tratamiento de tus datos/);
-    assert.match(errorsOf({ ...valid, consent: undefined }).join(), /tratamiento de tus datos/);
+    assert.match(errorsOf({ ...valid, consent: 'true' }).join(), /privacy policy/);
+    assert.match(errorsOf({ ...valid, consent: undefined }).join(), /privacy policy/);
   });
 
   test('rechaza modalidades desconocidas y emails inválidos', () => {
     assert.match(errorsOf({ ...valid, mode: 'fax' }).join(), /mode/);
-    assert.match(errorsOf({ ...valid, email: 'no-es-email' }).join(), /email no es válido/);
+    assert.match(errorsOf({ ...valid, email: 'no-es-email' }).join(), /email address is not valid/);
   });
 
   test('rechaza saltos de línea en campos de una línea (inyección de cabeceras)', () => {
-    assert.match(errorsOf({ ...valid, name: 'Ana\r\nBcc: victima@x.com' }).join(), /no permitidos/);
+    assert.match(errorsOf({ ...valid, name: 'Ana\r\nBcc: victima@x.com' }).join(), /not allowed/);
   });
 
   test('el motivo sí admite saltos de línea', () => {

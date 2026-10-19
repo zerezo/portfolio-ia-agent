@@ -108,6 +108,10 @@ export function createAnthropicLlm({ apiKey, model, client }) {
       const response = await anthropic.messages.create({
         model,
         max_tokens: maxTokens,
+        // Sin razonamiento previo: con el tope de tokens de los perfiles (300-1024) el
+        // razonamiento consumiría el presupuesto de la respuesta, y buscar en el CV y resumir
+        // no lo necesita. Haiku 5.5 lo admite con el esfuerzo por defecto (medium).
+        thinking: { type: 'disabled' },
         system,
         messages: toAnthropicMessages(messages),
         ...(tools.length && {

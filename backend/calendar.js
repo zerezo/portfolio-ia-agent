@@ -39,11 +39,6 @@ export function localDate(date, timeZone) {
   return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 }
 
-// Fecha legible en español, p. ej. "lunes, 19 de octubre de 2026".
-export const formatLongDate = (date, timeZone) =>
-  new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(
-    date,
-  );
 const toMinutes = (hhmm) => {
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;
@@ -76,15 +71,16 @@ export function listFreeSlots({ schedule, now = new Date(), taken = new Set() })
 }
 
 // Datos de un hueco a partir de su id ('YYYY-MM-DDTHH:MM', hora local de timeZone):
-// { start: Date, label: 'martes, 20 de octubre', time: '17:00' }.
-export function describeSlot(slotId, timeZone) {
+// { start: Date, label: 'Tuesday 20 October', time: '17:00' }. La web y los emails al
+// visitante van en inglés; lo que ve Alejandro, en español (locale 'es-ES').
+export function describeSlot(slotId, timeZone, locale = 'en-GB') {
   const [, year, month, day, hour, minute] = slotId.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/).map(Number);
   const start = zonedToUtc({ year, month, day, hour, minute }, timeZone);
-  return { start, label: formatDay(start, timeZone), time: slotId.slice(11) };
+  return { start, label: formatDay(start, timeZone, locale), time: slotId.slice(11) };
 }
 
-const formatDay = (date, timeZone) =>
-  new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+const formatDay = (date, timeZone, locale = 'en-GB') =>
+  new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 
 // Huecos agrupados por día para el formulario: [{ date, label, slots: [{ id, time, start }] }].
 // start va en ISO (UTC) para que el frontend pueda mostrarlo también en la hora del visitante.

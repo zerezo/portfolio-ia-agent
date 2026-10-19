@@ -66,7 +66,7 @@ function loadLlmConfig(env) {
       provider,
       anthropic: {
         apiKey: env.ANTHROPIC_API_KEY,
-        model: env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+        model: env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
       },
     };
   }
@@ -119,8 +119,28 @@ export function loadConfig(env = process.env) {
     throw new Error('OWNER_EMAIL no es un email válido');
   }
 
+  // Orígenes del frontend con acceso a la API desde el navegador (p. ej. el dominio de
+  // Cloudflare Pages). Cada uno exactamente "https://host[:puerto]", sin ruta ni barra final.
+  const corsOrigins = (env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of corsOrigins) {
+    if (!/^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) {
+      throw new Error(`CORS_ORIGINS contiene un origen inválido: "${origin}"`);
+    }
+  }
+
+  // PostgreSQL: postgres://usuario:contraseña@host:puerto/base. Opcional en desarrollo.
+  const databaseUrl = env.DATABASE_URL || undefined;
+  if (databaseUrl && !/^postgres(ql)?:\/\//.test(databaseUrl)) {
+    throw new Error('DATABASE_URL debe empezar por postgres:// o postgresql://');
+  }
+
   return {
     llm,
+    corsOrigins,
+    databaseUrl,
     // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
     contact: {
       ownerEmail,

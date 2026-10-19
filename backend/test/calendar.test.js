@@ -63,7 +63,7 @@ describe('availabilityByDay', () => {
 
   test('agrupa por día con etiqueta legible y huecos con id, hora e instante UTC', () => {
     assert.equal(days[0].date, '2026-10-20');
-    assert.equal(days[0].label, 'martes, 20 de octubre');
+    assert.equal(days[0].label, 'Tuesday 20 October');
     assert.deepEqual(days[0].slots[0], { id: '2026-10-20T17:00', time: '17:00', start: '2026-10-20T15:00:00.000Z' });
     assert.equal(days[0].slots.length, 9);
   });
