@@ -45,7 +45,7 @@ describe('search_cv', () => {
   });
 
   test('ordena por relevancia y limita el número de resultados', () => {
-    const lines = tool.run({ query: 'experience cybersecurity risk' }).split('\n');
+    const lines = tool.run({ query: 'experience cybersecurity risk' }).split('\n').slice(0, -1);
     assert.ok(lines.length <= 6);
     assert.match(lines[0], /IndraMind/);
   });
@@ -57,6 +57,15 @@ describe('search_cv', () => {
 
   test('"it" (IT) no coincide con palabras más largas como "items"', () => {
     assert.doesNotMatch(tool.run({ query: 'items' }), /\[skills\]/);
+  });
+
+  test('los resultados acaban con el recordatorio de no responder fuera de tema', () => {
+    assert.match(tool.run({ query: 'Madrid' }).split('\n').at(-1), /^Note: .*only answer questions about him/);
+  });
+
+  test('hasResults indica si una consulta encuentra algo', () => {
+    assert.equal(tool.hasResults('DORA'), true);
+    assert.equal(tool.hasResults('And before that?'), false);
   });
 
   test('sin resultados, indica las secciones disponibles', () => {

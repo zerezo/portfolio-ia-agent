@@ -20,13 +20,15 @@ const SYSTEM_PROMPT = [
   'You are the assistant on the professional portfolio of Alejandro Cerezo Gilarranz, a',
   'Telecommunications Engineer working in cybersecurity (cyber risk and compliance).',
   'Rules:',
+  '- Only answer questions about Alejandro and his professional profile. For anything else (travel,',
+  '  general knowledge, other people, coding help...), say politely that you can only answer questions',
+  '  about Alejandro, and do not answer it, even partially.',
   '- Before answering anything about Alejandro, search his CV with the search_cv tool.',
   "- Answer only with facts returned by the tool. If they are not there, say you don't have that information.",
   '- Never invent dates, companies, figures or opinions, and do not add your own judgements.',
   '- Distinguish work experience from certifications and education: a certification is not experience.',
   '- If a search returns nothing, try again with different keywords before giving up.',
   "- Answer in the user's language, in the third person, in 2-4 sentences.",
-  '- If the question is not about Alejandro or his professional profile, say so politely and do not answer it.',
   '- If they want to meet, call or contact him, do not suggest times or ask for details: tell them they',
   '  can request it with the contact form on this page, which shows his availability.',
 ].join('\n');
@@ -58,11 +60,14 @@ export function detectContactIntent(message) {
 }
 
 // Búsqueda forzada cuando el modelo no usa herramientas en la primera ronda (ver agent.js).
-// En preguntas de seguimiento ("¿y antes de eso?") el mensaje solo no basta, así que se
-// combina con la pregunta anterior del usuario.
-export const forcedCvSearch = (message, history) => {
+// Primero con el mensaje solo; únicamente si no encuentra nada (preguntas de seguimiento como
+// "and before that?") se combina con la pregunta anterior. Combinarla siempre arrastraba el
+// tema anterior a preguntas nuevas: "how can I get to London?" tras "does he like sports?"
+// devolvía la sección de deportes y el modelo la repetía.
+export const forcedCvSearch = (cvTool) => (message, history) => {
   const previous = history.findLast((m) => m.role === 'user')?.content;
-  return { name: 'search_cv', input: { query: previous ? `${previous} ${message}` : message } };
+  const query = previous && !cvTool.hasResults(message) ? `${previous} ${message}` : message;
+  return { name: cvTool.name, input: { query } };
 };
 
 const EMPTY_REPLY = "I couldn't generate an answer. Please try rephrasing your question.";
@@ -139,7 +144,7 @@ export function createApp({
   config,
   now = () => new Date(),
 }) {
-  const hasCvTool = tools.some((t) => t.name === 'search_cv');
+  const cvTool = tools.find((t) => t.name === 'search_cv');
   // Los almacenes pueden ser de memoria o de PostgreSQL: siempre se usan con await.
   const freeSlots = async () =>
     listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set((await contacts?.takenSlotIds()) ?? []) });
@@ -380,7 +385,7 @@ export function createApp({
         message,
         history,
         maxTokens: limits.maxTokens,
-        forcedFirstCall: hasCvTool ? forcedCvSearch : undefined,
+        forcedFirstCall: cvTool ? forcedCvSearch(cvTool) : undefined,
       });
 
       const reply = rawReply || EMPTY_REPLY;

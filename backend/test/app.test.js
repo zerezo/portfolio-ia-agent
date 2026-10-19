@@ -5,6 +5,7 @@ import { createApp, detectContactIntent, forcedCvSearch, systemPromptFor } from 
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
+import { createCvTool, loadCv } from '../tools.js';
 import { createReviewTokens } from '../approvals.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
@@ -218,18 +219,23 @@ describe('detectContactIntent', () => {
 });
 
 describe('forcedCvSearch', () => {
-  const forced = forcedCvSearch;
+  const forced = forcedCvSearch(createCvTool(loadCv()));
+  const history = (question) => [
+    { role: 'user', content: question },
+    { role: 'assistant', content: '...' },
+  ];
 
   test('sin historial busca con el mensaje', () => {
     assert.deepEqual(forced('Where does he work?', []), { name: 'search_cv', input: { query: 'Where does he work?' } });
   });
 
-  test('con historial añade la pregunta anterior del usuario', () => {
-    const history = [
-      { role: 'user', content: 'Where does he work?' },
-      { role: 'assistant', content: 'At IndraMind.' },
-    ];
-    assert.equal(forced('And before that?', history).input.query, 'Where does he work? And before that?');
+  test('si el mensaje solo no encuentra nada, añade la pregunta anterior (seguimiento)', () => {
+    assert.equal(forced('And before that?', history('Where does he work?')).input.query, 'Where does he work? And before that?');
+  });
+
+  test('si el mensaje solo ya encuentra algo, no arrastra el tema anterior', () => {
+    const query = forced('How can I get to London from Madrid?', history('Does he like sports?')).input.query;
+    assert.equal(query, 'How can I get to London from Madrid?');
   });
 });
 

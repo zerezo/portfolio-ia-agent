@@ -108,6 +108,8 @@ export function createCvTool(cv) {
 
   return {
     name: 'search_cv',
+    // Para la búsqueda forzada de app.js: ¿encuentra algo esta consulta?
+    hasResults: (query) => searchCv(chunks, query).length > 0,
     description:
       "Searches the CV of the portfolio's owner: profile, experience, education, skills, certifications, " +
       'languages, projects, personal interests and contact. Always use it before answering any question ' +
@@ -127,7 +129,14 @@ export function createCvTool(cv) {
       if (results.length === 0) {
         return `No results for "${query}". Available sections: ${sections.join(', ')}.`;
       }
-      return results.map((r) => `[${r.section}] ${r.text}`).join('\n');
+      // El recordatorio va pegado a los datos: los modelos pequeños lo siguen mucho mejor que
+      // una regla del prompt inicial, y la búsqueda por palabras clave puede devolver
+      // fragmentos que no responden a la pregunta (p. ej. "Madrid" en una pregunta de viajes).
+      return [
+        ...results.map((r) => `[${r.section}] ${r.text}`),
+        'Note: use these results only if they answer the question. If the question is not about ' +
+          'Alejandro, say you can only answer questions about him and do not answer it.',
+      ].join('\n');
     },
   };
 }
