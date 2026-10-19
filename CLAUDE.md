@@ -8,7 +8,7 @@ Tono: Profesional, mentor técnico, directo y enfocado en la resolución de prob
 ## 2. Arquitectura del Sistema
 El proyecto sigue un diseño de despliegue corporativo, separando claramente las responsabilidades:
 - **Control de Versiones y CI/CD:** GitHub (Ramas main para producción y dev para desarrollo). Uso de GitHub Actions para validación.
-- **Perímetro y Seguridad:** Cloudflare (WAF, Rate Limiting, Proxy DNS) con dominio propio.
+- **Perímetro y Seguridad:** Cloudflare (WAF, Rate Limiting, Proxy DNS) con dominio propio (`alejandrocerezo.dev`: web en la raíz, API en `api.alejandrocerezo.dev`; futuros proyectos en sus propios subdominios).
 - **Frontend:** React + Vite, desplegado aparte en Cloudflare Workers como archivos estáticos (CDN; frontend/wrangler.jsonc publica dist). La API en Railway, con CORS limitado a los orígenes del frontend (`CORS_ORIGINS`).
 - **Backend y Cómputo:** Node.js + Express alojado en Railway.
 - **Modelo (agnóstico de proveedor):** el backend habla con el modelo a través de una interfaz común (`llm.js`), seleccionada con `LLM_PROVIDER`:
