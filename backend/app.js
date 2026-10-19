@@ -13,6 +13,7 @@ import {
   rejectionEmail,
   reviewPage,
 } from './review.js';
+import { guardMessage } from './guard.js';
 import { SESSION_ID_PATTERN } from './sessions.js';
 
 // La web está en inglés: el prompt también, para que el modelo trabaje en un solo idioma.
@@ -375,6 +376,15 @@ export function createApp({
       const reply = CONTACT_REPLY[contactLang];
       await saveTurn(reply);
       return res.json({ reply, sessionId, action: 'open_contact_form' });
+    }
+
+    // Filtro previo: intentos de manipulación y preguntas sin relación con el CV reciben una
+    // respuesta fija y el modelo no se ejecuta. Solo se registra el motivo, no el mensaje.
+    const blocked = guardMessage(message, history, cvTool);
+    if (blocked) {
+      console.log(`[guard] mensaje bloqueado: ${blocked.reason}`);
+      await saveTurn(blocked.reply);
+      return res.json({ reply: blocked.reply, sessionId });
     }
 
     try {

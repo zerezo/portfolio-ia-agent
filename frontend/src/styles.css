@@ -431,15 +431,118 @@ legend {
   font-weight: 600;
 }
 
-.days,
-.times {
+/* Selector de cita: una semana cada vez (lunes a viernes) y horas en cuadrícula por hora. */
+.picker {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
+}
+
+.picker-step {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-label {
+  min-width: 120px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.week-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 
-.times {
-  margin-top: 12px;
+.day,
+.time {
+  padding: 10px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.day:hover:not(:disabled),
+.time:hover {
+  border-color: var(--accent);
+}
+
+.day:disabled {
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.day-selected,
+.time-selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.time-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.time-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.picker-summary {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.picker-summary-done {
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
 .fields {

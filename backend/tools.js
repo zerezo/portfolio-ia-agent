@@ -77,10 +77,13 @@ export function buildCvChunks(cv) {
   }));
 }
 
-// Coincidencia por prefijo: "certification" encuentra "certifications". En sentido inverso
-// solo con palabras de 3+ letras, para que "it" (IT) no coincida con "items".
+// Coincidencia por prefijo: "certification" encuentra "certifications". Las palabras de 1-2
+// letras solo coinciden exactas, en ambos sentidos: "it" (IT) no encuentra "items" ni "hi"
+// encuentra "high".
 const matches = (chunk, term) =>
-  [...chunk.words].some((w) => w.startsWith(term) || (w.length >= 3 && term.startsWith(w)));
+  [...chunk.words].some(
+    (w) => w === term || (term.length >= 3 && w.startsWith(term)) || (w.length >= 3 && term.startsWith(w)),
+  );
 
 // Búsqueda por palabras clave. TODO(rag): sustituir por búsqueda vectorial en pgvector.
 export function searchCv(chunks, query) {

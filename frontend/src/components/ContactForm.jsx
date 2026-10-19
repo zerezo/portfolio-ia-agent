@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAvailability, sendContactRequest } from '../api.js';
-import { formatTime, visitorTimeZone } from '../format.js';
+import { visitorTimeZone } from '../format.js';
 import { PRIVACY_URL } from '../links.js';
+import SlotPicker from './SlotPicker.jsx';
 
 const MODES = [
   { id: 'video', label: 'Video call', hint: 'A Jitsi link, no sign-up needed' },
@@ -15,7 +16,6 @@ export default function ContactForm() {
   const [mode, setMode] = useState('video');
   const [availability, setAvailability] = useState(null);
   const [availabilityError, setAvailabilityError] = useState(null);
-  const [day, setDay] = useState(null);
   const [slotId, setSlotId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState([]);
@@ -30,8 +30,6 @@ export default function ContactForm() {
       const data = await getAvailability();
       setAvailability(data);
       setAvailabilityError(null);
-      // Conserva el día elegido si sigue teniendo huecos; si no, el primero disponible.
-      setDay((current) => (data.days.some((d) => d.date === current) ? current : (data.days[0]?.date ?? null)));
     } catch (err) {
       setAvailabilityError(err.message);
     }
@@ -75,8 +73,6 @@ export default function ContactForm() {
     }
   }
 
-  const selectedDay = availability?.days.find((d) => d.date === day);
-  const showLocalTime = visitorZone && availability && visitorZone !== availability.timeZone;
 
   if (sent) {
     return (
@@ -123,58 +119,15 @@ export default function ContactForm() {
 
         {needsSlot && (
           <fieldset className="slots">
-            <legend>
-              Pick a time{' '}
-              <span className="muted small">
-                ({availability?.slotMinutes ?? 20} min · Madrid time
-                {showLocalTime && `, your time in brackets`})
-              </span>
-            </legend>
-
+            <legend>When?</legend>
             {availabilityError && (
               <p className="notice notice-error" role="alert">
                 {availabilityError}
               </p>
             )}
-            {availability && availability.days.length === 0 && (
-              <p className="muted">There are no free slots in the next two weeks. Please choose the email option.</p>
-            )}
-
-            {availability && availability.days.length > 0 && (
-              <>
-                <div className="days" role="group" aria-label="Day">
-                  {availability.days.map((d) => (
-                    <button
-                      key={d.date}
-                      type="button"
-                      className={`chip ${d.date === day ? 'chip-selected' : ''}`}
-                      aria-pressed={d.date === day}
-                      onClick={() => {
-                        setDay(d.date);
-                        setSlotId(null);
-                      }}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-                {selectedDay && (
-                  <div className="times" role="group" aria-label="Time">
-                    {selectedDay.slots.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        className={`chip ${s.id === slotId ? 'chip-selected' : ''}`}
-                        aria-pressed={s.id === slotId}
-                        onClick={() => setSlotId(s.id)}
-                      >
-                        {s.time}
-                        {showLocalTime && <span className="muted small"> ({formatTime(s.start, visitorZone)})</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+            {!availability && !availabilityError && <p className="muted">Loading availability…</p>}
+            {availability && (
+              <SlotPicker availability={availability} slotId={slotId} onSelect={setSlotId} visitorZone={visitorZone} />
             )}
           </fieldset>
         )}
