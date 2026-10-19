@@ -30,7 +30,21 @@ export const LIMIT_PROFILES = {
 // Protección anti-saturación por IP, común a todos los perfiles y a todas las rutas.
 export const FLOOD_LIMIT = { windowMs: MINUTE, limit: 30 };
 
+// Formulario de contacto: cada solicitud genera emails, así que el límite es estricto.
+export const CONTACT_LIMITS = { perHourPerIp: 3, globalPerDay: 20 };
+
 export const WINDOWS = { MINUTE, DAY };
+
+// Disponibilidad para reuniones (hora local de timeZone). weekdays: 1 = lunes ... 5 = viernes.
+export const AVAILABILITY = {
+  timeZone: 'Europe/Madrid',
+  weekdays: [1, 2, 3, 4, 5],
+  start: '17:00',
+  end: '20:00',
+  slotMinutes: 20,
+  minNoticeHours: 24,
+  maxDaysAhead: 14,
+};
 
 // Proveedores de modelo. ollama (local, gratuito) es el de desarrollo.
 export const LLM_PROVIDERS = ['ollama', 'anthropic'];
@@ -79,8 +93,19 @@ export function loadConfig(env = process.env) {
     throw new Error('TRUST_PROXY debe ser un entero >= 0');
   }
 
+  const ownerEmail = env.OWNER_EMAIL || 'owner@localhost';
+  if (!/^[^\s@]+@[^\s@]+$/.test(ownerEmail)) {
+    throw new Error('OWNER_EMAIL no es un email válido');
+  }
+
   return {
     llm,
+    // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
+    contact: {
+      ownerEmail,
+      from: env.MAIL_FROM || 'Portfolio <no-reply@localhost>',
+      outboxDir: env.OUTBOX_DIR || 'outbox',
+    },
     port: Number(env.PORT) || 3000,
     profileName,
     limits,

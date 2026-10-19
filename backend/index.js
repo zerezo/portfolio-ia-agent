@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
+import { createMemoryContactStore } from './contacts.js';
+import { createFileMailer } from './mailer.js';
 import { createLlm } from './llm.js';
+import { createMemorySessionStore } from './sessions.js';
 import { createCvTool, loadCv } from './tools.js';
 
 let config;
@@ -15,7 +18,11 @@ try {
 const llm = createLlm(config);
 const tools = [createCvTool(loadCv())];
 
-const app = createApp({ llm, tools, config });
+const sessions = createMemorySessionStore();
+const contacts = createMemoryContactStore();
+const mailer = createFileMailer({ dir: config.contact.outboxDir, from: config.contact.from });
+
+const app = createApp({ llm, tools, sessions, contacts, mailer, config });
 
 const server = app.listen(config.port, () => {
   console.log(

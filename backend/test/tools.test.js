@@ -39,8 +39,13 @@ describe('buscar_en_cv', () => {
 
   test('ordena por relevancia y limita el número de resultados', () => {
     const lines = tool.run({ consulta: 'experiencia ciberseguridad riesgos' }).split('\n');
-    assert.ok(lines.length <= 4);
+    assert.ok(lines.length <= 6);
     assert.match(lines[0], /IndraMind/);
+  });
+
+  test('una sección completa cabe en los resultados (6 certificaciones)', () => {
+    const lines = tool.run({ consulta: '¿Qué certificaciones tiene?' }).split('\n');
+    assert.equal(lines.filter((l) => l.startsWith('[certificaciones]')).length, 6);
   });
 
   test('sin resultados, indica las secciones disponibles', () => {

@@ -38,6 +38,7 @@ describe('Ollama', () => {
     assert.equal(body.model, 'm');
     assert.equal(body.stream, false);
     assert.equal(body.options.num_predict, 300);
+    assert.ok(body.options.temperature <= 0.3);
     assert.equal(body.tools, undefined);
     assert.deepEqual(body.messages.map((m) => m.role), ['system', 'user']);
   });
