@@ -55,6 +55,24 @@ describe('loadConfig', () => {
     assert.equal(loadConfig({ PUBLIC_URL: 'https://x.com/' }).contact.publicUrl, 'https://x.com');
   });
 
+  test('MAIL_TRANSPORT=gmail exige las credenciales, MAIL_FROM y OWNER_EMAIL', () => {
+    assert.equal(loadConfig({}).contact.transport, 'file');
+    assert.throws(() => loadConfig({ MAIL_TRANSPORT: 'smtp' }), /MAIL_TRANSPORT inválido/);
+    assert.throws(
+      () => loadConfig({ MAIL_TRANSPORT: 'gmail', GMAIL_CLIENT_ID: 'x' }),
+      /GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, MAIL_FROM, OWNER_EMAIL/,
+    );
+    const config = loadConfig({
+      MAIL_TRANSPORT: 'gmail',
+      GMAIL_CLIENT_ID: 'id',
+      GMAIL_CLIENT_SECRET: 'secret',
+      GMAIL_REFRESH_TOKEN: 'refresh',
+      MAIL_FROM: 'Portfolio <p@gmail.com>',
+      OWNER_EMAIL: 'yo@x.com',
+    });
+    assert.deepEqual(config.contact.gmail, { clientId: 'id', clientSecret: 'secret', refreshToken: 'refresh' });
+  });
+
   test('rechaza un proveedor desconocido', () => {
     assert.throws(() => loadConfig({ LLM_PROVIDER: 'otro' }), /LLM_PROVIDER inválido/);
   });
@@ -351,6 +369,9 @@ describe('POST /api/contact', () => {
     assert.deepEqual(sent.map((e) => e.to), ['yo@x.com', 'ana@empresa.com']);
     assert.match(sent[0].text, /martes, 20 de octubre, 17:00 \(hora de Madrid/);
     assert.match(sent[0].text, /Videollamada/);
+    // Reply-To cruzado: Alejandro responde al solicitante y viceversa.
+    assert.equal(sent[0].replyTo, 'ana@empresa.com');
+    assert.equal(sent[1].replyTo, 'yo@x.com');
   });
 
   test('el hueco solicitado desaparece de la disponibilidad', async () => {

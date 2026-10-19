@@ -249,7 +249,7 @@ export function createApp({ llm, tools, sessions, contacts, mailer, reviewTokens
       );
     }
 
-    await sendAll([rejectionEmail(request, { ownerName })], request.id);
+    await sendAll([rejectionEmail(request, { ownerName, ownerEmail })], request.id);
     res
       .type('html')
       .send(page('Solicitud rechazada', `<p>Se ha avisado a ${escapeHtml(request.email)} y el hueco queda libre.</p>`));

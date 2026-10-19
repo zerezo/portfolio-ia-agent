@@ -39,16 +39,20 @@ export function summarize(request, schedule) {
 }
 
 // Emails al crear la solicitud: aviso a Alejandro (con el enlace de revisión) y acuse.
+// Reply-To cruzado: Alejandro responde directamente al solicitante, y las respuestas del
+// solicitante llegan al email personal de Alejandro, no a la cuenta que envía.
 export function newRequestEmails(request, { schedule, ownerEmail, reviewUrl }) {
   const summary = summarize(request, schedule);
   return [
     {
       to: ownerEmail,
+      replyTo: request.email,
       subject: `Nueva solicitud de contacto: ${request.name} (${MODE_LABELS[request.mode]})`,
       text: `${summary}\n\nRevísala aquí para aprobarla o rechazarla (el enlace caduca en 7 días):\n${reviewUrl}\n`,
     },
     {
       to: request.email,
+      replyTo: ownerEmail,
       subject: 'Hemos recibido tu solicitud de contacto',
       text:
         `Hola, ${request.name}:\n\n` +
@@ -95,6 +99,7 @@ export function approvalEmails(request, { schedule, ownerEmail, ownerName, now =
   return [
     {
       to: request.email,
+      replyTo: ownerEmail,
       subject,
       text:
         `Hola, ${request.name}:\n\n` +
@@ -105,6 +110,7 @@ export function approvalEmails(request, { schedule, ownerEmail, ownerName, now =
     },
     {
       to: ownerEmail,
+      replyTo: request.email,
       subject: `[Aprobada] ${subject}`,
       text: `Has aprobado esta solicitud.\n${details}\n\n${summarize(request, schedule)}\n`,
       attachments,
@@ -112,9 +118,10 @@ export function approvalEmails(request, { schedule, ownerEmail, ownerName, now =
   ];
 }
 
-export function rejectionEmail(request, { ownerName }) {
+export function rejectionEmail(request, { ownerName, ownerEmail }) {
   return {
     to: request.email,
+    replyTo: ownerEmail,
     subject: 'Sobre tu solicitud de contacto',
     text:
       `Hola, ${request.name}:\n\n` +
