@@ -91,7 +91,7 @@ describe('loadConfig', () => {
       /ANTHROPIC_API_KEY/,
     );
     const config = loadConfig({ LLM_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'sk-ant-x' });
-    assert.equal(config.llm.anthropic.model, 'claude-sonnet-5-5');
+    assert.equal(config.llm.anthropic.model, 'claude-haiku-5-5');
   });
 });
 

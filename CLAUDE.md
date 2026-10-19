@@ -13,7 +13,7 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
 - **Backend y Cómputo:** Node.js + Express alojado en Railway.
 - **Modelo (agnóstico de proveedor):** el backend habla con el modelo a través de una interfaz común (`llm.js`), seleccionada con `LLM_PROVIDER`:
   - `ollama` (por defecto): modelo local y gratuito (`qwen2.5:7b`) para desarrollo.
-  - `anthropic`: Claude Sonnet 5.5 vía @anthropic-ai/sdk, opción de pago para producción (decisión pendiente).
+  - `anthropic`: Claude Haiku 5.5 vía @anthropic-ai/sdk en producción (decidido: preguntas sencillas sobre el CV, coste mínimo). Sin razonamiento previo (`thinking: disabled`) para no agotar el tope de tokens.
 - **Persistencia y Vectorización:** PostgreSQL administrado en Railway, particionado en esquema relacional (estado de sesión) y vectorial (pgvector para RAG del currículum).
 
 ## 3. Estructura del Repositorio

@@ -91,6 +91,7 @@ describe('Anthropic', () => {
     assert.equal(result.text, 'a\nb');
     assert.deepEqual(result.toolCalls, [{ id: 'tu1', name: 'buscar_en_cv', input: { consulta: 'DORA' } }]);
     assert.equal(client.calls[0].max_tokens, 300);
+    assert.deepEqual(client.calls[0].thinking, { type: 'disabled' });
     assert.deepEqual(client.calls[0].tools[0].input_schema, tool.inputSchema);
   });
 
