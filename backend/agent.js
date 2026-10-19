@@ -16,6 +16,9 @@ export async function runAgent({
   maxTokens,
   maxSteps = MAX_TOOL_STEPS,
   forcedFirstCall,
+  // Las consultas a las herramientas derivan del mensaje del visitante: solo se registran si
+  // se pide (desarrollo). En producción el log no guarda contenido de los usuarios.
+  logUserContent = false,
 }) {
   const messages = [...history, { role: 'user', content: message }];
   const byName = new Map(tools.map((t) => [t.name, t]));
@@ -38,7 +41,7 @@ export async function runAgent({
     messages.push({ role: 'assistant', content: text, toolCalls });
     for (const call of toolCalls) {
       toolsUsed.push(call.name);
-      console.log(`[agente] paso ${step + 1}: ${call.name} ${JSON.stringify(call.input)}`);
+      console.log(`[agente] paso ${step + 1}: ${call.name}${logUserContent ? ` ${JSON.stringify(call.input)}` : ''}`);
       messages.push({
         role: 'tool',
         toolCallId: call.id,

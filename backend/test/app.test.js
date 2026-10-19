@@ -694,3 +694,54 @@ describe('filtro previo del chat', () => {
     assert.ok(llm.calls.length >= 1);
   });
 });
+
+describe('configuración de producción', () => {
+  const PROD = {
+    NODE_ENV: 'production',
+    LLM_PROVIDER: 'anthropic',
+    ANTHROPIC_API_KEY: 'sk-ant-x',
+    REVIEW_SECRET: 'x'.repeat(64),
+    DATABASE_URL: 'postgres://u:p@db:5432/portfolio',
+    PUBLIC_URL: 'https://api.alejandrocerezo.dev',
+    CORS_ORIGINS: 'https://alejandrocerezo.dev',
+    MAIL_TRANSPORT: 'gmail',
+    GMAIL_CLIENT_ID: 'id',
+    GMAIL_CLIENT_SECRET: 'secret',
+    GMAIL_REFRESH_TOKEN: 'refresh',
+    MAIL_FROM: 'Portfolio <p@gmail.com>',
+    OWNER_EMAIL: 'yo@x.com',
+  };
+
+  test('con todo configurado arranca y no registra contenido de usuarios', () => {
+    const config = loadConfig(PROD);
+    assert.equal(config.production, true);
+    assert.equal(config.logUserContent, false);
+  });
+
+  test('sin los valores críticos no arranca, y dice cuáles faltan', () => {
+    for (const [name, value, message] of [
+      ['REVIEW_SECRET', undefined, /REVIEW_SECRET/],
+      ['DATABASE_URL', undefined, /DATABASE_URL/],
+      ['PUBLIC_URL', 'http://api.x.dev', /PUBLIC_URL/],
+      ['CORS_ORIGINS', undefined, /CORS_ORIGINS/],
+      ['CORS_ORIGINS', 'http://x.dev', /CORS_ORIGINS solo con/],
+      ['LOG_USER_CONTENT', 'true', /LOG_USER_CONTENT/],
+    ]) {
+      assert.throws(() => loadConfig({ ...PROD, [name]: value }), message, name);
+    }
+  });
+
+  test('en desarrollo los valores por defecto siguen valiendo', () => {
+    assert.equal(loadConfig({}).production, false);
+  });
+});
+
+describe('cabeceras de seguridad de la API', () => {
+  test('las respuestas JSON no se pueden incrustar ni cachear', async () => {
+    const { app } = buildApp();
+    const res = await request(app).get('/api/availability').expect(200);
+    assert.equal(res.headers['x-content-type-options'], 'nosniff');
+    assert.equal(res.headers['x-frame-options'], 'DENY');
+    assert.equal(res.headers['cache-control'], 'no-store');
+  });
+});

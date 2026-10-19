@@ -1,0 +1,55 @@
+/* Estilos de la política de privacidad (página estática generada desde PRIVACY.md). */
+:root {
+  --bg: #f7f8fa;
+  --text: #16181d;
+  --muted: #5d6470;
+  --accent: #0f6e66;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --text: #e8eaee;
+    --muted: #9aa1ad;
+    --accent: #4fc3b5;
+    color-scheme: dark;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin: 24px 0 8px;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin: 32px 0 8px;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: 20px 0 4px;
+}
+
+a {
+  color: var(--accent);
+}
+
+ul {
+  padding-left: 20px;
+}
