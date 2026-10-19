@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { createAvailabilityTool, listFreeSlots, zonedToUtc } from '../calendar.js';
+import { availabilityByDay, listFreeSlots, zonedToUtc } from '../calendar.js';
 import { AVAILABILITY } from '../config.js';
 
 const TZ = 'Europe/Madrid';
@@ -58,60 +58,17 @@ describe('listFreeSlots', () => {
   });
 });
 
-describe('consultar_disponibilidad', () => {
-  const tool = createAvailabilityTool({ schedule: AVAILABILITY, now: () => MONDAY_10H });
+describe('availabilityByDay', () => {
+  const days = availabilityByDay(listFreeSlots({ schedule: AVAILABILITY, now: MONDAY_10H }), TZ);
 
-  test('sin fecha muestra como máximo 3 días, en tramos y con hora de Madrid', () => {
-    const out = tool.run({});
-    assert.match(out, /hora de Madrid/);
-    assert.match(out, /dura 20 min/);
-    const days = out.split('\n').filter((l) => l.startsWith('- '));
-    assert.equal(days.length, 3);
-    assert.equal(days[0], '- martes, 20 de octubre (2026-10-20): de 17:00 a 20:00');
+  test('agrupa por día con etiqueta legible y huecos con id, hora e instante UTC', () => {
+    assert.equal(days[0].date, '2026-10-20');
+    assert.equal(days[0].label, 'martes, 20 de octubre');
+    assert.deepEqual(days[0].slots[0], { id: '2026-10-20T17:00', time: '17:00', start: '2026-10-20T15:00:00.000Z' });
+    assert.equal(days[0].slots.length, 9);
   });
 
-  test('con fecha muestra solo ese día', () => {
-    const out = tool.run({ fecha: '2026-10-22' });
-    assert.match(out, /jueves, 22 de octubre/);
-    assert.doesNotMatch(out, /2026-10-20/);
-  });
-
-  test('un hueco ocupado parte el tramo en dos', () => {
-    const busy = createAvailabilityTool({
-      schedule: AVAILABILITY,
-      now: () => MONDAY_10H,
-      getTakenSlots: () => ['2026-10-20T18:00'],
-    });
-    assert.match(busy.run({ fecha: '2026-10-20' }), /de 17:00 a 18:00 y de 18:20 a 20:00/);
-  });
-
-  test('un día sin huecos ofrece directamente los siguientes', () => {
-    const out = tool.run({ fecha: '2026-10-24' }); // sábado
-    assert.match(out, /^El 2026-10-24 no hay huecos\. Próximos tramos/);
-    assert.match(out, /lunes, 26 de octubre/);
-  });
-
-  test('hoy (sin huecos por la antelación) ofrece los próximos días', () => {
-    assert.match(tool.run({ fecha: '2026-10-19' }), /martes, 20 de octubre/);
-  });
-
-  test('fecha null o vacía equivale a no indicar fecha', () => {
-    for (const fecha of [null, '']) {
-      assert.match(tool.run({ fecha }), /^Tramos libres/, String(fecha));
-    }
-  });
-
-  test('una fecha pasada se rechaza indicando la fecha de hoy', () => {
-    assert.match(tool.run({ fecha: '2023-10-22' }), /ya ha pasado: hoy es 2026-10-19/);
-  });
-
-  test('rechaza una fecha mal formada', () => {
-    assert.match(tool.run({ fecha: 'mañana' }), /^Error/);
-  });
-
-  test('con todo ocupado, propone el email', () => {
-    const all = listFreeSlots({ schedule: AVAILABILITY, now: MONDAY_10H }).map((s) => s.id);
-    const full = createAvailabilityTool({ schedule: AVAILABILITY, now: () => MONDAY_10H, getTakenSlots: () => all });
-    assert.match(full.run({}), /email/);
+  test('10 días laborables en los próximos 14 días', () => {
+    assert.equal(days.length, 10);
   });
 });

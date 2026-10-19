@@ -8,7 +8,7 @@ const MAX_RESULTS = 6;
 
 // Minúsculas y sin tildes, para que "aptitudes" encuentre "Aptitudes" y "maraton" encuentre "maratón".
 const normalize = (text) =>
-  text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 // Palabras vacías que no aportan a la búsqueda.
 const STOPWORDS = new Set(

@@ -1,9 +1,10 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, forcedToolCall, systemPromptFor } from '../app.js';
+import { createApp, detectContactIntent, forcedCvSearch, systemPromptFor } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
+import { createMemoryContactStore } from '../contacts.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
 // `fail` se puede cambiar durante el test para simular un fallo a mitad de conversación.
@@ -28,7 +29,7 @@ function buildApp({ limits = {}, fail } = {}) {
     limits: { ...LIMIT_PROFILES.funcional, ...limits },
   };
   const sessions = createMemorySessionStore();
-  return { app: createApp({ llm, tools: [], sessions, config }), llm, sessions };
+  return { app: createApp({ llm, tools: [], sessions, contacts: createMemoryContactStore(), config }), llm, sessions };
 }
 
 describe('loadConfig', () => {
@@ -163,18 +164,25 @@ describe('systemPromptFor', () => {
   });
 });
 
-describe('forcedToolCall', () => {
-  const forced = forcedToolCall(['buscar_en_cv', 'consultar_disponibilidad']);
-
-  test('las preguntas de agenda van a consultar_disponibilidad', () => {
-    for (const message of ['¿Tiene huecos este sábado?', 'Quiero una reunión', 'Can we book a call?']) {
-      assert.equal(forced(message, []).name, 'consultar_disponibilidad', message);
+describe('detectContactIntent', () => {
+  test('detecta peticiones de contacto y su idioma', () => {
+    for (const message of ['Quiero una reunión', '¿Podemos hacer una VIDEOLLAMADA?', '¿Tiene huecos el jueves?', 'Me gustaría contactar con él']) {
+      assert.equal(detectContactIntent(message), 'es', message);
+    }
+    for (const message of ['Can we book a call?', 'I would like to schedule an interview']) {
+      assert.equal(detectContactIntent(message), 'en', message);
     }
   });
 
-  test('sin la herramienta de agenda, todo va al CV', () => {
-    assert.equal(forcedToolCall(['buscar_en_cv'])('Quiero una reunión', []).name, 'buscar_en_cv');
+  test('no salta con preguntas sobre el CV que mencionan días u horas', () => {
+    for (const message of ['¿Dónde trabaja?', '¿Qué hace los lunes por la mañana?', '¿Corre medias maratones?', 'What certifications does he have?']) {
+      assert.equal(detectContactIntent(message), null, message);
+    }
   });
+});
+
+describe('forcedCvSearch', () => {
+  const forced = forcedCvSearch;
 
   test('sin historial busca con el mensaje', () => {
     assert.deepEqual(forced('¿Dónde trabaja?', []), { name: 'buscar_en_cv', input: { consulta: '¿Dónde trabaja?' } });
@@ -227,5 +235,136 @@ describe('historial de conversación', () => {
     await request(app).post('/api/chat').send({ message: 'perdida', sessionId }).expect(503);
 
     assert.deepEqual(sessions.get(sessionId).map((m) => m.content), ['primera', 'respuesta']);
+  });
+});
+
+describe('peticiones de contacto en el chat', () => {
+  test('responden con la acción abrir_formulario sin llamar al modelo', async () => {
+    const { app, llm } = buildApp();
+    const res = await request(app).post('/api/chat').send({ message: 'Quiero una reunión con él' }).expect(200);
+    assert.equal(res.body.action, 'abrir_formulario');
+    assert.match(res.body.reply, /formulario/);
+    assert.equal(llm.calls.length, 0);
+  });
+
+  test('responden en inglés si la petición es en inglés', async () => {
+    const { app } = buildApp();
+    const res = await request(app).post('/api/chat').send({ message: 'Can we book a call?' }).expect(200);
+    assert.match(res.body.reply, /contact form/);
+  });
+
+  test('las preguntas normales no llevan acción', async () => {
+    const { app } = buildApp();
+    const res = await request(app).post('/api/chat').send({ message: '¿Dónde trabaja?' }).expect(200);
+    assert.equal(res.body.action, undefined);
+  });
+
+  test('consumen cupo del chat igual que el resto de mensajes', async () => {
+    const { app } = buildApp({ limits: { chatPerMinute: 1 } });
+    await request(app).post('/api/chat').send({ message: 'Quiero una reunión' }).expect(200);
+    await request(app).post('/api/chat').send({ message: 'Quiero una reunión' }).expect(429);
+  });
+});
+
+describe('GET /api/availability', () => {
+  // Lunes 19-10-2026 a las 10:00 en Madrid.
+  const now = () => new Date('2026-10-19T08:00:00Z');
+
+  function availabilityApp(taken = []) {
+    const config = { trustProxy: 1, limits: LIMIT_PROFILES.funcional };
+    const contacts = { takenSlotIds: () => taken };
+    return createApp({ llm: fakeLlm(), tools: [], sessions: createMemorySessionStore(), contacts, config, now });
+  }
+
+  test('devuelve zona horaria, duración y días con huecos', async () => {
+    const res = await request(availabilityApp()).get('/api/availability').expect(200);
+    assert.equal(res.body.timeZone, 'Europe/Madrid');
+    assert.equal(res.body.slotMinutes, 20);
+    assert.equal(res.body.days[0].date, '2026-10-20');
+    assert.equal(res.body.days[0].slots[0].id, '2026-10-20T17:00');
+  });
+
+  test('excluye los huecos ocupados', async () => {
+    const res = await request(availabilityApp(['2026-10-20T17:00'])).get('/api/availability').expect(200);
+    assert.equal(res.body.days[0].slots[0].id, '2026-10-20T17:20');
+  });
+});
+
+describe('POST /api/contact', () => {
+  // Lunes 19-10-2026 a las 10:00 en Madrid: el primer hueco libre es el martes a las 17:00.
+  const now = () => new Date('2026-10-19T08:00:00Z');
+  const form = {
+    name: 'Ana Recruiter',
+    email: 'ana@empresa.com',
+    reason: 'Me gustaría hablar sobre una posición de GRC.',
+    mode: 'video',
+    slotId: '2026-10-20T17:00',
+    consent: true,
+  };
+
+  function contactApp({ failMail = false } = {}) {
+    const sent = [];
+    const mailer = {
+      send: async (email) => {
+        if (failMail) throw new Error('smtp caído');
+        sent.push(email);
+      },
+    };
+    const contacts = createMemoryContactStore();
+    const config = { trustProxy: 1, limits: LIMIT_PROFILES.funcional, contact: { ownerEmail: 'yo@x.com' } };
+    const app = createApp({ llm: fakeLlm(), tools: [], sessions: createMemorySessionStore(), contacts, mailer, config, now });
+    return { app, sent, contacts };
+  }
+
+  test('crea la solicitud pendiente y envía aviso al dueño y acuse al solicitante', async () => {
+    const { app, sent, contacts } = contactApp();
+    const res = await request(app).post('/api/contact').send(form).expect(201);
+
+    assert.equal(res.body.status, 'pending');
+    assert.equal(contacts.get(res.body.id).email, 'ana@empresa.com');
+    assert.deepEqual(sent.map((e) => e.to), ['yo@x.com', 'ana@empresa.com']);
+    assert.match(sent[0].text, /martes, 20 de octubre, 17:00 \(hora de Madrid/);
+    assert.match(sent[0].text, /Videollamada/);
+  });
+
+  test('el hueco solicitado desaparece de la disponibilidad', async () => {
+    const { app } = contactApp();
+    await request(app).post('/api/contact').send(form).expect(201);
+    const res = await request(app).get('/api/availability').expect(200);
+    assert.equal(res.body.days[0].slots[0].id, '2026-10-20T17:20');
+  });
+
+  test('no se puede pedir un hueco ya ocupado', async () => {
+    const { app } = contactApp();
+    await request(app).post('/api/contact').send(form).expect(201);
+    const res = await request(app).post('/api/contact').send({ ...form, email: 'otro@x.com' }).expect(400);
+    assert.match(res.body.error, /hueco/);
+  });
+
+  test('409 si el mismo email ya tiene una solicitud pendiente', async () => {
+    const { app } = contactApp();
+    await request(app).post('/api/contact').send(form).expect(201);
+    await request(app).post('/api/contact').send({ ...form, slotId: '2026-10-20T17:20' }).expect(409);
+  });
+
+  test('400 con todos los errores si el formulario es inválido, sin enviar emails', async () => {
+    const { app, sent } = contactApp();
+    const res = await request(app).post('/api/contact').send({ mode: 'video' }).expect(400);
+    assert.ok(res.body.errors.length > 1);
+    assert.equal(sent.length, 0);
+  });
+
+  test('si falla el envío del email, la solicitud se guarda igualmente', async () => {
+    const { app, contacts } = contactApp({ failMail: true });
+    const res = await request(app).post('/api/contact').send(form).expect(201);
+    assert.ok(contacts.get(res.body.id));
+  });
+
+  test('429 tras 3 solicitudes por hora desde la misma IP (aunque sean inválidas)', async () => {
+    const { app } = contactApp();
+    for (let i = 0; i < 3; i++) {
+      await request(app).post('/api/contact').send({}).expect(400);
+    }
+    await request(app).post('/api/contact').send(form).expect(429);
   });
 });

@@ -75,83 +75,18 @@ export function listFreeSlots({ schedule, now = new Date(), taken = new Set() })
   return slots;
 }
 
-const MAX_DAYS_SHOWN = 3;
+const formatDay = (date, timeZone) =>
+  new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 
-const addMinutes = (hhmm, minutes) => {
-  const total = toMinutes(hhmm) + minutes;
-  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
-};
-
-// Agrupa huecos consecutivos en tramos ("de 17:00 a 18:20"): respuestas más cortas y
-// sin agotar el límite de tokens. Cualquier inicio de hueco dentro del tramo es válido.
-export function toRanges(daySlots, slotMinutes) {
-  const ranges = [];
-  for (const { time } of daySlots) {
-    const last = ranges.at(-1);
-    if (last && last.end === time) last.end = addMinutes(time, slotMinutes);
-    else ranges.push({ start: time, end: addMinutes(time, slotMinutes) });
+// Huecos agrupados por día para el formulario: [{ date, label, slots: [{ id, time, start }] }].
+// start va en ISO (UTC) para que el frontend pueda mostrarlo también en la hora del visitante.
+export function availabilityByDay(slots, timeZone) {
+  const days = new Map();
+  for (const slot of slots) {
+    if (!days.has(slot.date)) {
+      days.set(slot.date, { date: slot.date, label: formatDay(slot.start, timeZone), slots: [] });
+    }
+    days.get(slot.date).slots.push({ id: slot.id, time: slot.time, start: slot.start.toISOString() });
   }
-  return ranges.map((r) => `de ${r.start} a ${r.end}`).join(' y ');
-}
-
-const formatDay = (slot, timeZone) =>
-  new Intl.DateTimeFormat('es-ES', { timeZone, weekday: 'long', day: 'numeric', month: 'long' }).format(slot.start);
-
-// getTakenSlots() -> ids ocupados (solicitudes pendientes o aprobadas). TODO(reuniones): conectar.
-export function createAvailabilityTool({ schedule, now = () => new Date(), getTakenSlots = () => [] }) {
-  return {
-    name: 'consultar_disponibilidad',
-    description:
-      'Consulta los huecos libres para una reunión con Alejandro (videollamada o llamada). ' +
-      `Cada hueco dura ${schedule.slotMinutes} minutos, en hora de ${schedule.timeZone}. ` +
-      'Úsala siempre antes de proponer horarios: no inventes huecos. ' +
-      'Sin parámetros devuelve los próximos días con huecos; con "fecha" (YYYY-MM-DD) solo ese día.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        fecha: { type: 'string', description: 'Día concreto en formato YYYY-MM-DD (opcional).' },
-      },
-    },
-    run({ fecha } = {}) {
-      // Los modelos envían null o "" para decir "sin fecha".
-      if (fecha === null || fecha === '') fecha = undefined;
-      if (fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-        return 'Error: "fecha" debe tener el formato YYYY-MM-DD.';
-      }
-      const current = now();
-      const today = localDate(current, schedule.timeZone);
-      // Los modelos no saben la fecha actual y tienden a usar años pasados.
-      if (fecha !== undefined && fecha < today) {
-        return `La fecha ${fecha} ya ha pasado: hoy es ${today}. Consulta sin fecha o con una fecha futura.`;
-      }
-      const slots = listFreeSlots({ schedule, now: current, taken: new Set(getTakenSlots()) });
-      const sameDay = fecha ? slots.filter((s) => s.date === fecha) : [];
-
-      // Si el día pedido no tiene huecos, se ofrecen directamente los siguientes: el modelo
-      // no tiene que hacer otra consulta (y no suele hacerla).
-      let header = 'Tramos libres (hora de Madrid):';
-      let shown = sameDay;
-      if (sameDay.length === 0) {
-        shown = fecha ? slots.filter((s) => s.date > fecha) : slots;
-        if (fecha) header = `El ${fecha} no hay huecos. Próximos tramos libres (hora de Madrid):`;
-      }
-
-      if (shown.length === 0) {
-        return 'No hay huecos libres en los próximos días. Ofrece contactar por email.';
-      }
-
-      const byDay = new Map();
-      for (const slot of shown) byDay.set(slot.date, [...(byDay.get(slot.date) ?? []), slot]);
-      const lines = [...byDay].slice(0, MAX_DAYS_SHOWN).map(
-        ([date, daySlots]) =>
-          `- ${formatDay(daySlots[0], schedule.timeZone)} (${date}): ${toRanges(daySlots, schedule.slotMinutes)}`,
-      );
-      // La duración va aparte de los tramos: los modelos pequeños mezclan "20 minutos" con "20:00".
-      return [
-        header,
-        ...lines,
-        `Nota: cada reunión dura ${schedule.slotMinutes} min. Copia los tramos tal cual, sin cambiar las horas.`,
-      ].join('\n');
-    },
-  };
+  return [...days.values()];
 }
