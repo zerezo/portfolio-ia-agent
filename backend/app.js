@@ -3,7 +3,7 @@ import { rateLimit } from 'express-rate-limit';
 import { runAgent } from './agent.js';
 import { availabilityByDay, describeSlot, listFreeSlots, localDate } from './calendar.js';
 import { AVAILABILITY, CONTACT_LIMITS, FLOOD_LIMIT, WINDOWS } from './config.js';
-import { validateContactRequest } from './contacts.js';
+import { ContactConflictError, validateContactRequest } from './contacts.js';
 import {
   approvalEmails,
   createJitsiUrl,
@@ -66,6 +66,9 @@ export const forcedCvSearch = (message, history) => {
 };
 
 const EMPTY_REPLY = "I couldn't generate an answer. Please try rephrasing your question.";
+const PENDING_REQUEST_ERROR = 'You already have a pending request. Alejandro will reply by email.';
+const SLOT_TAKEN_ERROR =
+  'The selected time slot is no longer available. Please reload the availability and choose another one.';
 
 // Estados del proveedor que indican saturación o indisponibilidad temporal, no un fallo nuestro.
 const UPSTREAM_BUSY = new Set([429, 503, 529]);
@@ -137,8 +140,9 @@ export function createApp({
   now = () => new Date(),
 }) {
   const hasCvTool = tools.some((t) => t.name === 'search_cv');
-  const freeSlots = () =>
-    listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set(contacts?.takenSlotIds() ?? []) });
+  // Los almacenes pueden ser de memoria o de PostgreSQL: siempre se usan con await.
+  const freeSlots = async () =>
+    listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set((await contacts?.takenSlotIds()) ?? []) });
   const { limits, trustProxy } = config;
   const app = express();
 
@@ -177,11 +181,11 @@ export function createApp({
   });
 
   // Disponibilidad para el formulario de contacto. Sin IA: basta el límite anti-saturación.
-  app.get('/api/availability', (req, res) => {
+  app.get('/api/availability', async (req, res) => {
     res.json({
       timeZone: AVAILABILITY.timeZone,
       slotMinutes: AVAILABILITY.slotMinutes,
-      days: availabilityByDay(freeSlots(), AVAILABILITY.timeZone),
+      days: availabilityByDay(await freeSlots(), AVAILABILITY.timeZone),
     });
   });
 
@@ -202,18 +206,26 @@ export function createApp({
   ];
 
   app.post('/api/contact', contactLimiters, async (req, res) => {
-    const slots = freeSlots();
+    const slots = await freeSlots();
     const { errors, value } = validateContactRequest(req.body, { freeSlotIds: new Set(slots.map((s) => s.id)) });
     if (errors) {
       return res.status(400).json({ error: errors[0], errors });
     }
-    if (contacts.hasPendingFor(value.email)) {
-      return res.status(409).json({
-        error: 'You already have a pending request. Alejandro will reply by email.',
-      });
+    if (await contacts.hasPendingFor(value.email)) {
+      return res.status(409).json({ error: PENDING_REQUEST_ERROR });
     }
 
-    const request = contacts.create(value);
+    // Las comprobaciones anteriores cubren el caso normal; si otra petición se adelanta entre
+    // la comprobación y la inserción, el almacén lo detecta (índices únicos en PostgreSQL).
+    let request;
+    try {
+      request = await contacts.create(value);
+    } catch (error) {
+      if (!(error instanceof ContactConflictError)) throw error;
+      return error.reason === 'slot_taken'
+        ? res.status(400).json({ error: SLOT_TAKEN_ERROR, errors: [SLOT_TAKEN_ERROR] })
+        : res.status(409).json({ error: PENDING_REQUEST_ERROR });
+    }
     const token = reviewTokens.create(request.id);
     const reviewUrl = `${config.contact.publicUrl}/api/contact/${request.id}/review?token=${encodeURIComponent(token)}`;
 
@@ -237,9 +249,9 @@ export function createApp({
   const INVALID_LINK = page('Enlace no válido', '<p>El enlace no es válido o ha caducado.</p>');
   const ALREADY_REVIEWED = page('Solicitud ya revisada', '<p>Esta solicitud ya fue revisada.</p>');
 
-  app.get('/api/contact/:id/review', (req, res) => {
+  app.get('/api/contact/:id/review', async (req, res) => {
     setPageHeaders(res);
-    const request = contacts.get(req.params.id);
+    const request = await contacts.get(req.params.id);
     if (!request || !reviewTokens.verify(request.id, req.query.token)) {
       return res.status(404).type('html').send(INVALID_LINK);
     }
@@ -253,7 +265,7 @@ export function createApp({
 
   const handleDecision = (decision) => async (req, res) => {
     setPageHeaders(res);
-    const pending = contacts.get(req.params.id);
+    const pending = await contacts.get(req.params.id);
     if (!pending || !reviewTokens.verify(pending.id, req.body?.token)) {
       return res.status(404).type('html').send(INVALID_LINK);
     }
@@ -272,7 +284,7 @@ export function createApp({
     const { ownerEmail, ownerName } = config.contact;
     const extra = decision === 'approve' && pending.mode === 'video' ? { meetingUrl: createJitsiUrl() } : {};
     // resolve solo cierra solicitudes pendientes: si dos clics llegan a la vez, gana uno.
-    const request = contacts.resolve(pending.id, decision === 'approve' ? 'approved' : 'rejected', extra);
+    const request = await contacts.resolve(pending.id, decision === 'approve' ? 'approved' : 'rejected', extra);
     if (!request) {
       return res.status(409).type('html').send(ALREADY_REVIEWED);
     }
@@ -338,9 +350,9 @@ export function createApp({
   app.post('/api/chat', validateMessage, chatLimiters, async (req, res) => {
     // Una sesión desconocida o caducada se sustituye por una nueva: el id siempre lo crea el servidor.
     let { sessionId } = req.body;
-    let history = sessionId && sessions.get(sessionId);
+    let history = sessionId && (await sessions.get(sessionId));
     if (!history) {
-      sessionId = sessions.create();
+      sessionId = await sessions.create();
       history = [];
     }
     const message = req.body.message.trim();
@@ -356,7 +368,7 @@ export function createApp({
     const contactLang = detectContactIntent(message);
     if (contactLang) {
       const reply = CONTACT_REPLY[contactLang];
-      saveTurn(reply);
+      await saveTurn(reply);
       return res.json({ reply, sessionId, action: 'open_contact_form' });
     }
 
@@ -372,7 +384,7 @@ export function createApp({
       });
 
       const reply = rawReply || EMPTY_REPLY;
-      saveTurn(reply);
+      await saveTurn(reply);
       res.json({ reply, sessionId });
     } catch (error) {
       console.error('Error en la llamada al modelo:', error);

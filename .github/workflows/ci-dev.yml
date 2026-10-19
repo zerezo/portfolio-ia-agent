@@ -12,6 +12,22 @@ on:
 jobs:
   code-quality-and-tests:
     runs-on: ubuntu-latest
+
+    # PostgreSQL efímero para los tests de base de datos (test/db.test.js).
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: portfolio
+          POSTGRES_PASSWORD: portfolio_ci
+          POSTGRES_DB: portfolio_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U portfolio -d portfolio_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     
     steps:
       - name: Descargar el repositorio
@@ -36,6 +52,8 @@ jobs:
 
       - name: Ejecutar tests
         working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgres://portfolio:portfolio_ci@localhost:5432/portfolio_test
         run: npm test
 
       - name: Instalar dependencias del frontend

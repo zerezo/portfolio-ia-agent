@@ -131,9 +131,16 @@ export function loadConfig(env = process.env) {
     }
   }
 
+  // PostgreSQL: postgres://usuario:contraseña@host:puerto/base. Opcional en desarrollo.
+  const databaseUrl = env.DATABASE_URL || undefined;
+  if (databaseUrl && !/^postgres(ql)?:\/\//.test(databaseUrl)) {
+    throw new Error('DATABASE_URL debe empezar por postgres:// o postgresql://');
+  }
+
   return {
     llm,
     corsOrigins,
+    databaseUrl,
     // Solicitudes de contacto: a quién se avisan y dónde guarda los emails el mailer de archivos.
     contact: {
       ownerEmail,
