@@ -32,10 +32,39 @@ export const FLOOD_LIMIT = { windowMs: MINUTE, limit: 30 };
 
 export const WINDOWS = { MINUTE, DAY };
 
-export function loadConfig(env = process.env) {
-  if (!env.ANTHROPIC_API_KEY) {
-    throw new Error('Falta la variable de entorno ANTHROPIC_API_KEY');
+// Proveedores de modelo. ollama (local, gratuito) es el de desarrollo.
+export const LLM_PROVIDERS = ['ollama', 'anthropic'];
+
+function loadLlmConfig(env) {
+  const provider = env.LLM_PROVIDER || 'ollama';
+  if (!LLM_PROVIDERS.includes(provider)) {
+    throw new Error(`LLM_PROVIDER inválido: "${provider}". Valores: ${LLM_PROVIDERS.join(', ')}`);
   }
+
+  if (provider === 'anthropic') {
+    if (!env.ANTHROPIC_API_KEY?.startsWith('sk-ant-')) {
+      throw new Error('LLM_PROVIDER=anthropic requiere una ANTHROPIC_API_KEY válida (sk-ant-...)');
+    }
+    return {
+      provider,
+      anthropic: {
+        apiKey: env.ANTHROPIC_API_KEY,
+        model: env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
+      },
+    };
+  }
+
+  return {
+    provider,
+    ollama: {
+      url: (env.OLLAMA_URL || 'http://localhost:11434').replace(/\/+$/, ''),
+      model: env.OLLAMA_MODEL || 'qwen2.5:7b',
+    },
+  };
+}
+
+export function loadConfig(env = process.env) {
+  const llm = loadLlmConfig(env);
 
   const profileName = env.LIMIT_PROFILE || 'funcional';
   const limits = LIMIT_PROFILES[profileName];
@@ -51,7 +80,7 @@ export function loadConfig(env = process.env) {
   }
 
   return {
-    apiKey: env.ANTHROPIC_API_KEY,
+    llm,
     port: Number(env.PORT) || 3000,
     profileName,
     limits,

@@ -1,18 +1,28 @@
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { runAgent } from './agent.js';
 import { FLOOD_LIMIT, WINDOWS } from './config.js';
 
-const MODEL = 'claude-sonnet-5-5';
-const SYSTEM_PROMPT =
-  'Eres el asistente de un portfolio profesional. Respondes preguntas sobre la ' +
-  'trayectoria de un ingeniero de Telecomunicaciones con experiencia en ciberseguridad. ' +
-  'Si no dispones de un dato, lo indicas en lugar de inventarlo.';
+const SYSTEM_PROMPT = [
+  'Eres el asistente del portfolio profesional de Alejandro Cerezo Gilarranz, ingeniero de',
+  'Telecomunicaciones que trabaja en ciberseguridad (riesgo y cumplimiento).',
+  'Reglas:',
+  '- Antes de responder sobre Alejandro, consulta su CV con la herramienta buscar_en_cv.',
+  '- Responde solo con datos que devuelva la herramienta. Si no aparecen, di que no tienes esa información.',
+  '- No inventes fechas, empresas, cifras ni opiniones, y no añadas valoraciones propias.',
+  '- Distingue experiencia laboral de certificaciones y formación: una certificación no es experiencia.',
+  '- Si la búsqueda no da resultados, prueba otra vez con palabras distintas antes de rendirte.',
+  '- Responde en el idioma del usuario, en tercera persona y en 2-4 frases.',
+  '- Si la pregunta no trata sobre Alejandro ni su perfil profesional, indícalo con amabilidad y no la respondas.',
+].join('\n');
 
-// TODO(tools): definir aquí el Tool Calling (consulta RAG del CV, agendar reuniones).
+const EMPTY_REPLY = 'No he podido generar una respuesta. Prueba a reformular la pregunta.';
+
+// TODO(tools): añadir la herramienta de agendar reuniones.
 // TODO(sesión): persistir el historial de conversación en PostgreSQL.
 
-// Estados de la API de Anthropic que indican saturación temporal, no un fallo nuestro.
-const UPSTREAM_BUSY = new Set([429, 529]);
+// Estados del proveedor que indican saturación o indisponibilidad temporal, no un fallo nuestro.
+const UPSTREAM_BUSY = new Set([429, 503, 529]);
 
 function limiter({ windowMs, limit, message, keyGenerator }) {
   return rateLimit({
@@ -25,7 +35,7 @@ function limiter({ windowMs, limit, message, keyGenerator }) {
   });
 }
 
-export function createApp({ anthropic, config }) {
+export function createApp({ llm, tools, config }) {
   const { limits, trustProxy } = config;
   const app = express();
 
@@ -81,19 +91,18 @@ export function createApp({ anthropic, config }) {
   // La validación va antes de los límites: un mensaje inválido no consume cupo.
   app.post('/api/chat', validateMessage, chatLimiters, async (req, res) => {
     try {
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: limits.maxTokens,
+      const { reply } = await runAgent({
+        llm,
+        tools,
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: req.body.message.trim() }],
+        message: req.body.message.trim(),
+        maxTokens: limits.maxTokens,
+        forcedFirstCall: tools.length
+          ? (message) => ({ name: tools[0].name, input: { consulta: message } })
+          : undefined,
       });
 
-      const reply = response.content
-        .filter((block) => block.type === 'text')
-        .map((block) => block.text)
-        .join('\n');
-
-      res.json({ reply });
+      res.json({ reply: reply || EMPTY_REPLY });
     } catch (error) {
       console.error('Error en la llamada al modelo:', error);
       if (UPSTREAM_BUSY.has(error.status)) {
