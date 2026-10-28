@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getProfile } from './api.js';
 import Chat from './components/Chat.jsx';
 import ContactForm from './components/ContactForm.jsx';
+import EnvBanner from './components/EnvBanner.jsx';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import ProfilePanel from './components/ProfilePanel.jsx';
@@ -46,6 +47,7 @@ export default function App() {
 
   return (
     <>
+      <EnvBanner />
       <Header profile={profile} onContact={openContact} />
       <main className="page">
         <section className="hero" aria-label="Profile and assistant">
