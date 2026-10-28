@@ -2,7 +2,7 @@
 
 Interactive personal portfolio of Alejandro Cerezo: a CV page with an AI agent that answers questions about it, plus a contact form to request a meeting.
 
-**Live:** https://portfolio-ia-agent.alezerezo.workers.dev · **API:** https://portfolio-ia-agent-production.up.railway.app (custom domain `alejandrocerezo.dev` pending)
+**Live:** https://alejandrocerezo.dev · **API:** https://api.alejandrocerezo.dev
 
 ## Version 1.0 (current release)
 
@@ -19,9 +19,9 @@ What v1.0 includes:
 ## Architecture
 
 ```
-Browser ──► Cloudflare (DNS, WAF, Workers static assets)  portfolio-ia-agent.alezerezo.workers.dev
+Browser ──► Cloudflare (DNS, WAF, Workers static assets)  alejandrocerezo.dev
    │
-   └──► Railway API (*.up.railway.app) ──► Railway: Node.js + Express ──► PostgreSQL (Railway)
+   └──► api.alejandrocerezo.dev ──► Railway: Node.js + Express ──► PostgreSQL (Railway)
                                           ├──► Anthropic API (Claude Haiku 5.5)
                                           └──► Gmail API (HTTPS)
 ```

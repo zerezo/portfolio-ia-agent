@@ -5,6 +5,9 @@
 {
   "name": "portfolio-ia-agent",
   "compatibility_date": "2026-10-01",
+  // Solo el dominio propio (alejandrocerezo.dev): sin dirección workers.dev ni URLs de vista previa.
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
