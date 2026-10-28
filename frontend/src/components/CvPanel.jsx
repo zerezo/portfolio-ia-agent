@@ -1,43 +1,34 @@
-import { CalendarDays, GraduationCap, MapPin, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { formatMonth } from "../format.js";
-import { initials } from "./AppShell.jsx";
+import { CalendarDays, GraduationCap, MapPin, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { formatMonth } from '../format.js';
+import { initials } from './AppShell.jsx';
 
-const EMOJI = { running: "🏃", cycling: "🚴", football: "⚽" };
-const emoji = (text) => EMOJI[text.toLowerCase()] ?? "✨";
+const EMOJI = { running: '🏃', cycling: '🚴', football: '⚽' };
+const emoji = (text) => EMOJI[text.toLowerCase()] ?? '✨';
 
 // "IndraMind Cybersecurity (Indra Group, formerly SIA)" -> "IndraMind Cybersecurity".
-const shortName = (text) => text.split(" (")[0];
-const year = (value) => (value ? value.slice(0, 4) : "now");
+const shortName = (text) => text.split(' (')[0];
+const year = (value) => (value ? value.slice(0, 4) : 'now');
+// "2025–2026", o "2025" si empieza y acaba el mismo año.
+const years = (start, end) => (year(start) === year(end) ? year(start) : `${year(start)}–${year(end)}`);
 
 function Tile({ title, className, children }) {
   return (
     <section
       className={cn(
-        "flex min-h-0 flex-col gap-2 overflow-hidden rounded-2xl border bg-card/70 p-3.5 backdrop-blur",
+        'flex min-h-0 flex-col gap-2 overflow-hidden rounded-2xl border bg-card/70 p-3.5 backdrop-blur',
         className,
       )}
     >
-      {title && (
-        <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-          {title}
-        </h3>
-      )}
+      {title && <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</h3>}
       {children}
     </section>
   );
 }
 
 const Chip = ({ children, className }) => (
-  <li
-    className={cn(
-      "rounded-full bg-muted px-2.5 py-0.5 text-xs whitespace-nowrap",
-      className,
-    )}
-  >
-    {children}
-  </li>
+  <li className={cn('rounded-full bg-muted px-2.5 py-0.5 text-xs whitespace-nowrap', className)}>{children}</li>
 );
 
 // CV en formato bento: lo esencial en tarjetas pequeñas que caben en una pantalla. El detalle
@@ -64,10 +55,10 @@ export default function CvPanel({ profile, onOpenContact }) {
             {name}
           </h2>
           <p className="truncate text-muted-foreground" title={headline}>
-            {shortName(headline.split("|")[0].trim())}
+            {shortName(headline.split('|')[0].trim())}
           </p>
           <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="size-3" /> {location.split(",")[0]}, Spain
+            <MapPin className="size-3" /> {location.split(',')[0]}, Spain
           </p>
         </div>
         <div className="hidden shrink-0 flex-col gap-2 sm:flex">
@@ -92,14 +83,9 @@ export default function CvPanel({ profile, onOpenContact }) {
       )}
       {degree && (
         <Tile title="Studied">
-          <p
-            className="flex items-start gap-1.5 font-semibold leading-snug"
-            title={degree.degree}
-          >
+          <p className="flex items-start gap-1.5 font-semibold leading-snug" title={degree.degree}>
             <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span className="line-clamp-2">
-              {degree.degree.replace(/^Bachelor's Degree in /, "")}
-            </span>
+            <span className="line-clamp-2">{degree.degree.replace(/^Bachelor's Degree in /, '')}</span>
           </p>
           <p className="text-xs text-muted-foreground">
             {shortName(degree.institution)} · {year(degree.end)}
@@ -112,10 +98,7 @@ export default function CvPanel({ profile, onOpenContact }) {
           {profile.experience.map((e) => (
             <li key={`${e.company}-${e.role}`} className="flex gap-2">
               <span
-                className={cn(
-                  "mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/40",
-                  !e.end && "bg-primary",
-                )}
+                className={cn('mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/40', !e.end && 'bg-primary')}
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium" title={e.role}>
@@ -135,17 +118,9 @@ export default function CvPanel({ profile, onOpenContact }) {
           {profile.projects.map((p) => (
             <li key={p.name} className="flex flex-col gap-0.5">
               <div className="flex items-baseline gap-2">
-                <span
-                  className="min-w-0 flex-1 truncate font-medium"
-                  title={p.name}
-                >
+                <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>
                   {p.url ? (
-                    <a
-                      className="hover:text-primary hover:underline"
-                      href={p.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <a className="hover:text-primary hover:underline" href={p.url} target="_blank" rel="noreferrer">
                       {p.name}
                     </a>
                   ) : (
@@ -154,18 +129,14 @@ export default function CvPanel({ profile, onOpenContact }) {
                 </span>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    p.status === "in progress"
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted text-muted-foreground",
+                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
+                    p.status === 'in progress' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
                   )}
                 >
-                  {p.status === "in progress" ? "building" : "shipped"}
+                  {p.status === 'in progress' ? 'building' : 'shipped'}
                 </span>
               </div>
-              <p className="line-clamp-2 text-xs text-muted-foreground">
-                {p.description}
-              </p>
+              <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
             </li>
           ))}
         </ul>
@@ -174,13 +145,12 @@ export default function CvPanel({ profile, onOpenContact }) {
       <Tile title="Skills & certs">
         <ul className="flex flex-wrap gap-1.5">
           {profile.skills.map((s) => (
-            <Chip key={s}>{s.replace(/ \(.*\)$/, "")}</Chip>
+            <Chip key={s}>{s.replace(/ \(.*\)$/, '')}</Chip>
           ))}
         </ul>
         <p className="mt-auto flex items-center gap-1 text-xs text-muted-foreground">
           <Sparkles className="size-3 text-brand-2" />
-          {profile.certifications.length} certifications, incl.{" "}
-          {profile.certifications[0].name.split(":")[0]}
+          {profile.certifications.length} certifications, incl. {profile.certifications[0].name.split(':')[0]}
         </p>
       </Tile>
 
@@ -193,7 +163,7 @@ export default function CvPanel({ profile, onOpenContact }) {
           ))}
           {profile.languages.map((l) => (
             <Chip key={l.language}>
-              💬 {l.language} · {l.level.split(",")[0]}
+              💬 {l.language} · {l.level.split(',')[0]}
             </Chip>
           ))}
         </ul>

@@ -64,6 +64,10 @@ jobs:
         working-directory: frontend
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Revisar el frontend (nombres sin definir)
+        working-directory: frontend
+        run: npm run lint
+
       - name: Compilar el frontend
         working-directory: frontend
         run: npm run build
