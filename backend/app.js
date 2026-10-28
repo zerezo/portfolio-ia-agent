@@ -183,7 +183,7 @@ export function createApp({
   });
 
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', environment: config.appEnv ?? 'local' });
   });
 
   // Antes de los límites: así un 429 también lleva CORS y el frontend puede mostrar el error.

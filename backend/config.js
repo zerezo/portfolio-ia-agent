@@ -52,6 +52,9 @@ export const AVAILABILITY = {
 // Proveedores de modelo. ollama (local, gratuito) es el de desarrollo.
 export const LLM_PROVIDERS = ['ollama', 'anthropic'];
 
+// Entorno desplegado (APP_ENV): local en el ordenador; development y production en Railway.
+export const APP_ENVS = ['local', 'development', 'production'];
+
 function loadLlmConfig(env) {
   const provider = env.LLM_PROVIDER || 'ollama';
   if (!LLM_PROVIDERS.includes(provider)) {
@@ -82,6 +85,11 @@ function loadLlmConfig(env) {
 
 export function loadConfig(env = process.env) {
   const llm = loadLlmConfig(env);
+
+  const appEnv = env.APP_ENV || 'local';
+  if (!APP_ENVS.includes(appEnv)) {
+    throw new Error(`APP_ENV inválido: "${appEnv}". Valores: ${APP_ENVS.join(', ')}`);
+  }
 
   const profileName = env.LIMIT_PROFILE || 'funcional';
   const limits = LIMIT_PROFILES[profileName];
@@ -142,6 +150,7 @@ export function loadConfig(env = process.env) {
   const production = env.NODE_ENV === 'production';
   if (production) {
     const problems = [
+      appEnv === 'local' && 'APP_ENV=development o production (qué entorno de Railway es)',
       !env.REVIEW_SECRET && 'REVIEW_SECRET (sin él, los enlaces de aprobación caducan en cada despliegue)',
       !databaseUrl && 'DATABASE_URL (sin ella, las solicitudes se pierden en cada despliegue)',
       !env.PUBLIC_URL?.startsWith('https://') && 'PUBLIC_URL con https:// (enlaces de los emails)',
@@ -157,6 +166,7 @@ export function loadConfig(env = process.env) {
 
   return {
     llm,
+    appEnv,
     production,
     corsOrigins,
     databaseUrl,

@@ -11,5 +11,12 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
+  },
+  // Entorno de desarrollo: otro Worker (dev.alejandrocerezo.dev) que Cloudflare publica desde la
+  // rama dev con `npx wrangler deploy --env dev`. Hereda assets, workers_dev y preview_urls.
+  "env": {
+    "dev": {
+      "name": "portfolio-ia-agent-dev"
+    }
   }
 }

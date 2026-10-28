@@ -99,7 +99,7 @@ describe('loadConfig', () => {
 describe('rutas', () => {
   test('GET /health responde ok', async () => {
     const { app } = buildApp();
-    await request(app).get('/health').expect(200, { status: 'ok' });
+    await request(app).get('/health').expect(200, { status: 'ok', environment: 'local' });
   });
 
   test('ruta inexistente devuelve 404 en JSON', async () => {
@@ -698,6 +698,7 @@ describe('filtro previo del chat', () => {
 describe('configuración de producción', () => {
   const PROD = {
     NODE_ENV: 'production',
+    APP_ENV: 'production',
     LLM_PROVIDER: 'anthropic',
     ANTHROPIC_API_KEY: 'sk-ant-x',
     REVIEW_SECRET: 'x'.repeat(64),
@@ -726,6 +727,7 @@ describe('configuración de producción', () => {
       ['CORS_ORIGINS', undefined, /CORS_ORIGINS/],
       ['CORS_ORIGINS', 'http://x.dev', /CORS_ORIGINS solo con/],
       ['LOG_USER_CONTENT', 'true', /LOG_USER_CONTENT/],
+      ['APP_ENV', undefined, /APP_ENV=development o production/],
     ]) {
       assert.throws(() => loadConfig({ ...PROD, [name]: value }), message, name);
     }
@@ -733,6 +735,12 @@ describe('configuración de producción', () => {
 
   test('en desarrollo los valores por defecto siguen valiendo', () => {
     assert.equal(loadConfig({}).production, false);
+    assert.equal(loadConfig({}).appEnv, 'local');
+  });
+
+  test('el entorno development de Railway usa las mismas comprobaciones', () => {
+    assert.equal(loadConfig({ ...PROD, APP_ENV: 'development' }).appEnv, 'development');
+    assert.throws(() => loadConfig({ APP_ENV: 'staging' }), /APP_ENV inválido/);
   });
 });
 

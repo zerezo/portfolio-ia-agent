@@ -40,13 +40,14 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
 
 | | Local (`backend/.env`) | Producción (Railway) |
 |---|---|---|
+| Entorno | `APP_ENV=local` (por defecto) | `APP_ENV=production`; el entorno `development` de Railway (en preparación) usa `APP_ENV=development`. Se ve en `/health` |
 | Modelo | `LLM_PROVIDER=ollama` (gratis) o `anthropic` para probar Haiku puntualmente | `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` |
 | Emails | `MAIL_TRANSPORT=file` (archivos .eml) o `gmail` | `MAIL_TRANSPORT=gmail` + `GMAIL_*`, `MAIL_FROM`, `OWNER_EMAIL` |
 | Base de datos | PostgreSQL en Docker (`DATABASE_URL`) | PostgreSQL de Railway (`DATABASE_URL`) |
 | Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL` https, `CORS_ORIGINS` https, `TRUST_PROXY=2` (Cloudflare + Railway) |
 | Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de los visitantes (`LOG_USER_CONTENT` prohibido) |
 | Límites | `LIMIT_PROFILE=funcional` (10 mensajes/día por IP) | `LIMIT_PROFILE=normal` (4/min y 25/día por IP, 200/día en total) |
-| Frontend | `npm run dev` (proxy /api) | Cloudflare Workers (estáticos) con `VITE_API_URL` y `NODE_VERSION=22` |
+| Frontend | `npm run dev` (proxy /api) | Cloudflare Workers (estáticos) con `VITE_API_URL` y `NODE_VERSION=22`; el Worker de desarrollo (`wrangler deploy --env dev`) añade `VITE_APP_ENV=development` (banner DEV) |
 
 - Con `NODE_ENV=production` el backend no arranca si falta algo crítico (lo comprueba config.js y lo dice).
 - Flujo: desarrollar y probar en local en `dev` → PR a `main` (CI) → Railway despliega `main` automáticamente.

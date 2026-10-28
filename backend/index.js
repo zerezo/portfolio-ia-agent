@@ -69,7 +69,7 @@ const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewT
 
 const server = app.listen(config.port, () => {
   console.log(
-    `Servidor escuchando en el puerto ${config.port} (perfil: ${config.profileName}, modelo: ${llm.name}, ` +
+    `Servidor escuchando en el puerto ${config.port} (entorno: ${config.appEnv}, perfil: ${config.profileName}, modelo: ${llm.name}, ` +
       `emails: ${config.contact.transport}, datos: ${pool ? 'postgres' : 'memoria'})`,
   );
 });
