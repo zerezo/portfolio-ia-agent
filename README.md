@@ -31,7 +31,7 @@ Browser ──► Cloudflare (DNS, WAF, Workers static assets)  alejandrocerezo.
 | Folder | Content |
 |---|---|
 | `backend/` | Express API: agent loop, guard, tools, sessions, calendar, contacts, mailer, migrations, tests |
-| `frontend/` | React + Vite; deployed to Cloudflare Workers (`wrangler.jsonc`) |
+| `frontend/` | React + Vite + Tailwind + shadcn/ui dashboard (CV + chat, booking, architecture map); deployed to Cloudflare Workers (`wrangler.jsonc`) |
 | `.github/workflows/` | CI: install, audit, syntax check, tests (with a Postgres service), frontend build |
 
 ## Run locally
@@ -49,7 +49,7 @@ Tests: `cd backend && npm test` (no real model or email calls; PostgreSQL tests 
 
 ## Roadmap (v2.0)
 
-- Dashboard-style frontend (no scroll, side navbar) with shadcn/ui: CV + Agent, Calendar, Architecture map.
+- ✅ Dashboard-style frontend (no scroll, icon navbar) with shadcn/ui: CV + Agent, Book, interactive architecture map. Live in the `development` environment.
 - Orchestrator agent with two tools: CV lookup and a RAG over Markdown documents stored in Cloudflare R2 (accessed only from the backend).
 - CV moved out of code into a Markdown file or PostgreSQL.
 - Explicit English/Spanish support in the prompt.
