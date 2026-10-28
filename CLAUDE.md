@@ -60,7 +60,7 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
 - Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway despliega main.
 
 ## 7. Versiones
-- **v1.0 (congelada, 2026-10-28):** primera versión pública en `https://portfolio-ia-agent.alezerezo.workers.dev` (dominio propio `alejandrocerezo.dev` aún sin configurar: fase C pendiente) con todo lo descrito arriba (chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway). Solo admite correcciones de seguridad o errores; marcada con la etiqueta `v1.0.0` en `main`. `package.json` en `1.0.0`.
+- **v1.0 (congelada, 2026-10-28):** primera versión pública en `https://alejandrocerezo.dev` (API en `https://api.alejandrocerezo.dev`; dominio activo desde 2026-10-28) con todo lo descrito arriba (chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway). Solo admite correcciones de seguridad o errores; marcada con la etiqueta `v1.0.0` en `main`. `package.json` en `1.0.0`.
 - **v2.0 (en desarrollo):** nuevas funciones según la revisión del tutor (notas locales, no versionadas). Objetivos:
   - Frontend tipo dashboard sin scroll, navbar lateral y shadcn/ui: pestañas CV + Agente, Calendario y Mapa de arquitectura (cajas y flechas; al pulsar una caja, panel lateral con información).
   - Agente orquestador con dos herramientas: consulta del CV y RAG sobre archivos .md (personalidad, enlaces, información fuera del CV) en Cloudflare R2, accedido solo desde el backend con claves en variables de entorno.
