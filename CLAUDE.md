@@ -36,29 +36,33 @@ El proyecto sigue un diseño de despliegue corporativo, separando claramente las
   - En desarrollo se usa el perfil de límites más estricto (`LIMIT_PROFILE=funcional`); en producción, `normal`.
 
 ## 5. Entornos y Flujo de Trabajo
-Un solo código; el entorno lo decide la configuración (`.env` en local, variables en Railway y Cloudflare). No hay ramas por entorno.
+Un solo código y tres entornos; cada uno lo decide su configuración (`.env` en local, variables en Railway y Cloudflare). La rama decide qué entorno desplegado se actualiza: `dev` → development, `main` → production.
 
-| | Local (`backend/.env`) | Producción (Railway) |
-|---|---|---|
-| Entorno | `APP_ENV=local` (por defecto) | `APP_ENV=production`; el entorno `development` de Railway (en preparación) usa `APP_ENV=development`. Se ve en `/health` |
-| Modelo | `LLM_PROVIDER=ollama` (gratis) o `anthropic` para probar Haiku puntualmente | `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` |
-| Emails | `MAIL_TRANSPORT=file` (archivos .eml) o `gmail` | `MAIL_TRANSPORT=gmail` + `GMAIL_*`, `MAIL_FROM`, `OWNER_EMAIL` |
-| Base de datos | PostgreSQL en Docker (`DATABASE_URL`) | PostgreSQL de Railway (`DATABASE_URL`) |
-| Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL` https, `CORS_ORIGINS` https, `TRUST_PROXY=2` (Cloudflare + Railway) |
-| Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de los visitantes (`LOG_USER_CONTENT` prohibido) |
-| Límites | `LIMIT_PROFILE=funcional` (10 mensajes/día por IP) | `LIMIT_PROFILE=normal` (4/min y 25/día por IP, 200/día en total) |
-| Frontend | `npm run dev` (proxy /api) | Cloudflare Workers (estáticos) con `VITE_API_URL` y `NODE_VERSION=22`; el Worker de desarrollo (`wrangler deploy --env dev`) añade `VITE_APP_ENV=development` (banner DEV) |
+| | Local (`backend/.env`) | Development (Railway `development` + Worker `portfolio-ia-agent-dev`) | Production (Railway `production` + Worker `portfolio-ia-agent`) |
+|---|---|---|---|
+| URLs | `localhost:5173` y `localhost:3000` | `dev.alejandrocerezo.dev` y `dev-api.alejandrocerezo.dev` | `alejandrocerezo.dev` y `api.alejandrocerezo.dev` |
+| Rama | cualquiera | `dev` | `main` |
+| Entorno (`/health`) | `APP_ENV=local` (por defecto) | `APP_ENV=development` | `APP_ENV=production` |
+| Modelo | `LLM_PROVIDER=ollama` (gratis) o `anthropic` puntualmente | `anthropic` con clave propia `portfolio-dev` (tope de gasto bajo) | `anthropic` con su clave |
+| Emails | `MAIL_TRANSPORT=file` (.eml) o `gmail` | `gmail` | `gmail` (`GMAIL_*`, `MAIL_FROM`, `OWNER_EMAIL`) |
+| Base de datos | PostgreSQL en Docker | PostgreSQL propio del entorno (datos de prueba) | PostgreSQL propio del entorno (datos reales) |
+| Seguridad | `REVIEW_SECRET` opcional, `CORS_ORIGINS` vacío (proxy de Vite) | `NODE_ENV=production`, `REVIEW_SECRET` propio, `PUBLIC_URL`/`CORS_ORIGINS` de dev, `TRUST_PROXY=2` | `NODE_ENV=production`, `REVIEW_SECRET`, `PUBLIC_URL`/`CORS_ORIGINS` de prod, `TRUST_PROXY=2` |
+| Logs | `LOG_USER_CONTENT=true` (consultas del agente) | Sin contenido de visitantes | Sin contenido de visitantes |
+| Límites | `LIMIT_PROFILE=funcional` | `LIMIT_PROFILE=funcional` | `LIMIT_PROFILE=normal` (4/min y 25/día por IP, 200/día en total) |
+| Frontend | `npm run dev` (proxy /api) | `npx wrangler deploy --env dev`, `VITE_API_URL` de dev, `VITE_APP_ENV=development` (banner DEV) | `npx wrangler deploy`, `VITE_API_URL` de prod |
 
-- Con `NODE_ENV=production` el backend no arranca si falta algo crítico (lo comprueba config.js y lo dice).
-- Flujo: desarrollar y probar en local en `dev` → PR a `main` (CI) → Railway despliega `main` automáticamente.
-- Probar en local evita romper la web pública, ensuciar datos reales y gastar despliegues.
+- Con `NODE_ENV=production` (development y production en Railway) el backend no arranca si falta algo crítico, incluido `APP_ENV` (lo comprueba config.js y lo dice).
+- Cada entorno tiene su base de datos, su clave de Anthropic y su secreto: CORS impide que la web de un entorno llame a la API del otro.
+- Railway espera al CI ("Wait for CI") antes de desplegar en ambos entornos.
+- `VITE_*` son variables de compilación (Cloudflare → Settings → Build): cambiarlas exige relanzar el build.
+- Flujo: desarrollar y probar en local → push a `dev` (CI y despliegue en development) → probar en `dev.alejandrocerezo.dev` → PR a `main` (CI) → despliegue en production.
 
 ## 6. Comandos Frecuentes
 - Iniciar el servidor local de desarrollo: cd backend && npm run dev (requiere Ollama en marcha y el modelo descargado: `ollama pull qwen2.5:7b`).
 - Iniciar el frontend: cd frontend && npm run dev (http://localhost:5173; /api se redirige al backend).
 - Base de datos local: docker compose up -d (parar: docker compose down; borrar datos: docker compose down -v).
 - Ejecutar los tests: cd backend && npm test (los de PostgreSQL solo se ejecutan con TEST_DATABASE_URL, base `portfolio_test`; en CI hay un Postgres de servicio).
-- Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway despliega main.
+- Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway y Cloudflare despliegan `dev` en development y `main` en production.
 
 ## 7. Versiones
 - **v1.0 (congelada, 2026-10-28):** primera versión pública en `https://alejandrocerezo.dev` (API en `https://api.alejandrocerezo.dev`; dominio activo desde 2026-10-28) con todo lo descrito arriba (chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway). Solo admite correcciones de seguridad o errores; marcada con la etiqueta `v1.0.0` en `main`. `package.json` en `1.0.0`.
@@ -66,6 +70,6 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
   - Frontend tipo dashboard sin scroll, navbar lateral y shadcn/ui: pestañas CV + Agente, Calendario y Mapa de arquitectura (cajas y flechas; al pulsar una caja, panel lateral con información).
   - Agente orquestador con dos herramientas: consulta del CV y RAG sobre archivos .md (personalidad, enlaces, información fuera del CV) en Cloudflare R2, accedido solo desde el backend con claves en variables de entorno.
   - CV fuera del código: archivo .md o PostgreSQL, consultado por la herramienta, no en el prompt.
-  - Entornos `dev` y `prod` en Railway (cada uno con su API y base de datos) con un frontend propio en Cloudflare cada uno y URLs distinguibles.
+  - ~~Entornos `dev` y `prod`~~ hecho (2026-10-28): ver sección 5.
   - Prompt multiidioma explícito (inglés y español).
 - Al cambiar algo de la arquitectura de las secciones 2-6 en v2.0, actualizar esas secciones; esta sección solo resume versiones.

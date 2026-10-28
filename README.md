@@ -4,6 +4,8 @@ Interactive personal portfolio of Alejandro Cerezo: a CV page with an AI agent t
 
 **Live:** https://alejandrocerezo.dev · **API:** https://api.alejandrocerezo.dev
 
+Environments: `production` (branch `main`) at the URLs above, and `development` (branch `dev`) at `dev.alejandrocerezo.dev` / `dev-api.alejandrocerezo.dev`, each with its own Railway service, database and keys.
+
 ## Version 1.0 (current release)
 
 v1.0 is the first public release and is frozen: it only receives security or bug fixes. New work happens in v2.0.
@@ -50,7 +52,6 @@ Tests: `cd backend && npm test` (no real model or email calls; PostgreSQL tests 
 - Dashboard-style frontend (no scroll, side navbar) with shadcn/ui: CV + Agent, Calendar, Architecture map.
 - Orchestrator agent with two tools: CV lookup and a RAG over Markdown documents stored in Cloudflare R2 (accessed only from the backend).
 - CV moved out of code into a Markdown file or PostgreSQL.
-- Separate `dev` and `prod` environments in Railway, each with its own frontend.
 - Explicit English/Spanish support in the prompt.
 
 See [PRIVACY.md](PRIVACY.md) for the privacy policy.
