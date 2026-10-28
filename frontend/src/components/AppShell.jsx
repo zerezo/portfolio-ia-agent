@@ -1,97 +1,84 @@
-import { CalendarDays, FileText, Network } from 'lucide-react';
+import { CalendarDays, Code2, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { PRIVACY_URL, SOURCE_URL } from '../links.js';
 
 export const TABS = [
-  { id: 'cv', label: 'CV + Agent', icon: FileText },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { id: 'architecture', label: 'Architecture', icon: Network },
+  { id: 'cv', label: 'Me', icon: LayoutGrid },
+  { id: 'calendar', label: 'Book', icon: CalendarDays },
+  { id: 'architecture', label: 'Stack', icon: Network },
 ];
 
-const initials = (name) =>
+export const initials = (name) =>
   name
     .split(' ')
     .slice(0, 2)
     .map((w) => w[0])
     .join('');
 
-// Marco del dashboard: barra lateral en escritorio y pestañas abajo en el móvil. La página
-// nunca hace scroll; cada vista ocupa el alto restante y desplaza solo sus paneles.
-export default function AppShell({ profile, tab, onTab, children }) {
-  const { name, headline } = profile.profile;
+function TabButton({ tab, active, onTab, className }) {
+  const { id, label, icon: Icon } = tab;
+  return (
+    <button
+      type="button"
+      className={cn(
+        'group flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground',
+        active && 'text-foreground',
+        className,
+      )}
+      aria-current={active ? 'page' : undefined}
+      onClick={() => onTab(id)}
+    >
+      <span
+        className={cn(
+          'grid size-10 place-items-center rounded-xl transition-all group-hover:bg-muted',
+          active && 'bg-gradient-to-br from-primary to-brand-2 text-white shadow-lg shadow-primary/20',
+        )}
+      >
+        <Icon className="size-5" />
+      </span>
+      {label}
+    </button>
+  );
+}
 
+// Marco del dashboard: barra de iconos a la izquierda en escritorio y pestañas abajo en el
+// móvil. La página nunca hace scroll; cada vista ocupa el alto restante.
+export default function AppShell({ profile, tab, onTab, children }) {
   return (
     <div className="flex min-h-0 flex-1">
-      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card md:flex" aria-label="Main">
-        <div className="flex items-center gap-3 border-b p-4">
-          <span
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
-            aria-hidden="true"
-          >
-            {initials(name)}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{name}</p>
-            <p className="truncate text-xs text-muted-foreground" title={headline}>
-              {headline.split('|')[0].trim()}
-            </p>
-          </div>
-        </div>
+      <aside className="hidden w-20 shrink-0 flex-col items-center gap-6 py-4 md:flex" aria-label="Main">
+        <span
+          className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-brand-2 text-sm font-bold text-white"
+          title={profile.profile.name}
+          aria-hidden="true"
+        >
+          {initials(profile.profile.name)}
+        </span>
 
-        <nav className="flex flex-col gap-1 p-2" aria-label="Sections">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <Button
-              key={id}
-              variant="ghost"
-              className={cn('justify-start', tab === id && 'bg-accent text-accent-foreground')}
-              aria-current={tab === id ? 'page' : undefined}
-              onClick={() => onTab(id)}
-            >
-              <Icon />
-              {label}
-            </Button>
+        <nav className="flex flex-col gap-4" aria-label="Sections">
+          {TABS.map((t) => (
+            <TabButton key={t.id} tab={t} active={tab === t.id} onTab={onTab} />
           ))}
         </nav>
 
-        <div className="mt-auto flex flex-col gap-2 border-t p-4">
-          <Button asChild variant="outline" size="sm">
-            <a href={profile.contact.linkedin} target="_blank" rel="noreferrer">
-              LinkedIn
-            </a>
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            <a className="hover:underline" href={PRIVACY_URL} target="_blank" rel="noreferrer">
-              Privacy
-            </a>
-            {' · '}
-            <a className="hover:underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
-              Source code
-            </a>
-          </p>
+        <div className="mt-auto flex flex-col items-center gap-3 text-muted-foreground">
+          <a className="hover:text-foreground" href={SOURCE_URL} target="_blank" rel="noreferrer" aria-label="Source code" title="Source code">
+            <Code2 className="size-5" />
+          </a>
+          <a className="hover:text-foreground" href={PRIVACY_URL} target="_blank" rel="noreferrer" aria-label="Privacy policy" title="Privacy policy">
+            <ShieldCheck className="size-5" />
+          </a>
         </div>
       </aside>
 
       <main className="min-h-0 min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-10 grid h-16 grid-cols-3 border-t bg-card md:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 grid h-16 grid-cols-3 border-t bg-card/80 backdrop-blur md:hidden"
         aria-label="Sections"
       >
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className={cn(
-              'flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground',
-              tab === id && 'text-primary',
-            )}
-            aria-current={tab === id ? 'page' : undefined}
-            onClick={() => onTab(id)}
-          >
-            <Icon className="size-5" />
-            {label}
-          </button>
+        {TABS.map((t) => (
+          <TabButton key={t.id} tab={t} active={tab === t.id} onTab={onTab} />
         ))}
       </nav>
     </div>

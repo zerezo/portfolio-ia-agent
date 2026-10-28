@@ -73,15 +73,15 @@ export default function Chat({ onOpenContact }) {
 
   return (
     <article
-      className="flex min-h-0 w-full flex-col rounded-lg border bg-card"
+      className="flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border bg-card/70 backdrop-blur"
       aria-label="Chat with Alejandro's assistant"
     >
       <header className="flex items-center gap-3 border-b p-4">
-        <span className="grid size-8 place-items-center rounded-full bg-accent text-accent-foreground" aria-hidden="true">
+        <span className="grid size-8 place-items-center rounded-xl bg-gradient-to-br from-primary to-brand-2 text-white" aria-hidden="true">
           <Bot className="size-4" />
         </span>
         <div>
-          <h2 className="text-sm font-semibold">Ask the assistant</h2>
+          <h2 className="text-sm font-semibold">Ask my AI assistant ✨</h2>
           <p className="text-xs text-muted-foreground">AI answers based on his CV. It can make mistakes.</p>
         </div>
       </header>
@@ -91,16 +91,16 @@ export default function Chat({ onOpenContact }) {
           <li
             key={i}
             className={cn(
-              'flex max-w-[85%] flex-col items-start gap-2 rounded-lg px-3 py-2 text-sm leading-relaxed',
-              m.role === 'user' && 'self-end bg-primary text-primary-foreground',
-              m.role === 'assistant' && 'bg-muted',
+              'flex max-w-[85%] flex-col items-start gap-2 rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
+              m.role === 'user' && 'self-end rounded-br-md bg-gradient-to-br from-primary to-brand-2 text-white',
+              m.role === 'assistant' && 'rounded-bl-md bg-muted',
               m.role === 'error' && 'bg-destructive/10 text-destructive',
             )}
           >
             {/* Texto plano siempre: la respuesta del modelo nunca se interpreta como HTML. */}
             <p className="whitespace-pre-line">{m.content}</p>
             {m.action === 'open_contact_form' && (
-              <Button size="sm" onClick={onOpenContact}>
+              <Button size="sm" className="rounded-full" onClick={onOpenContact}>
                 Book a meeting
               </Button>
             )}
@@ -113,7 +113,7 @@ export default function Chat({ onOpenContact }) {
         <ul className="flex flex-wrap gap-2 px-4 pb-3" aria-label="Suggested questions">
           {SUGGESTIONS.map((s) => (
             <li key={s}>
-              <Button variant="outline" size="sm" className="h-auto py-1.5 whitespace-normal" onClick={() => send(s)} disabled={sending}>
+              <Button variant="outline" size="sm" className="h-auto rounded-full py-1.5 text-xs whitespace-normal" onClick={() => send(s)} disabled={sending}>
                 {s}
               </Button>
             </li>
@@ -132,6 +132,7 @@ export default function Chat({ onOpenContact }) {
           Your question
         </label>
         <Input
+          className="rounded-full"
           id="chat-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -140,7 +141,7 @@ export default function Chat({ onOpenContact }) {
           autoComplete="off"
           disabled={sending}
         />
-        <Button type="submit" size="icon" disabled={sending || !input.trim()} aria-label="Send">
+        <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={sending || !input.trim()} aria-label="Send">
           <Send />
         </Button>
       </form>

@@ -7,7 +7,7 @@
 @import "./styles.css" layer(base);
 
 :root {
-  --radius: 0.625rem;
+  --radius: 1rem;
   --background: #f7f8fa;
   --foreground: #16181d;
   --card: #ffffff;
@@ -28,6 +28,10 @@
   --border: #e1e4ea;
   --input: #d5d9e0;
   --ring: #0f6e66;
+  /* Segundo color del degradado de marca (verde azulado → violeta). */
+  --brand-2: #7c3aed;
+  --glow-1: rgb(20 184 166 / 14%);
+  --glow-2: rgb(124 58 237 / 12%);
   color-scheme: light;
 }
 
@@ -53,12 +57,15 @@
     --border: #2a2f38;
     --input: #343a45;
     --ring: #4fc3b5;
+    --brand-2: #a78bfa;
+    --glow-1: rgb(45 212 191 / 12%);
+    --glow-2: rgb(167 139 250 / 12%);
     color-scheme: dark;
   }
 }
 
 @theme inline {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Geist Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -83,6 +90,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-2: var(--brand-2);
 }
 
 @layer base {
@@ -90,6 +98,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
+    /* Dos manchas de color difuminadas detrás del dashboard. */
+    background-image:
+      radial-gradient(40rem 30rem at 0% 0%, var(--glow-1), transparent 70%),
+      radial-gradient(40rem 30rem at 100% 100%, var(--glow-2), transparent 70%);
+    background-attachment: fixed;
   }
 }

@@ -15,8 +15,8 @@ export default function CvAgentView({ profile, onOpenContact }) {
   const [pane, setPane] = useState('cv');
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3 md:grid md:grid-cols-2 md:gap-4 md:p-4">
-      <div className="grid grid-cols-2 rounded-lg bg-muted p-1 md:hidden" role="tablist" aria-label="View">
+    <div className="flex h-full flex-col gap-3 p-3 md:grid md:grid-cols-2 md:gap-4 md:p-4 2xl:grid-cols-[1.2fr_1fr]">
+      <div className="grid grid-cols-2 rounded-full bg-muted p-1 md:hidden" role="tablist" aria-label="View">
         {PANES.map((p) => (
           <button
             key={p.id}
@@ -24,7 +24,7 @@ export default function CvAgentView({ profile, onOpenContact }) {
             role="tab"
             aria-selected={pane === p.id}
             className={cn(
-              'rounded-md py-1.5 text-sm font-medium text-muted-foreground',
+              'rounded-full py-1.5 text-sm font-medium text-muted-foreground',
               pane === p.id && 'bg-card text-foreground shadow-sm',
             )}
             onClick={() => setPane(p.id)}
@@ -36,11 +36,11 @@ export default function CvAgentView({ profile, onOpenContact }) {
 
       <div
         className={cn(
-          'min-h-0 flex-1 overflow-y-auto rounded-lg border bg-card p-4 md:block',
+          'min-h-0 flex-1 overflow-y-auto md:block md:overflow-hidden',
           pane !== 'cv' && 'hidden',
         )}
       >
-        <CvPanel profile={profile} />
+        <CvPanel profile={profile} onOpenContact={onOpenContact} />
       </div>
       <div className={cn('min-h-0 flex-1 md:flex', pane === 'chat' ? 'flex' : 'hidden')}>
         <Chat onOpenContact={onOpenContact} />
