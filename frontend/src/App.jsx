@@ -4,7 +4,7 @@ import AppShell, { TABS } from './components/AppShell.jsx';
 import EnvBanner from './components/EnvBanner.jsx';
 import { useHashTab } from './hooks/useHashTab.js';
 import ArchitectureView from './views/ArchitectureView.jsx';
-import CalendarView from './views/CalendarView.jsx';
+import BookView from './views/BookView.jsx';
 import CvAgentView from './views/CvAgentView.jsx';
 
 const TAB_IDS = TABS.map((t) => t.id);
@@ -40,7 +40,7 @@ export default function App() {
     content = (
       <AppShell profile={profile} tab={tab} onTab={goTo}>
         {tab === 'cv' && <CvAgentView profile={profile} onOpenContact={openContact} />}
-        {tab === 'calendar' && <CalendarView />}
+        {tab === 'calendar' && <BookView />}
         {tab === 'architecture' && <ArchitectureView />}
       </AppShell>
     );

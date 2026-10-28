@@ -2,9 +2,6 @@
    claro/oscuro según el sistema (la variante dark: de Tailwind usa prefers-color-scheme). */
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Estilos de la v1.0 para los componentes aún sin migrar, en la capa base: las utilidades de
-   Tailwind siempre ganan. Se irán borrando al migrar cada componente. */
-@import "./styles.css" layer(base);
 
 :root {
   --radius: 1rem;
