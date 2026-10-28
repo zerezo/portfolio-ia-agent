@@ -58,3 +58,13 @@ Un solo código; el entorno lo decide la configuración (`.env` en local, variab
 - Base de datos local: docker compose up -d (parar: docker compose down; borrar datos: docker compose down -v).
 - Ejecutar los tests: cd backend && npm test (los de PostgreSQL solo se ejecutan con TEST_DATABASE_URL, base `portfolio_test`; en CI hay un Postgres de servicio).
 - Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway despliega main.
+
+## 7. Versiones
+- **v1.0 (congelada, 2026-10-28):** primera versión pública en `https://portfolio-ia-agent.alezerezo.workers.dev` (dominio propio `alejandrocerezo.dev` aún sin configurar: fase C pendiente) con todo lo descrito arriba (chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway). Solo admite correcciones de seguridad o errores; marcada con la etiqueta `v1.0.0` en `main`. `package.json` en `1.0.0`.
+- **v2.0 (en desarrollo):** nuevas funciones según la revisión del tutor (notas locales, no versionadas). Objetivos:
+  - Frontend tipo dashboard sin scroll, navbar lateral y shadcn/ui: pestañas CV + Agente, Calendario y Mapa de arquitectura (cajas y flechas; al pulsar una caja, panel lateral con información).
+  - Agente orquestador con dos herramientas: consulta del CV y RAG sobre archivos .md (personalidad, enlaces, información fuera del CV) en Cloudflare R2, accedido solo desde el backend con claves en variables de entorno.
+  - CV fuera del código: archivo .md o PostgreSQL, consultado por la herramienta, no en el prompt.
+  - Entornos `dev` y `prod` en Railway (cada uno con su API y base de datos) con un frontend propio en Cloudflare cada uno y URLs distinguibles.
+  - Prompt multiidioma explícito (inglés y español).
+- Al cambiar algo de la arquitectura de las secciones 2-6 en v2.0, actualizar esas secciones; esta sección solo resume versiones.
