@@ -1,0 +1,95 @@
+/* Tema de shadcn/ui con la paleta de la v1.0: neutros, un acento verde azulado y modo
+   claro/oscuro según el sistema (la variante dark: de Tailwind usa prefers-color-scheme). */
+@import "tailwindcss";
+@import "tw-animate-css";
+/* Estilos de la v1.0 para los componentes aún sin migrar, en la capa base: las utilidades de
+   Tailwind siempre ganan. Se irán borrando al migrar cada componente. */
+@import "./styles.css" layer(base);
+
+:root {
+  --radius: 0.625rem;
+  --background: #f7f8fa;
+  --foreground: #16181d;
+  --card: #ffffff;
+  --card-foreground: #16181d;
+  --popover: #ffffff;
+  --popover-foreground: #16181d;
+  --primary: #0f6e66;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f3;
+  --secondary-foreground: #16181d;
+  --muted: #eef0f3;
+  --muted-foreground: #5d6470;
+  --accent: #e3f1ef;
+  --accent-foreground: #0f6e66;
+  --destructive: #b42318;
+  --success: #116b3a;
+  --warning: #b54708;
+  --border: #e1e4ea;
+  --input: #d5d9e0;
+  --ring: #0f6e66;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1115;
+    --foreground: #e8eaee;
+    --card: #171a20;
+    --card-foreground: #e8eaee;
+    --popover: #171a20;
+    --popover-foreground: #e8eaee;
+    --primary: #4fc3b5;
+    --primary-foreground: #0b1513;
+    --secondary: #20242c;
+    --secondary-foreground: #e8eaee;
+    --muted: #20242c;
+    --muted-foreground: #9aa1ad;
+    --accent: #15302d;
+    --accent-foreground: #4fc3b5;
+    --destructive: #ff8a80;
+    --success: #6fd39a;
+    --warning: #f5a35c;
+    --border: #2a2f38;
+    --input: #343a45;
+    --ring: #4fc3b5;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}

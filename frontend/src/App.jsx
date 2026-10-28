@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getProfile } from './api.js';
-import Chat from './components/Chat.jsx';
-import ContactForm from './components/ContactForm.jsx';
+import AppShell, { TABS } from './components/AppShell.jsx';
 import EnvBanner from './components/EnvBanner.jsx';
-import Footer from './components/Footer.jsx';
-import Header from './components/Header.jsx';
-import ProfilePanel from './components/ProfilePanel.jsx';
-import Sections from './components/Sections.jsx';
+import { useHashTab } from './hooks/useHashTab.js';
+import ArchitectureView from './views/ArchitectureView.jsx';
+import CalendarView from './views/CalendarView.jsx';
+import CvAgentView from './views/CvAgentView.jsx';
+
+const TAB_IDS = TABS.map((t) => t.id);
 
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
+  const [tab, goTo] = useHashTab(TAB_IDS);
 
   useEffect(() => {
     getProfile()
@@ -18,46 +20,36 @@ export default function App() {
       .catch((err) => setError(err.message));
   }, []);
 
-  // El chat pide abrir el formulario: se desplaza hasta él y se enfoca el primer campo.
-  const openContact = useCallback(() => {
-    const section = document.getElementById('contact');
-    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    section?.querySelector('input, button')?.focus({ preventScroll: true });
-  }, []);
+  // El chat pide abrir el formulario: se cambia a la pestaña del calendario.
+  const openContact = useCallback(() => goTo('calendar'), [goTo]);
 
+  let content;
   if (error) {
-    return (
-      <main className="page">
-        <p className="notice notice-error" role="alert">
-          {error}
-        </p>
-      </main>
+    content = (
+      <p className="m-4 rounded-md bg-destructive/10 p-3 text-destructive" role="alert">
+        {error}
+      </p>
     );
-  }
-
-  if (!profile) {
-    return (
-      <main className="page">
-        <p className="loading" aria-live="polite">
-          Loading…
-        </p>
-      </main>
+  } else if (!profile) {
+    content = (
+      <p className="m-4 text-muted-foreground" aria-live="polite">
+        Loading…
+      </p>
+    );
+  } else {
+    content = (
+      <AppShell profile={profile} tab={tab} onTab={goTo}>
+        {tab === 'cv' && <CvAgentView profile={profile} onOpenContact={openContact} />}
+        {tab === 'calendar' && <CalendarView />}
+        {tab === 'architecture' && <ArchitectureView />}
+      </AppShell>
     );
   }
 
   return (
-    <>
+    <div className="flex h-dvh flex-col overflow-hidden">
       <EnvBanner />
-      <Header profile={profile} onContact={openContact} />
-      <main className="page">
-        <section className="hero" aria-label="Profile and assistant">
-          <ProfilePanel profile={profile} />
-          <Chat onOpenContact={openContact} />
-        </section>
-        <ContactForm />
-        <Sections profile={profile} />
-      </main>
-      <Footer />
-    </>
+      {content}
+    </div>
   );
 }
