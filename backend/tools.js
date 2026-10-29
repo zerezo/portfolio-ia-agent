@@ -20,7 +20,7 @@ const STOPWORDS = new Set(
   ).split(' '),
 );
 
-const tokenize = (text) =>
+export const tokenize = (text) =>
   normalize(text)
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 1 && !STOPWORDS.has(word));
@@ -70,12 +70,16 @@ export function buildCvChunks(cv) {
     });
   }
 
-  // Índice de palabras precalculado: sección + texto + etiquetas.
-  return chunks.map((chunk) => ({
+  return indexChunks(chunks);
+}
+
+// Índice de palabras precalculado: sección + texto + etiquetas. Lo comparten el CV y la
+// herramienta de conocimiento (knowledge.js).
+export const indexChunks = (chunks) =>
+  chunks.map((chunk) => ({
     ...chunk,
     words: new Set(tokenize(`${chunk.section} ${chunk.text} ${(chunk.tags ?? []).join(' ')}`)),
   }));
-}
 
 // Coincidencia por prefijo: "certification" encuentra "certifications". Las palabras de 1-2
 // letras solo coinciden exactas, en ambos sentidos: "it" (IT) no encuentra "items" ni "hi"
@@ -85,8 +89,8 @@ const matches = (chunk, term) =>
     (w) => w === term || (term.length >= 3 && w.startsWith(term)) || (w.length >= 3 && term.startsWith(w)),
   );
 
-// Búsqueda por palabras clave. TODO(rag): sustituir por búsqueda vectorial en pgvector.
-export function searchCv(chunks, query) {
+// Búsqueda por palabras clave (decisión v2.0: sin embeddings mientras el corpus sea pequeño).
+export function searchChunks(chunks, query, maxResults = MAX_RESULTS) {
   // Las palabras raras pesan más (tipo IDF): en "DORA experience", DORA aparece en un
   // fragmento y experience en cinco, así que el fragmento de DORA queda primero.
   const weights = tokenize(query).map((term) => {
@@ -101,7 +105,7 @@ export function searchCv(chunks, query) {
     }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_RESULTS)
+    .slice(0, maxResults)
     .map(({ chunk }) => chunk);
 }
 
@@ -112,7 +116,7 @@ export function createCvTool(cv) {
   return {
     name: 'search_cv',
     // Para la búsqueda forzada de app.js: ¿encuentra algo esta consulta?
-    hasResults: (query) => searchCv(chunks, query).length > 0,
+    hasResults: (query) => searchChunks(chunks, query).length > 0,
     description:
       "Searches the CV of the portfolio's owner: profile, experience, education, skills, certifications, " +
       'languages, projects, personal interests and contact. Always use it before answering any question ' +
@@ -128,7 +132,7 @@ export function createCvTool(cv) {
       if (typeof query !== 'string' || query.trim() === '') {
         return 'Error: the "query" parameter must be a non-empty string.';
       }
-      const results = searchCv(chunks, query);
+      const results = searchChunks(chunks, query);
       if (results.length === 0) {
         return `No results for "${query}". Available sections: ${sections.join(', ')}.`;
       }

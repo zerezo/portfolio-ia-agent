@@ -8,6 +8,8 @@ import { createMailer } from './mailer.js';
 import { createLlm } from './llm.js';
 import { createMemorySessionStore, createPgSessionStore } from './sessions.js';
 import { createCvTool, loadCv } from './tools.js';
+import { createKnowledgeTool, createLocalSource } from './knowledge.js';
+import { createR2Client } from './r2.js';
 
 // Cada cuánto se borran las solicitudes y sesiones caducadas.
 const PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -22,7 +24,15 @@ try {
 
 const llm = createLlm(config);
 const profile = loadCv();
-const tools = [createCvTool(profile)];
+// Base de conocimiento: R2 en los entornos desplegados, carpeta knowledge/ en local. Se carga
+// al arrancar; si falla, el servidor arranca igualmente y reintenta más tarde (knowledge.js).
+const { knowledge } = config;
+const knowledgeTool = createKnowledgeTool(
+  knowledge.source === 'r2' ? createR2Client(knowledge.r2) : createLocalSource(),
+  { allowPlaceholders: knowledge.allowPlaceholders },
+);
+await knowledgeTool.refresh();
+const tools = [createCvTool(profile), knowledgeTool];
 
 // Con DATABASE_URL, PostgreSQL (los datos sobreviven a reinicios y redespliegues); sin ella,
 // memoria, solo para desarrollo.
@@ -70,7 +80,7 @@ const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewT
 const server = app.listen(config.port, () => {
   console.log(
     `Servidor escuchando en el puerto ${config.port} (entorno: ${config.appEnv}, perfil: ${config.profileName}, modelo: ${llm.name}, ` +
-      `emails: ${config.contact.transport}, datos: ${pool ? 'postgres' : 'memoria'})`,
+      `conocimiento: ${knowledge.source}, emails: ${config.contact.transport}, datos: ${pool ? 'postgres' : 'memoria'})`,
   );
 });
 

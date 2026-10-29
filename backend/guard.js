@@ -1,6 +1,6 @@
 // Filtro previo al modelo, sin IA: decide si un mensaje del chat llega al modelo o recibe una
 // respuesta fija. Reduce el abuso (manipulación, preguntas fuera de tema) y el coste. No es
-// infalible: la protección de fondo es que el modelo solo puede leer el CV.
+// infalible: la protección de fondo es que el modelo solo puede leer el CV y la base de conocimiento.
 
 const normalize = (text) => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -39,19 +39,23 @@ export function looksLikeInjection(message) {
   return INJECTION_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-// ¿Tiene sentido que el modelo responda? cvTool.hasResults(query) indica si el CV contiene algo.
-export function isOnTopic(message, history, cvTool) {
-  if (cvTool.hasResults(message)) return true;
+// ¿Tiene sentido que el modelo responda? Cada herramienta de búsqueda (CV, base de
+// conocimiento) indica con hasResults(query) si contiene algo.
+export function isOnTopic(message, history, searchTools) {
+  const found = (query) => searchTools.some((tool) => tool.hasResults(query));
+  if (found(message)) return true;
   if (SUBJECT_PATTERN.test(normalize(message))) return true;
 
   const previous = history.findLast((m) => m.role === 'user')?.content;
   const words = message.trim().split(/\s+/).length;
-  return Boolean(previous && words <= MAX_FOLLOW_UP_WORDS && cvTool.hasResults(`${previous} ${message}`));
+  return Boolean(previous && words <= MAX_FOLLOW_UP_WORDS && found(`${previous} ${message}`));
 }
 
 // null si el mensaje puede llegar al modelo; si no, { reason, reply } con la respuesta fija.
-export function guardMessage(message, history, cvTool) {
+// searchTools: una herramienta o una lista; sin ninguna no se filtra por tema.
+export function guardMessage(message, history, searchTools = []) {
+  const tools = [searchTools].flat();
   if (looksLikeInjection(message)) return { reason: 'injection', reply: GUARD_REPLIES.injection };
-  if (cvTool && !isOnTopic(message, history, cvTool)) return { reason: 'off_topic', reply: GUARD_REPLIES.offTopic };
+  if (tools.length && !isOnTopic(message, history, tools)) return { reason: 'off_topic', reply: GUARD_REPLIES.offTopic };
   return null;
 }

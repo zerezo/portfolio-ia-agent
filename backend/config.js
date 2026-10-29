@@ -52,6 +52,35 @@ export const AVAILABILITY = {
 // Proveedores de modelo. ollama (local, gratuito) es el de desarrollo.
 export const LLM_PROVIDERS = ['ollama', 'anthropic'];
 
+// Origen de la base de conocimiento (knowledge.js): local (carpeta knowledge/) | r2 (Cloudflare R2).
+export const KNOWLEDGE_SOURCES = ['local', 'r2'];
+
+function loadKnowledgeConfig(env) {
+  const source = env.KNOWLEDGE_SOURCE || 'local';
+  if (!KNOWLEDGE_SOURCES.includes(source)) {
+    throw new Error(`KNOWLEDGE_SOURCE inválido: "${source}". Valores: ${KNOWLEDGE_SOURCES.join(', ')}`);
+  }
+  if (source === 'local') return { source };
+
+  const missing = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'].filter((name) => !env[name]);
+  if (missing.length) {
+    throw new Error(`KNOWLEDGE_SOURCE=r2 requiere: ${missing.join(', ')}`);
+  }
+  // El id de cuenta forma parte del host: solo hexadecimal, para no poder desviar la petición.
+  if (!/^[a-f0-9]{32}$/i.test(env.R2_ACCOUNT_ID)) {
+    throw new Error('R2_ACCOUNT_ID debe ser el id de cuenta de Cloudflare (32 caracteres hexadecimales)');
+  }
+  return {
+    source,
+    r2: {
+      accountId: env.R2_ACCOUNT_ID,
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      bucket: env.R2_BUCKET,
+    },
+  };
+}
+
 // Entorno desplegado (APP_ENV): local en el ordenador; development y production en Railway.
 export const APP_ENVS = ['local', 'development', 'production'];
 
@@ -85,6 +114,7 @@ function loadLlmConfig(env) {
 
 export function loadConfig(env = process.env) {
   const llm = loadLlmConfig(env);
+  const knowledge = loadKnowledgeConfig(env);
 
   const appEnv = env.APP_ENV || 'local';
   if (!APP_ENVS.includes(appEnv)) {
@@ -166,6 +196,8 @@ export function loadConfig(env = process.env) {
 
   return {
     llm,
+    // Los documentos de ejemplo (placeholder) nunca se sirven en producción.
+    knowledge: { ...knowledge, allowPlaceholders: appEnv !== 'production' },
     appEnv,
     production,
     corsOrigins,

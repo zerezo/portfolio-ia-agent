@@ -1,11 +1,13 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, detectContactIntent, forcedCvSearch, systemPromptFor } from '../app.js';
+import { createApp, detectContactIntent, forcedSearch, systemPromptFor } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
 import { createCvTool, loadCv } from '../tools.js';
+import { createKnowledgeTool } from '../knowledge.js';
+import { fakeSource } from './fixtures.js';
 import { createReviewTokens } from '../approvals.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
@@ -35,6 +37,26 @@ function buildApp({ limits = {}, fail } = {}) {
 }
 
 describe('loadConfig', () => {
+  test('base de conocimiento local por defecto; sin ejemplos solo en producción', () => {
+    assert.deepEqual(loadConfig({}).knowledge, { source: 'local', allowPlaceholders: true });
+    assert.equal(loadConfig({ APP_ENV: 'production' }).knowledge.allowPlaceholders, false);
+    assert.equal(loadConfig({ APP_ENV: 'development' }).knowledge.allowPlaceholders, true);
+  });
+
+  test('KNOWLEDGE_SOURCE=r2 exige las claves y un id de cuenta válido', () => {
+    const r2 = {
+      KNOWLEDGE_SOURCE: 'r2',
+      R2_ACCOUNT_ID: 'a'.repeat(32),
+      R2_ACCESS_KEY_ID: 'id',
+      R2_SECRET_ACCESS_KEY: 'secreto',
+      R2_BUCKET: 'conocimiento',
+    };
+    assert.equal(loadConfig(r2).knowledge.r2.bucket, 'conocimiento');
+    assert.throws(() => loadConfig({ ...r2, R2_BUCKET: '' }), /requiere: R2_BUCKET/);
+    assert.throws(() => loadConfig({ ...r2, R2_ACCOUNT_ID: 'evil.example/x' }), /R2_ACCOUNT_ID/);
+    assert.throws(() => loadConfig({ KNOWLEDGE_SOURCE: 's3' }), /KNOWLEDGE_SOURCE inválido/);
+  });
+
   test('usa Ollama y el perfil funcional por defecto, sin API key', () => {
     const config = loadConfig({});
     assert.equal(config.profileName, 'funcional');
@@ -199,6 +221,13 @@ describe('systemPromptFor', () => {
     const prompt = systemPromptFor(new Date('2026-10-19T23:30:00Z'));
     assert.match(prompt, /Today is Tuesday, 20 October 2026 \(2026-10-20\), Madrid time/);
   });
+
+  test('describe las dos herramientas y los dos idiomas', () => {
+    const prompt = systemPromptFor(new Date());
+    assert.match(prompt, /search_cv/);
+    assert.match(prompt, /search_knowledge/);
+    assert.match(prompt, /answer in Spanish if the user writes in Spanish, and in English otherwise/);
+  });
 });
 
 describe('detectContactIntent', () => {
@@ -218,8 +247,9 @@ describe('detectContactIntent', () => {
   });
 });
 
-describe('forcedCvSearch', () => {
-  const forced = forcedCvSearch(createCvTool(loadCv()));
+describe('forcedSearch', () => {
+  const knowledge = createKnowledgeTool(fakeSource());
+  const forced = forcedSearch([createCvTool(loadCv()), knowledge]);
   const history = (question) => [
     { role: 'user', content: question },
     { role: 'assistant', content: '...' },
@@ -236,6 +266,15 @@ describe('forcedCvSearch', () => {
   test('si el mensaje solo ya encuentra algo, no arrastra el tema anterior', () => {
     const query = forced('How can I get to London from Madrid?', history('Does he like sports?')).input.query;
     assert.equal(query, 'How can I get to London from Madrid?');
+  });
+
+  test('usa la base de conocimiento si el CV no encuentra nada', async () => {
+    await knowledge.refresh();
+    assert.equal(forced('Is he stubborn?', []).name, 'search_knowledge');
+  });
+
+  test('sin resultados en ninguna, usa la primera herramienta (el CV)', () => {
+    assert.equal(forced('zzz', []).name, 'search_cv');
   });
 });
 
