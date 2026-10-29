@@ -159,7 +159,7 @@ function setPageHeaders(res) {
   });
 }
 
-// profile: CV público (data/cv.json). contacts: almacén de solicitudes (contacts.js).
+// profile: CV público (data/cv.md, convertido por cv.js). contacts: almacén de solicitudes (contacts.js).
 // mailer: send({ to, subject, text, attachments }) (mailer.js). reviewTokens: firma y verifica
 // los enlaces de revisión (approvals.js).
 export function createApp({

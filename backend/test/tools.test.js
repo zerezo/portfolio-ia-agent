@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCvTool, loadCv } from '../tools.js';
 
-// Usa el cv.json real: además valida que el archivo tenga la estructura esperada.
+// Usa el cv.md real: además valida que el archivo tenga la estructura esperada.
 const tool = createCvTool(loadCv());
 const firstLine = (query) => tool.run({ query }).split('\n')[0];
 

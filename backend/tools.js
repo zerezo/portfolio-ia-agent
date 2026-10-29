@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-
 // Herramientas del agente. Cada una: { name, description, inputSchema, run(input) -> texto }.
 // La definición es neutral; cada adaptador de llm.js la traduce al formato de su proveedor.
 // La web está en inglés: descripciones, resultados y CV también, para que el modelo trabaje
@@ -148,6 +146,5 @@ export function createCvTool(cv) {
   };
 }
 
-export function loadCv(path = new URL('./data/cv.json', import.meta.url)) {
-  return JSON.parse(readFileSync(path, 'utf8'));
-}
+// El CV se lee de data/cv.md (cv.js).
+export { loadCv } from './cv.js';
