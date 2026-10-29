@@ -50,6 +50,14 @@ describe('loadKnowledge', () => {
     assert.deepEqual(docs.map((d) => d.key), ['personality.md', 'links.md']);
   });
 
+  test('un documento que no se puede leer se descarta sin perder el resto', async () => {
+    const files = { ...KNOWLEDGE_FILES };
+    delete files['links.md'];
+    const { docs, missing } = await loadKnowledge(fakeSource(files));
+    assert.deepEqual(docs.map((d) => d.key), ['personality.md']);
+    assert.deepEqual(missing, ['links.md']);
+  });
+
   test('sin placeholders descarta el contenido de ejemplo (producción)', async () => {
     const { docs, skipped } = await loadKnowledge(fakeSource(), { allowPlaceholders: false });
     assert.deepEqual(docs.map((d) => d.key), ['personality.md']);
@@ -105,6 +113,19 @@ describe('search_knowledge', () => {
     delete files['index.md'];
     clock = 2000;
     assert.match(await tool.run({ query: 'stubborn' }), /Stubborn/);
+  });
+
+  test('el filtro previo renueva una caché caducada (p. ej. vacía tras un fallo al arrancar)', async () => {
+    let clock = 0;
+    const files = {};
+    const tool = createKnowledgeTool(fakeSource(files), { ttlMs: 1000, now: () => clock });
+    await tool.refresh();
+    assert.equal(tool.hasResults('stubborn'), false);
+    Object.assign(files, KNOWLEDGE_FILES);
+    clock = 2000;
+    tool.hasResults('stubborn');
+    await tool.refresh();
+    assert.equal(tool.hasResults('stubborn'), true);
   });
 
   test('si la fuente falla desde el principio responde sin resultados', async () => {

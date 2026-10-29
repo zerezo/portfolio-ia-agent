@@ -67,11 +67,26 @@ export function parseDocument(key, text) {
 }
 
 // Carga index.md y sus documentos. allowPlaceholders=false descarta el contenido de ejemplo.
+// Sin index.md la carga falla; un documento que no se puede leer se descarta y se avisa en
+// missing, sin perder el resto (p. ej. si el servidor arranca mientras se suben los archivos).
 export async function loadKnowledge(source, { allowPlaceholders = true } = {}) {
   const keys = parseIndex(await source.getText('index.md'));
-  const docs = await Promise.all(keys.map(async (key) => parseDocument(key, await source.getText(key))));
+  const read = await Promise.all(
+    keys.map((key) =>
+      source.getText(key).then(
+        (text) => parseDocument(key, text),
+        () => null,
+      ),
+    ),
+  );
+  const docs = read.filter(Boolean);
   const used = docs.filter((doc) => allowPlaceholders || !doc.placeholder);
-  return { docs: used, skipped: docs.length - used.length, chunks: indexChunks(used.flatMap((doc) => doc.chunks)) };
+  return {
+    docs: used,
+    skipped: docs.length - used.length,
+    missing: keys.filter((key, i) => !read[i]),
+    chunks: indexChunks(used.flatMap((doc) => doc.chunks)),
+  };
 }
 
 // Herramienta search_knowledge. Los documentos se guardan en caché: hasResults (filtro previo)
@@ -88,7 +103,8 @@ export function createKnowledgeTool(source, { allowPlaceholders = true, ttlMs = 
         chunks = result.chunks;
         console.log(
           `[conocimiento] ${result.docs.length} documentos de ${source.name}` +
-            (result.skipped ? ` (${result.skipped} de ejemplo descartados)` : ''),
+            (result.skipped ? ` (${result.skipped} de ejemplo descartados)` : '') +
+            (result.missing.length ? `; no se pudieron leer: ${result.missing.join(', ')}` : ''),
         );
       })
       .catch((error) => console.error(`[conocimiento] no se pudo cargar ${source.name}: ${error.message}`))
@@ -103,7 +119,12 @@ export function createKnowledgeTool(source, { allowPlaceholders = true, ttlMs = 
   return {
     name: 'search_knowledge',
     refresh,
-    hasResults: (query) => searchChunks(chunks, query, MAX_RESULTS).length > 0,
+    // El filtro previo también renueva la caché caducada, en segundo plano: si solo lo hiciera
+    // run(), una caché vacía bloquearía las preguntas antes de llegar nunca a renovarse.
+    hasResults: (query) => {
+      if (now() - loadedAt > ttlMs) refresh();
+      return searchChunks(chunks, query, MAX_RESULTS).length > 0;
+    },
     description:
       "Searches the personal knowledge base of the portfolio's owner: personality, values, motivations " +
       'and career goals, how he works, links (LinkedIn, GitHub, social media) and frequently asked questions. ' +
