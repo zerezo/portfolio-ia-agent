@@ -1,15 +1,11 @@
 ---
-title: Personality
-tags: personality, character, strengths, weaknesses, values, personalidad, caracter, fortalezas, debilidades, valores
-placeholder: true
+title: Personality and strengths
+tags: personality, strengths, weaknesses, character, values, qualities, personalidad, fortalezas, debilidades, caracter, cualidades, puntos fuertes, punto debil
 ---
-<!-- EJEMPLO (Marc Márquez). Sustituir por: 3-4 rasgos reales con un ejemplo cada uno, un punto débil honesto y tus valores. -->
+<!-- Fuente: cuestionario de 2026-10-29. -->
 
 ## Strengths
-Extremely competitive and persistent: he is known for never giving up on a race, even after crashing. He studies data and rivals in detail and adapts quickly.
+He sees the whole system: he thinks end to end about a solution, from the network and the backend to the data, security and cost. He also learns quickly: for this portfolio he picked up React, Railway, Cloudflare and AI agents in a short time and took them to production.
 
-## Weaknesses
-His competitiveness sometimes made him take too many risks. After his injury he learned to manage risk and to think about the long term.
-
-## Values
-Family, hard work and loyalty to his team. He keeps close ties with his hometown.
+## Weakness
+His honest weak point is that he still has little professional experience, since his career started recently. He compensates by learning fast and by building real, complete projects such as this website.

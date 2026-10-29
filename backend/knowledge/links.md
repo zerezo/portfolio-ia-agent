@@ -1,11 +1,10 @@
 ---
 title: Links
-tags: links, linkedin, github, social media, profiles, website, enlaces, redes sociales, perfiles
-placeholder: true
+tags: links, linkedin, github, website, profiles, contact, enlaces, perfiles, web, contacto
 ---
-<!-- EJEMPLO. Sustituir por tus perfiles reales (solo públicos). -->
+<!-- Solo enlaces públicos. -->
 
 ## Profiles
-- LinkedIn: https://www.linkedin.com/in/TODO
-- GitHub: https://github.com/TODO
-- Portfolio source code: https://github.com/TODO
+- LinkedIn: https://www.linkedin.com/in/alejandro-cerezo-gilarranz-1145b6228
+- GitHub: https://github.com/zerezo
+- Website: https://alejandrocerezo.dev

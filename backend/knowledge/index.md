@@ -2,14 +2,14 @@
 
 <!--
 Índice de la base de conocimiento (RAG). El backend solo carga los documentos enlazados aquí.
-Estos archivos se suben tal cual al bucket de Cloudflare R2. Todo lo que hay aquí es público.
-Los documentos con "placeholder: true" son de ejemplo (Marc Márquez como sustituto): nunca se
-sirven en producción. Al completarlos, quitar esa línea.
+Estos archivos se suben tal cual a los buckets de Cloudflare R2 (portfolio-knowledge-dev y
+portfolio-knowledge). Todo lo que hay aquí es público: nada privado.
+Un documento con "placeholder: true" en la cabecera es de ejemplo y no se sirve en producción.
 -->
 
-- [About me](about.md) — who I am beyond the CV
-- [Personality](personality.md) — character, strengths and weaknesses
-- [Motivation and goals](motivation.md) — why I do what I do and where I want to go
-- [How I work](work-style.md) — work style, teamwork and pressure
-- [Links](links.md) — LinkedIn, GitHub and other profiles
-- [FAQ](faq.md) — frequently asked questions
+- [About Alejandro](about.md) — background, why cybersecurity and why AI
+- [Personality and strengths](personality.md) — strengths and an honest weakness
+- [Motivation and goals](motivation.md) — what motivates him and where he wants to go
+- [How he works](work-style.md) — methodical, ownership, teamwork and what he learned
+- [Links](links.md) — LinkedIn, GitHub and website
+- [FAQ](faq.md) — work mode, relocation, contact and hobbies

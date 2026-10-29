@@ -1,15 +1,17 @@
 ---
-title: FAQ
-tags: faq, questions, hobbies, fun facts, remote, relocation, preguntas, aficiones, curiosidades, remoto, mudanza
-placeholder: true
+title: Frequently asked questions
+tags: faq, questions, remote, hybrid, relocation, travel, work mode, hobbies, preguntas, remoto, hibrido, teletrabajo, mudarse, traslado, viajar, modalidad, aficiones
 ---
-<!-- EJEMPLO (Marc Márquez). Sustituir por preguntas que te gustaría que te hicieran: teletrabajo, disponibilidad para mudarte, idiomas, aficiones, curiosidades. -->
+<!-- Fuente: cuestionario de 2026-10-29 y CV público. -->
+
+## Work mode
+He is comfortable with hybrid and fully remote work.
+
+## Relocation
+He is open to relocating anywhere in the world for the right role.
+
+## Contact
+To meet or talk with him, visitors can use the booking form on this website, which shows his availability.
 
 ## Hobbies
-Outside racing he trains with motocross and cycling, and enjoys spending time with his family.
-
-## Fun fact
-His racing number is 93, after the year he was born.
-
-## Relocation and travel
-He travels most of the year for the racing calendar and is used to working in different countries.
+Outside work he runs (four half marathons and the Behobia-San Sebastián 20 km), cycles regularly and played football for years as captain of his local team.
