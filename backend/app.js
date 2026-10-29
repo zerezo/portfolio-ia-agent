@@ -25,6 +25,7 @@ const SYSTEM_PROMPT = [
   '- search_cv: his CV (experience, education, skills, certifications, languages, projects, interests).',
   '- search_knowledge: his personal knowledge base (personality, values, motivation and goals, how he',
   '  works, links such as LinkedIn or GitHub, and frequently asked questions).',
+  '- get_availability and propose_meeting: to arrange a meeting, a call or an email contact with him.',
   '- Choose the tool that fits the question. Use both when it needs both, for example "is his experience',
   '  a good fit for his career goals?". If one returns nothing useful, try the other before giving up.',
   'Rules:',
@@ -44,8 +45,15 @@ const SYSTEM_PROMPT = [
   '  English: translate them only when the question is in Spanish.',
   '- Answer in the third person, in 2-4 sentences of plain text: no Markdown (no **bold**, headings',
   '  or lists), because the chat shows the text as it is.',
-  '- If they want to meet, call or contact him, do not suggest times or ask for details: tell them they',
-  '  can request it with the contact form on this page, which shows his availability.',
+  'Meetings:',
+  '- If they want to meet, call or contact him, call get_availability and offer two or three free slots',
+  '  (Madrid time), and ask whether they prefer video, phone or email if they have not said it.',
+  '- When they have chosen a mode and, for video or phone, one exact slot, call propose_meeting with',
+  '  the slot id exactly as listed by get_availability. Never invent or adjust slot ids, dates or times.',
+  '  Do it right away, without asking them to confirm first: the card itself is the confirmation.',
+  '  If what they ask for is not free, say so and offer the closest free slots.',
+  '- Never ask for their name, email or phone in the chat: the confirmation card collects them. Never say',
+  '  the meeting is booked: Alejandro reviews every request and replies by email.',
 ].join('\n');
 
 // Peticiones de contacto: se detectan en el código, no con el modelo. Se responde con una
@@ -80,7 +88,8 @@ export function detectContactIntent(message) {
 // "and before that?") se combina con la pregunta anterior. Combinarla siempre arrastraba el
 // tema anterior a preguntas nuevas: "how can I get to London?" tras "does he like sports?"
 // devolvía la sección de deportes y el modelo la repetía.
-export const forcedSearch = (searchTools) => (message, history) => {
+export const forcedSearch = (searchTools, { skip = () => false } = {}) => (message, history) => {
+  if (skip(message)) return null;
   const previous = history.findLast((m) => m.role === 'user')?.content;
   const finds = (query) => searchTools.find((tool) => tool.hasResults(query));
   const query = previous && !finds(message) ? `${previous} ${message}` : message;
@@ -182,6 +191,10 @@ export function createApp({
   const persistent = (name) => rateLimitStore?.(name);
   // Herramientas de búsqueda (CV y base de conocimiento): las usan el filtro previo y la búsqueda forzada.
   const searchTools = tools.filter((t) => t.hasResults);
+  // Reservas desde el chat (booking.js): con ellas, las peticiones de contacto llegan al agente en
+  // vez de recibir la respuesta fija, y el filtro previo deja pasar los mensajes de fechas y horas.
+  const bookingTool = tools.find((t) => t.isRelevant);
+  const guardTools = [...searchTools, ...(bookingTool ? [{ hasResults: bookingTool.isRelevant }] : [])];
   // Los almacenes pueden ser de memoria o de PostgreSQL: siempre se usan con await.
   const freeSlots = async () =>
     listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set((await contacts?.takenSlotIds()) ?? []) });
@@ -425,7 +438,7 @@ export function createApp({
         { role: 'assistant', content: reply },
       ]);
 
-    const contactLang = detectContactIntent(message);
+    const contactLang = !bookingTool && detectContactIntent(message);
     if (contactLang) {
       const reply = CONTACT_REPLY[contactLang];
       await saveTurn(reply);
@@ -434,7 +447,7 @@ export function createApp({
 
     // Filtro previo: intentos de manipulación y preguntas sin relación con él reciben una
     // respuesta fija y el modelo no se ejecuta. Solo se registra el motivo, no el mensaje.
-    const blocked = guardMessage(message, history, searchTools);
+    const blocked = guardMessage(message, history, guardTools);
     if (blocked) {
       console.log(`[guard] mensaje bloqueado: ${blocked.reason}`);
       await saveTurn(blocked.reply);
@@ -442,6 +455,7 @@ export function createApp({
     }
 
     try {
+      const context = {};
       const { reply: rawReply } = await runAgent({
         llm,
         tools,
@@ -449,13 +463,16 @@ export function createApp({
         message,
         history,
         maxTokens: limits.maxTokens,
-        forcedFirstCall: searchTools.length ? forcedSearch(searchTools) : undefined,
+        forcedFirstCall: searchTools.length ? forcedSearch(searchTools, { skip: bookingTool?.isRelevant }) : undefined,
         logUserContent: config.logUserContent,
+        context,
       });
 
       const reply = rawReply || EMPTY_REPLY;
       await saveTurn(reply);
-      res.json({ reply, sessionId });
+      // Propuesta de reunión (propose_meeting): el frontend muestra la tarjeta de confirmación.
+      const { proposal } = context;
+      res.json({ reply, sessionId, ...(proposal && { action: 'propose_meeting', proposal }) });
     } catch (error) {
       console.error('Error en la llamada al modelo:', error);
       if (UPSTREAM_BUSY.has(error.status)) {

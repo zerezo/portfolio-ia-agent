@@ -2,11 +2,13 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPromptFor } from '../app.js';
-import { loadConfig, LIMIT_PROFILES } from '../config.js';
+import { AVAILABILITY, loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
 import { createCvTool, loadCv } from '../tools.js';
 import { createKnowledgeTool } from '../knowledge.js';
+import { createBookingTools } from '../booking.js';
+import { listFreeSlots } from '../calendar.js';
 import { fakeSource } from './fixtures.js';
 import { createReviewTokens } from '../approvals.js';
 
@@ -855,5 +857,63 @@ describe('límites persistentes', () => {
     const { factory } = sharedStores();
     await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(200);
     await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(429);
+  });
+});
+
+describe('reservas desde el chat', () => {
+  // Modelo falso con guion: cada llamada devuelve la siguiente respuesta.
+  function scriptedLlm(script) {
+    const llm = { name: 'guion', calls: [], chat: async (params) => (llm.calls.push(params), script.shift() ?? { text: 'fin', toolCalls: [] }) };
+    return llm;
+  }
+
+  const bookingApp = (llm) => {
+    const contacts = createMemoryContactStore();
+    const now = () => new Date('2026-11-02T08:00:00Z');
+    const tools = [
+      createCvTool(loadCv()),
+      ...createBookingTools({
+        freeSlots: async () => listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set(await contacts.takenSlotIds()) }),
+        schedule: AVAILABILITY,
+      }),
+    ];
+    const config = { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 10 } };
+    return createApp({ llm, tools, sessions: createMemorySessionStore(), contacts, config, now });
+  };
+
+  test('una petición de reunión llega al agente (no a la respuesta fija) y devuelve la propuesta', async () => {
+    const llm = scriptedLlm([
+      { text: '', toolCalls: [{ id: '1', name: 'propose_meeting', input: { mode: 'video', slot_id: '2026-11-03T17:20' } }] },
+      { text: 'Please confirm the details in the card.', toolCalls: [] },
+    ]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'Can we book a video call on Tuesday at 17:20?' }).expect(200);
+    assert.equal(res.body.action, 'propose_meeting');
+    assert.equal(res.body.proposal.slot.id, '2026-11-03T17:20');
+    assert.equal(res.body.reply, 'Please confirm the details in the card.');
+    assert.ok(llm.calls[0].tools.some((t) => t.name === 'get_availability'));
+  });
+
+  test('una respuesta corta con hora pasa el filtro y no fuerza una búsqueda en el CV', async () => {
+    const llm = scriptedLlm([{ text: 'Which mode do you prefer?', toolCalls: [] }]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'el jueves a las 5' }).expect(200);
+    assert.equal(res.body.reply, 'Which mode do you prefer?');
+    assert.equal(res.body.action, undefined);
+    assert.equal(llm.calls.length, 1);
+  });
+
+  test('si el modelo propone un hueco inventado no hay tarjeta', async () => {
+    const llm = scriptedLlm([
+      { text: '', toolCalls: [{ id: '1', name: 'propose_meeting', input: { mode: 'video', slot_id: '2026-11-03T17:10' } }] },
+      { text: 'That time is not available.', toolCalls: [] },
+    ]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'Book a call at 17:10' }).expect(200);
+    assert.equal(res.body.action, undefined);
+  });
+
+  test('sin herramientas de reserva se mantiene la respuesta fija con el formulario', async () => {
+    const { app, llm } = buildApp();
+    const res = await request(app).post('/api/chat').send({ message: 'Can we book a call?' }).expect(200);
+    assert.equal(res.body.action, 'open_contact_form');
+    assert.equal(llm.calls.length, 0);
   });
 });

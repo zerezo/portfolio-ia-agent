@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sendChatMessage } from '../api.js';
+import MeetingCard from './MeetingCard.jsx';
 
 const GREETING =
   "Hi! I'm Alejandro's assistant. Ask me about his experience, certifications, projects, interests or what he is like.";
@@ -11,7 +12,7 @@ const GREETING =
 const SUGGESTIONS = [
   'What does he do at IndraMind?',
   'Which certifications does he have?',
-  'Tell me about his bachelor’s thesis',
+  'Can I book a call with him?',
   'What does he do in his free time?',
 ];
 
@@ -60,7 +61,7 @@ export default function Chat({ onOpenContact }) {
       const data = await sendChatMessage(message, sessionId.current);
       sessionId.current = data.sessionId;
       writeSession(data.sessionId);
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply, action: data.action }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply, action: data.action, proposal: data.proposal }]);
       if (data.action === 'open_contact_form') onOpenContact();
     } catch (err) {
       setMessages((prev) => [...prev, { role: 'error', content: err.message }]);
@@ -99,6 +100,7 @@ export default function Chat({ onOpenContact }) {
           >
             {/* Texto plano siempre: la respuesta del modelo nunca se interpreta como HTML. */}
             <p className="whitespace-pre-line">{m.content}</p>
+            {m.action === 'propose_meeting' && m.proposal && <MeetingCard proposal={m.proposal} onOpenBook={onOpenContact} />}
             {m.action === 'open_contact_form' && (
               <Button size="sm" className="rounded-full" onClick={onOpenContact}>
                 Book a meeting

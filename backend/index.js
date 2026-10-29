@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 import { createReviewTokens, randomSecret } from './approvals.js';
-import { loadConfig } from './config.js';
+import { AVAILABILITY, loadConfig } from './config.js';
 import { createMemoryContactStore, createPgContactStore } from './contacts.js';
 import { createPool, migrate } from './db.js';
 import { createMailer } from './mailer.js';
@@ -11,6 +11,8 @@ import { createCvTool, loadCv } from './tools.js';
 import { createKnowledgeTool, createLocalSource } from './knowledge.js';
 import { createR2Client } from './r2.js';
 import { createPgRateLimitStore, purgeExpiredRateLimits } from './ratelimit.js';
+import { createBookingTools } from './booking.js';
+import { listFreeSlots } from './calendar.js';
 import { createHmac } from 'node:crypto';
 
 // Cada cuánto se borran las solicitudes y sesiones caducadas.
@@ -87,6 +89,16 @@ if (!config.contact.reviewSecret) {
   console.warn('REVIEW_SECRET no definido: se usa uno aleatorio y los enlaces de revisión caducan al reiniciar.');
 }
 const reviewTokens = createReviewTokens({ secret: config.contact.reviewSecret ?? randomSecret() });
+
+// Reservas desde el chat: los mismos huecos libres que el formulario (los ocupados por
+// solicitudes pendientes o aprobadas no se ofrecen).
+tools.push(
+  ...createBookingTools({
+    freeSlots: async () =>
+      listFreeSlots({ schedule: AVAILABILITY, now: new Date(), taken: new Set(await contacts.takenSlotIds()) }),
+    schedule: AVAILABILITY,
+  }),
+);
 
 const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config, rateLimitStore });
 
