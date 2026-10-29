@@ -10,6 +10,8 @@ import { createMemorySessionStore, createPgSessionStore } from './sessions.js';
 import { createCvTool, loadCv } from './tools.js';
 import { createKnowledgeTool, createLocalSource } from './knowledge.js';
 import { createR2Client } from './r2.js';
+import { createPgRateLimitStore, purgeExpiredRateLimits } from './ratelimit.js';
+import { createHmac } from 'node:crypto';
 
 // Cada cuánto se borran las solicitudes y sesiones caducadas.
 const PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -39,6 +41,7 @@ const tools = [createCvTool(profile), knowledgeTool];
 let pool;
 let sessions;
 let contacts;
+let rateLimitStore;
 if (config.databaseUrl) {
   pool = createPool(config.databaseUrl);
   try {
@@ -49,6 +52,10 @@ if (config.databaseUrl) {
   }
   sessions = createPgSessionStore(pool);
   contacts = createPgContactStore(pool);
+  // Límites persistentes. El HMAC de las IPs usa una clave derivada de REVIEW_SECRET (obligatorio
+  // en Railway); sin él (local), una aleatoria: los contadores se reinician al reiniciar.
+  const secret = createHmac('sha256', config.contact.reviewSecret ?? randomSecret()).update('rate-limit').digest();
+  rateLimitStore = (name) => createPgRateLimitStore(pool, name, { secret });
 } else {
   console.warn('DATABASE_URL no definida: solicitudes y sesiones en memoria (se pierden al reiniciar).');
   sessions = createMemorySessionStore();
@@ -57,9 +64,15 @@ if (config.databaseUrl) {
 
 const purge = async () => {
   try {
-    const [expiredContacts, expiredSessions] = await Promise.all([contacts.purgeExpired(), sessions.purgeExpired()]);
-    if (expiredContacts || expiredSessions) {
-      console.log(`[db] borradas ${expiredContacts} solicitudes y ${expiredSessions} sesiones caducadas`);
+    const [expiredContacts, expiredSessions, expiredLimits] = await Promise.all([
+      contacts.purgeExpired(),
+      sessions.purgeExpired(),
+      pool ? purgeExpiredRateLimits(pool) : 0,
+    ]);
+    if (expiredContacts || expiredSessions || expiredLimits) {
+      console.log(
+        `[db] borradas ${expiredContacts} solicitudes, ${expiredSessions} sesiones y ${expiredLimits} contadores caducados`,
+      );
     }
   } catch (error) {
     console.error('Error al borrar datos caducados:', error);
@@ -75,12 +88,12 @@ if (!config.contact.reviewSecret) {
 }
 const reviewTokens = createReviewTokens({ secret: config.contact.reviewSecret ?? randomSecret() });
 
-const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config });
+const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config, rateLimitStore });
 
 const server = app.listen(config.port, () => {
   console.log(
     `Servidor escuchando en el puerto ${config.port} (entorno: ${config.appEnv}, perfil: ${config.profileName}, modelo: ${llm.name}, ` +
-      `conocimiento: ${knowledge.source}, emails: ${config.contact.transport}, datos: ${pool ? 'postgres' : 'memoria'})`,
+      `conocimiento: ${knowledge.source}, emails: ${config.contact.transport}, datos y límites: ${pool ? 'postgres' : 'memoria'})`,
   );
 });
 

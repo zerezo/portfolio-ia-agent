@@ -811,3 +811,49 @@ describe('cabeceras de seguridad de la API', () => {
     assert.equal(res.headers['cache-control'], 'no-store');
   });
 });
+
+describe('límites persistentes', () => {
+  // Almacén compartido falso con la interfaz de ratelimit.js: sobrevive a crear otra app.
+  function sharedStores() {
+    const counts = new Map();
+    const names = [];
+    const factory = (name) => {
+      names.push(name);
+      return {
+        prefix: name,
+        localKeys: false,
+        init() {},
+        increment(key) {
+          const hits = (counts.get(`${name}:${key}`) ?? 0) + 1;
+          counts.set(`${name}:${key}`, hits);
+          return { totalHits: hits, resetTime: new Date(Date.now() + 60_000) };
+        },
+        decrement() {},
+        resetKey() {},
+      };
+    };
+    return { factory, names };
+  }
+
+  const appWith = (rateLimitStore) =>
+    createApp({
+      llm: fakeLlm(),
+      tools: [],
+      sessions: createMemorySessionStore(),
+      contacts: createMemoryContactStore(),
+      config: { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 1 } },
+      rateLimitStore,
+    });
+
+  test('el chat y el formulario usan el almacén; el anti-saturación no', () => {
+    const { factory, names } = sharedStores();
+    appWith(factory);
+    assert.deepEqual(names.sort(), ['chat-day', 'chat-global', 'chat-minute', 'contact-global', 'contact-hour']);
+  });
+
+  test('el límite se mantiene aunque la app se vuelva a crear (redespliegue)', async () => {
+    const { factory } = sharedStores();
+    await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(200);
+    await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(429);
+  });
+});

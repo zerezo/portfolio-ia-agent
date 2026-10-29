@@ -95,13 +95,15 @@ const SLOT_TAKEN_ERROR =
 // Estados del proveedor que indican saturación o indisponibilidad temporal, no un fallo nuestro.
 const UPSTREAM_BUSY = new Set([429, 503, 529]);
 
-function limiter({ windowMs, limit, message, keyGenerator }) {
+// store: almacén de los contadores; sin él, memoria (se reinicia con cada despliegue).
+function limiter({ windowMs, limit, message, keyGenerator, store }) {
   return rateLimit({
     windowMs,
     limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     ...(keyGenerator && { keyGenerator }),
+    ...(store && { store }),
     handler: (req, res) => res.status(429).json({ error: message }),
   });
 }
@@ -171,8 +173,13 @@ export function createApp({
   mailer,
   reviewTokens,
   config,
+  // rateLimitStore(nombre) -> almacén persistente para los límites del chat y del formulario
+  // (ratelimit.js). Sin él, en memoria. El anti-saturación siempre va en memoria: protege cada
+  // instancia y no consulta la base de datos en cada petición.
+  rateLimitStore,
   now = () => new Date(),
 }) {
+  const persistent = (name) => rateLimitStore?.(name);
   // Herramientas de búsqueda (CV y base de conocimiento): las usan el filtro previo y la búsqueda forzada.
   const searchTools = tools.filter((t) => t.hasResults);
   // Los almacenes pueden ser de memoria o de PostgreSQL: siempre se usan con await.
@@ -243,12 +250,14 @@ export function createApp({
     limiter({
       windowMs: 60 * WINDOWS.MINUTE,
       limit: CONTACT_LIMITS.perHourPerIp,
+      store: persistent('contact-hour'),
       message: 'You have sent too many requests. Please try again in an hour.',
     }),
     limiter({
       windowMs: WINDOWS.DAY,
       limit: CONTACT_LIMITS.globalPerDay,
       keyGenerator: () => 'global',
+      store: persistent('contact-global'),
       message: 'The contact form has reached its daily capacity. Please come back tomorrow or reach out on LinkedIn.',
     }),
   ];
@@ -361,17 +370,20 @@ export function createApp({
     limiter({
       windowMs: WINDOWS.MINUTE,
       limit: limits.chatPerMinute,
+      store: persistent('chat-minute'),
       message: 'You have sent too many messages in a row. Please wait a minute.',
     }),
     limiter({
       windowMs: WINDOWS.DAY,
       limit: limits.chatPerDay,
+      store: persistent('chat-day'),
       message: 'You have reached the daily message limit.',
     }),
     limiter({
       windowMs: WINDOWS.DAY,
       limit: limits.globalPerDay,
       keyGenerator: () => 'global',
+      store: persistent('chat-global'),
       message: 'The assistant has reached its daily capacity. Please come back tomorrow.',
     }),
   ];
