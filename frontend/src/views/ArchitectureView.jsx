@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { EDGES, GROUPS, NODE_H, NODE_W, NODES, VIEW_H, VIEW_W } from '../architecture.js';
+import { DIAGRAMS, NODE_H, NODE_W, VIEW_H, VIEW_W } from '../architecture.js';
 
-const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
 const center = (n) => ({ x: n.x + NODE_W / 2, y: n.y + NODE_H / 2 });
 
 // Punto donde la recta entre los centros de dos cajas sale del borde de la primera.
@@ -18,11 +17,11 @@ function borderPoint(from, to, gap = 4) {
 }
 
 // Cajas conectadas con una dada (para resaltarlas al pasar el ratón).
-const neighbours = (id) =>
-  new Set(EDGES.flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : [])).concat(id));
+const neighbours = (edges, id) =>
+  new Set(edges.flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : [])).concat(id));
 
-function Node({ node, dimmed, active, onHover, onOpen }) {
-  const color = GROUPS[node.group].color;
+function Node({ node, groups, dimmed, active, onHover, onOpen }) {
+  const color = groups[node.group].color;
   return (
     <g
       role="button"
@@ -61,8 +60,10 @@ function Node({ node, dimmed, active, onHover, onOpen }) {
   );
 }
 
-function Details({ node, onClose, onOpen }) {
-  const links = EDGES.filter((e) => e.from === node.id || e.to === node.id).map((e) => ({
+function Details({ diagram, node, onClose, onOpen }) {
+  const { groups, edges } = diagram;
+  const byId = Object.fromEntries(diagram.nodes.map((n) => [n.id, n]));
+  const links = edges.filter((e) => e.from === node.id || e.to === node.id).map((e) => ({
     ...e,
     other: byId[e.from === node.id ? e.to : e.from],
     outgoing: e.from === node.id,
@@ -71,9 +72,9 @@ function Details({ node, onClose, onOpen }) {
   return (
     <div className="flex max-h-[85dvh] flex-col gap-4 overflow-y-auto p-6 text-sm">
       <header className="flex items-start gap-3">
-        <span className="mt-1 h-10 w-1.5 shrink-0 rounded-full" style={{ background: GROUPS[node.group].color }} />
+        <span className="mt-1 h-10 w-1.5 shrink-0 rounded-full" style={{ background: groups[node.group].color }} />
         <div className="flex-1">
-          <p className="text-xs font-medium text-muted-foreground">{GROUPS[node.group].label}</p>
+          <p className="text-xs font-medium text-muted-foreground">{groups[node.group].label}</p>
           <h2 className="bg-gradient-to-r from-primary to-brand-2 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
             {node.label}
           </h2>
@@ -126,16 +127,25 @@ function Details({ node, onClose, onOpen }) {
   );
 }
 
-// Mapa de arquitectura en SVG: al pasar por una caja se resaltan sus conexiones y aparece un
-// avance; al pulsarla se abre la explicación completa encima (<dialog> nativo: Esc, la X o un
-// clic fuera la cierran).
+// Mapas de arquitectura en SVG: el del agente (por defecto, lo principal) y el del sistema
+// completo. Al pasar por una caja se resaltan sus conexiones y aparece un avance; al pulsarla se
+// abre la explicación completa encima (<dialog> nativo: Esc, la X o un clic fuera la cierran).
 export default function ArchitectureView() {
+  const [diagramId, setDiagramId] = useState('agent');
   const [hover, setHover] = useState(null); // { node, rect }
   const [open, setOpen] = useState(null);
   const containerRef = useRef(null);
   const dialogRef = useRef(null);
 
-  const lit = useMemo(() => (hover ? neighbours(hover.node.id) : null), [hover]);
+  const diagram = DIAGRAMS[diagramId];
+  const { groups, nodes, edges } = diagram;
+  const byId = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n])), [nodes]);
+  const lit = useMemo(() => (hover ? neighbours(edges, hover.node.id) : null), [edges, hover]);
+
+  const showDiagram = (id) => {
+    setHover(null);
+    setDiagramId(id);
+  };
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -160,15 +170,32 @@ export default function ArchitectureView() {
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="bg-gradient-to-r from-primary to-brand-2 bg-clip-text text-xl font-bold tracking-tight text-transparent">
-            How this site works
+            {diagram.title}
           </h2>
           <p className="text-xs text-muted-foreground">
             <span className="hidden md:inline">Hover a box for a preview, click it for the full story.</span>
             <span className="md:hidden">Tap a component for the full story.</span>
           </p>
         </div>
+        <div className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1 text-xs" role="tablist" aria-label="Diagram">
+          {Object.entries(DIAGRAMS).map(([id, d]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={id === diagramId}
+              className={cn(
+                'rounded-full px-3 py-1 font-medium text-muted-foreground',
+                id === diagramId && 'bg-card text-foreground shadow-sm',
+              )}
+              onClick={() => showDiagram(id)}
+            >
+              {d.tab}
+            </button>
+          ))}
+        </div>
         <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground" aria-label="Legend">
-          {Object.entries(GROUPS).map(([id, g]) => (
+          {Object.entries(groups).map(([id, g]) => (
             <li key={id} className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full" style={{ background: g.color }} />
               {g.label}
@@ -179,14 +206,14 @@ export default function ArchitectureView() {
 
       {/* En el móvil el mapa no se lee: lista de componentes por grupo, con la misma ficha. */}
       <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto md:hidden" aria-label="Components">
-        {NODES.map((n) => (
+        {nodes.map((n) => (
           <li key={n.id}>
             <button
               type="button"
               className="flex w-full items-center gap-3 rounded-2xl border bg-card/70 p-3 text-left"
               onClick={() => openNode(n)}
             >
-              <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: GROUPS[n.group].color }} />
+              <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: groups[n.group].color }} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">{n.label}</span>
                 <span className="block truncate text-xs text-muted-foreground">{n.preview}</span>
@@ -202,7 +229,7 @@ export default function ArchitectureView() {
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className="size-full p-2"
           role="group"
-          aria-label="Architecture map"
+          aria-label={diagram.title}
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
@@ -211,7 +238,7 @@ export default function ArchitectureView() {
             </marker>
           </defs>
 
-          {EDGES.map((e) => {
+          {edges.map((e) => {
             const a = borderPoint(byId[e.from], byId[e.to]);
             const b = borderPoint(byId[e.to], byId[e.from], 8);
             const on = lit && lit.has(e.from) && lit.has(e.to) && (e.from === hover.node.id || e.to === hover.node.id);
@@ -242,10 +269,11 @@ export default function ArchitectureView() {
             );
           })}
 
-          {NODES.map((n) => (
+          {nodes.map((n) => (
             <Node
               key={n.id}
               node={n}
+              groups={groups}
               active={hover?.node.id === n.id}
               dimmed={lit && !lit.has(n.id)}
               onHover={onHover}
@@ -280,7 +308,7 @@ export default function ArchitectureView() {
         }}
         aria-label={open ? `${open.label} details` : undefined}
       >
-        {open && <Details node={open} onClose={() => setOpen(null)} onOpen={setOpen} />}
+        {open && <Details diagram={diagram} node={open} onClose={() => setOpen(null)} onOpen={setOpen} />}
       </dialog>
     </div>
   );

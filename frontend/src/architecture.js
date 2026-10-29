@@ -1,14 +1,28 @@
-// Contenido del mapa de arquitectura: cajas (posición en un lienzo de 1000 × 600), flechas y
-// textos para el visitante (en inglés). Si cambia la arquitectura, se actualiza aquí.
+// Contenido de los mapas de arquitectura: cajas (posición en un lienzo de VIEW_W × VIEW_H),
+// flechas y textos para el visitante (en inglés). Si cambia la arquitectura, se actualiza aquí.
+// Dos diagramas: el agente (lo principal) y el sistema completo.
 
-export const GROUPS = {
+export const NODE_W = 150;
+export const NODE_H = 64;
+export const VIEW_W = 1180;
+export const VIEW_H = 620;
+
+const SYSTEM_GROUPS = {
   edge: { label: 'Cloudflare', color: 'var(--warning)' },
   railway: { label: 'Railway', color: 'var(--primary)' },
   external: { label: 'External APIs', color: 'var(--brand-2)' },
   tooling: { label: 'Tooling', color: 'var(--muted-foreground)' },
 };
 
-export const NODES = [
+const AGENT_GROUPS = {
+  code: { label: 'Backend code', color: 'var(--primary)' },
+  ai: { label: 'AI model', color: 'var(--brand-2)' },
+  data: { label: 'Data', color: 'var(--warning)' },
+  visitor: { label: 'Visitor', color: 'var(--muted-foreground)' },
+};
+
+// Diagrama del sistema: del navegador a los servicios externos.
+const SYSTEM_NODES = [
   {
     id: 'visitor',
     label: 'Visitor',
@@ -80,10 +94,10 @@ export const NODES = [
     x: 640,
     y: 200,
     preview: 'Blocks prompt injection and off-topic questions before any AI call.',
-    what: 'Plain code that runs before the model: it rejects prompt-manipulation patterns and questions unrelated to Alejandro (nothing found in the CV or the knowledge base), and detects requests to meet so the booking page opens instead.',
+    what: 'Plain code that runs before the model: it rejects prompt-manipulation patterns and questions unrelated to Alejandro (nothing found in the CV or the knowledge base), and lets messages about dates and times through so the assistant can arrange a meeting.',
     why: 'Cheap and predictable: a blocked message costs nothing and never reaches the model.',
     tech: ['Pattern matching', 'Keyword relevance'],
-    security: 'Not the only line of defence: the model can only search the CV and the knowledge base, and its output is shown as plain text.',
+    security: 'Not the only line of defence: the model can only search public information and propose meetings, and its output is shown as plain text.',
   },
   {
     id: 'agent',
@@ -140,7 +154,7 @@ export const NODES = [
     label: 'R2 storage',
     sub: 'Knowledge base',
     group: 'edge',
-    x: 830,
+    x: 640,
     y: 430,
     preview: 'Cloudflare R2 bucket with the knowledge base documents.',
     what: 'An object storage bucket (S3-compatible) per environment. Only the backend reads it, with a read-only key signed with AWS Signature V4.',
@@ -154,7 +168,7 @@ export const NODES = [
     sub: 'Slots · review',
     group: 'railway',
     x: 640,
-    y: 450,
+    y: 540,
     preview: 'Bookings from the Book page or from the chat. The AI proposes, code validates, you confirm.',
     what: 'Offers weekday slots in Madrid time, validates requests and stores them as pending. In the chat, the assistant reads the free slots and proposes one; the visitor confirms it in a card with their details, which goes through the same validated endpoint as the Book page. The model never books anything or handles personal data. Alejandro approves or rejects each one through a signed link; approval sends a calendar invite and, for video calls, a Jitsi room.',
     why: 'Dates and contact details must be exact, so this path is plain code, not a language model.',
@@ -180,16 +194,29 @@ export const NODES = [
     sub: 'Email over HTTPS',
     group: 'external',
     x: 830,
-    y: 530,
+    y: 540,
     preview: 'Sends notifications, confirmations and invitations.',
     what: 'Emails go out through the Gmail API with send-only permission: a notice to Alejandro, an acknowledgement to the visitor, and the approval or rejection with its invitation.',
     why: 'Railway blocks outgoing SMTP on its plans, so email uses HTTPS instead.',
     tech: ['Gmail API', 'OAuth 2.0 (send only)'],
   },
+  {
+    id: 'booking',
+    label: 'Booking tools',
+    sub: 'Tool · slots + proposal',
+    group: 'railway',
+    x: 1010,
+    y: 330,
+    preview: 'The tools the agent uses to arrange a meeting in the chat.',
+    what: 'get_availability reads the real free slots, the same ones the Book page shows. propose_meeting checks the slot the visitor chose and shows them a confirmation card, where they enter their details and confirm.',
+    why: 'The model is good at conversation but not at exact dates and personal data, so it only proposes: code validates and the visitor confirms.',
+    tech: ['Tool calling', 'Human in the loop'],
+    security: 'The model never books anything or sees the visitor’s email: the card sends the request through the same validated endpoint as the Book page.',
+  },
 ];
 
 // Flechas: de -> a, con una etiqueta corta. dashed = flujo indirecto (despliegue).
-export const EDGES = [
+const SYSTEM_EDGES = [
   { from: 'visitor', to: 'cloudflare', label: 'HTTPS' },
   { from: 'cloudflare', to: 'web', label: 'static files' },
   { from: 'cloudflare', to: 'api', label: 'api. proxy' },
@@ -200,14 +227,222 @@ export const EDGES = [
   { from: 'agent', to: 'llm', label: 'prompt' },
   { from: 'agent', to: 'cv', label: 'tool call' },
   { from: 'agent', to: 'knowledge', label: 'tool call' },
+  { from: 'agent', to: 'booking', label: 'tool call' },
   { from: 'knowledge', to: 'r2', label: 'read-only' },
+  { from: 'booking', to: 'contact', label: 'proposal' },
   { from: 'api', to: 'contact', label: 'booking' },
   { from: 'api', to: 'db', label: 'sessions' },
   { from: 'contact', to: 'db', label: 'requests' },
   { from: 'contact', to: 'gmail', label: 'emails' },
 ];
 
-export const NODE_W = 150;
-export const NODE_H = 64;
-export const VIEW_W = 1000;
-export const VIEW_H = 600;
+// Diagrama del agente: el recorrido de un mensaje del chat, del filtro a las herramientas.
+const AGENT_NODES = [
+  {
+    id: 'message',
+    label: 'Your message',
+    sub: 'Chat · en / es',
+    group: 'visitor',
+    x: 20,
+    y: 280,
+    preview: 'A question about Alejandro, or a request to meet him.',
+    what: 'Each message is sent to the API with a session id. The API checks its length and the rate limits before anything else, and detects whether it is in Spanish or English.',
+    why: 'Cheap checks first: most abuse is stopped before it costs anything.',
+    tech: ['POST /api/chat', 'Rate limits', 'Language detection'],
+  },
+  {
+    id: 'guard',
+    label: 'Guard',
+    sub: 'Plain code, no AI',
+    group: 'code',
+    x: 220,
+    y: 280,
+    preview: 'Stops prompt injection and off-topic questions for free.',
+    what: 'Rejects prompt-manipulation patterns ("ignore your instructions…") and messages that have nothing to do with Alejandro: nothing in the CV or the knowledge base and no meeting request. Those get a fixed answer and never reach the model.',
+    why: 'Predictable and free. It is not the only defence: the model behind it can only read public information and propose meetings.',
+    tech: ['Pattern matching', 'Keyword relevance'],
+    security: 'A blocked message costs nothing and is not logged with its content in production.',
+  },
+  {
+    id: 'prompt',
+    label: 'System prompt',
+    sub: 'Rules · tools · language',
+    group: 'code',
+    x: 220,
+    y: 90,
+    preview: 'The rules the model follows on every turn.',
+    what: 'Describes the four tools and when to use each, the meeting flow, the tone, and the rules: only facts returned by the tools, no invented dates or links, plain text. Today’s date and the answer language are added in code on every message.',
+    why: 'Anything that can be decided in code (date, language) is decided in code and given to the model as an instruction, instead of trusting the model to work it out.',
+    tech: ['Prompt engineering', 'Grounding rules'],
+  },
+  {
+    id: 'orchestrator',
+    label: 'Orchestrator',
+    sub: 'Tool-calling loop · ≤ 3',
+    group: 'code',
+    x: 440,
+    y: 280,
+    preview: 'The loop that lets the model use tools and then answer.',
+    what: 'Sends the conversation and the tool list to the model. If the model asks for tools, the backend runs them and sends back the results; this repeats up to three times, and the last round must answer. If the model forgets to search on the first round, the backend searches for it.',
+    why: 'The model decides what to look up, but code runs everything and caps the rounds, so cost and behaviour stay bounded. A new capability is a new tool, not a new loop.',
+    tech: ['Tool calling', 'Provider-agnostic interface', 'Forced first search'],
+  },
+  {
+    id: 'llm',
+    label: 'Claude Haiku',
+    sub: 'Decides and writes',
+    group: 'ai',
+    x: 440,
+    y: 70,
+    preview: 'Chooses the tools and writes the final answer.',
+    what: 'A small, fast model from Anthropic. It reads the conversation, decides which tools to call with which inputs, and writes the answer from their results. In development, a free local model (qwen2.5 on Ollama) uses the same interface.',
+    why: 'Answering about a CV and arranging a meeting do not need a large model: a fast one keeps answers in about three seconds and the cost in cents.',
+    tech: ['Claude Haiku', 'Anthropic API', 'Ollama in development'],
+    security: 'It never executes anything: it can only ask the backend to run one of the four tools.',
+  },
+  {
+    id: 'memory',
+    label: 'Session memory',
+    sub: '6 turns · PostgreSQL',
+    group: 'data',
+    x: 440,
+    y: 490,
+    preview: 'The recent conversation, so follow-up questions work.',
+    what: 'Stores the last questions and answers of each chat session, so the model understands "and before that?" or "the second time you mentioned". Tool results are not stored, only the final answers.',
+    why: 'Short memory is enough for a chat and keeps each request small and cheap.',
+    tech: ['PostgreSQL', 'Session id'],
+    security: 'Sessions expire after 30 minutes of inactivity and are deleted automatically.',
+  },
+  {
+    id: 'search_cv',
+    label: 'search_cv',
+    sub: 'Tool · CV facts',
+    group: 'code',
+    x: 700,
+    y: 40,
+    preview: 'Looks things up in the CV.',
+    what: 'Keyword search with IDF-style weights over the CV, split into tagged chunks: experience, education, certifications, skills, projects and interests. Returns only the relevant chunks.',
+    why: 'Facts that must be exact (dates, companies, certifications) come from one reviewed source.',
+    tech: ['Keyword search', 'IDF weighting'],
+  },
+  {
+    id: 'search_knowledge',
+    label: 'search_knowledge',
+    sub: 'Tool · RAG',
+    group: 'code',
+    x: 700,
+    y: 190,
+    preview: 'Looks things up in the knowledge base: everything that is not in the CV.',
+    what: 'Retrieval over Markdown documents about Alejandro: why cybersecurity and AI, personality, goals, how he works, hobbies, links and FAQ. Each section is a chunk with its own tags in English and Spanish.',
+    why: 'It adds what a CV cannot hold, and the documents can be updated without a deploy.',
+    tech: ['RAG', 'Keyword search', 'Cache (10 min)'],
+    security: 'Retrieved text is marked as data, not instructions, so a document cannot give the model orders.',
+  },
+  {
+    id: 'get_availability',
+    label: 'get_availability',
+    sub: 'Tool · free slots',
+    group: 'code',
+    x: 700,
+    y: 340,
+    preview: 'Reads Alejandro’s real free slots.',
+    what: 'Lists the free 20-minute slots of the next two weeks in Madrid time, the same ones as the Book page, optionally for one day. Slots already requested are not offered.',
+    why: 'The model offers times from real data instead of guessing them.',
+    tech: ['Calendar rules', 'Europe/Madrid'],
+  },
+  {
+    id: 'propose_meeting',
+    label: 'propose_meeting',
+    sub: 'Tool · proposal only',
+    group: 'code',
+    x: 700,
+    y: 490,
+    preview: 'Proposes the chosen meeting. It does not book it.',
+    what: 'Checks that the chosen slot exists and is still free, then shows the visitor a confirmation card. An invented or taken slot is rejected and the model has to offer real ones.',
+    why: 'Human in the loop: the action with real effects (a request, emails, an invitation) is confirmed by the visitor, not decided by the model.',
+    tech: ['Validation', 'Human in the loop'],
+    security: 'The model never handles names, emails or phone numbers.',
+  },
+  {
+    id: 'cv_md',
+    label: 'CV',
+    sub: 'Markdown file',
+    group: 'data',
+    x: 960,
+    y: 40,
+    preview: 'The CV as a Markdown file: one source for the web and the agent.',
+    what: 'The CV panel of this page and the search_cv tool read the same file, so they can never disagree. Changes go through a pull request.',
+    why: 'Easy to edit and reviewed like code.',
+    tech: ['Markdown'],
+  },
+  {
+    id: 'r2',
+    label: 'R2 storage',
+    sub: 'Knowledge files',
+    group: 'data',
+    x: 960,
+    y: 190,
+    preview: 'Cloudflare R2 bucket with the knowledge base.',
+    what: 'A private bucket per environment with an index and the Markdown documents. Only the backend reads it, with a read-only key.',
+    why: 'Content separate from code: updating a document is an upload, not a deploy.',
+    tech: ['Cloudflare R2', 'S3 API'],
+    security: 'No public access; read-only keys scoped to one bucket.',
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    sub: 'Rules + requests',
+    group: 'data',
+    x: 960,
+    y: 340,
+    preview: 'Working hours and the requests already made.',
+    what: 'Weekdays 17:00–20:00 Madrid time, 24 hours’ notice, two weeks ahead, minus the slots taken by pending or approved requests in PostgreSQL.',
+    why: 'Its own calendar logic, with no external calendar API to depend on.',
+    tech: ['PostgreSQL', 'Time zones'],
+  },
+  {
+    id: 'card',
+    label: 'Booking card',
+    sub: 'You confirm',
+    group: 'visitor',
+    x: 960,
+    y: 490,
+    preview: 'Where the visitor enters their details and confirms.',
+    what: 'Shown in the chat with the chosen slot. The visitor adds name, email and consent and presses Confirm; the request goes through the same endpoint as the Book page, and Alejandro approves or rejects it by email.',
+    why: 'Exact data comes from the person, not from the model, and consent is an explicit tick.',
+    tech: ['POST /api/contact', 'Consent'],
+  },
+];
+
+const AGENT_EDGES = [
+  { from: 'message', to: 'guard', label: 'message' },
+  { from: 'guard', to: 'orchestrator', label: 'allowed' },
+  { from: 'prompt', to: 'orchestrator', label: 'rules' },
+  { from: 'orchestrator', to: 'llm', label: 'asks' },
+  { from: 'memory', to: 'orchestrator', label: 'history' },
+  { from: 'orchestrator', to: 'search_cv', label: 'tool call' },
+  { from: 'orchestrator', to: 'search_knowledge', label: 'tool call' },
+  { from: 'orchestrator', to: 'get_availability', label: 'tool call' },
+  { from: 'orchestrator', to: 'propose_meeting', label: 'tool call' },
+  { from: 'search_cv', to: 'cv_md', label: 'reads' },
+  { from: 'search_knowledge', to: 'r2', label: 'reads' },
+  { from: 'get_availability', to: 'calendar', label: 'reads' },
+  { from: 'propose_meeting', to: 'card', label: 'shows' },
+];
+
+export const DIAGRAMS = {
+  agent: {
+    tab: 'AI agent',
+    title: 'How the AI agent works',
+    groups: AGENT_GROUPS,
+    nodes: AGENT_NODES,
+    edges: AGENT_EDGES,
+  },
+  system: {
+    tab: 'Whole system',
+    title: 'How this site works',
+    groups: SYSTEM_GROUPS,
+    nodes: SYSTEM_NODES,
+    edges: SYSTEM_EDGES,
+  },
+};
