@@ -11,5 +11,6 @@ Un documento con "placeholder: true" en la cabecera es de ejemplo y no se sirve 
 - [Personality and strengths](personality.md) — strengths and an honest weakness
 - [Motivation and goals](motivation.md) — what motivates him and where he wants to go
 - [How he works](work-style.md) — methodical, ownership, teamwork and what he learned
+- [Sports and hobbies](hobbies.md) — cycling, running, football, travel, coffee
 - [Links](links.md) — LinkedIn, GitHub and website
-- [FAQ](faq.md) — work mode, relocation, contact and hobbies
+- [FAQ](faq.md) — work mode, relocation, contact and general personal questions

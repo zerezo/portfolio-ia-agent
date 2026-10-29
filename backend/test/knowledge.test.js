@@ -31,6 +31,14 @@ describe('parseDocument', () => {
     assert.ok(doc.chunks.every((c) => !c.text.includes('comentario')));
   });
 
+  test('una línea tags: bajo la sección añade etiquetas solo a esa sección', () => {
+    const { chunks } = parseDocument('h.md', '---\ntags: hobbies\n---\n## Coffee\ntags: cafe\nSpecialty.\n## Bike\nRoad.');
+    assert.deepEqual(chunks.map((c) => [c.text, c.tags]), [
+      ['h - Coffee: Specialty.', ['hobbies', 'cafe']],
+      ['h - Bike: Road.', ['hobbies']],
+    ]);
+  });
+
   test('sin cabecera usa el nombre del archivo como título', () => {
     assert.equal(parseDocument('faq.md', '## Q\nA').chunks[0].text, 'faq - Q: A');
   });

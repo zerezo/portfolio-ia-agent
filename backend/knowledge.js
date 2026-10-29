@@ -12,6 +12,7 @@ import { indexChunks, searchChunks } from './tools.js';
 //   placeholder: true        (contenido de ejemplo: nunca se sirve en producción)
 //   ---
 //   ## Sección          ← cada sección "##" es un fragmento de búsqueda
+//   tags: cafe, coffee  ← opcional: etiquetas solo de esa sección (p. ej. palabras en español)
 
 const MAX_RESULTS = 4;
 // Los documentos cambian poco: se releen como mucho cada 10 minutos, no en cada pregunta.
@@ -34,6 +35,8 @@ export function parseIndex(text) {
   return [...new Set(keys)];
 }
 
+const splitTags = (value) => value.split(',').map((t) => t.trim()).filter(Boolean);
+
 export function parseDocument(key, text) {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   const meta = {};
@@ -43,15 +46,20 @@ export function parseDocument(key, text) {
   }
   const body = (match ? text.slice(match[0].length) : text).slice(0, MAX_DOC_CHARS);
   const title = meta.title || key.replace(/\.md$/, '');
-  const tags = (meta.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean);
+  const tags = splitTags(meta.tags ?? '');
 
   // Un fragmento por sección "##"; el texto previo a la primera sección es la introducción.
   const chunks = body
     .split(/^(?=## )/m)
     .map((part) => {
       const heading = part.match(/^## (.*)/)?.[1]?.trim();
-      const text = part.replace(/^## .*\r?\n?/, '').replace(/<!--[\s\S]*?-->/g, '').trim();
-      return text && { section: key, text: heading ? `${title} - ${heading}: ${text}` : `${title}: ${text}`, tags };
+      let text = part.replace(/^## .*\r?\n?/, '').replace(/<!--[\s\S]*?-->/g, '').trim();
+      // Las etiquetas del documento valen para todas sus secciones; las de la sección la distinguen
+      // de sus hermanas (si no, "cafe" encontraría por igual todas las secciones de aficiones).
+      const own = heading && text.match(/^tags:\s*(.*)\r?\n?/);
+      if (own) text = text.slice(own[0].length).trim();
+      const sectionTags = own ? splitTags(own[1]) : [];
+      return text && { section: key, text: heading ? `${title} - ${heading}: ${text}` : `${title}: ${text}`, tags: [...tags, ...sectionTags] };
     })
     .filter(Boolean);
 
