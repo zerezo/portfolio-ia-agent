@@ -38,8 +38,9 @@ const SYSTEM_PROMPT = [
   '- Never invent dates, companies, figures, links or opinions, and do not add your own judgements.',
   '- Distinguish work experience from certifications and education: a certification is not experience.',
   '- If a search returns nothing, try again with different keywords before giving up.',
-  '- Languages: answer in Spanish if the user writes in Spanish, and in English otherwise (also for any',
-  '  other language). The tools return English text: translate it when answering in Spanish.',
+  "- Language: reply in the language of the user's last message. English question -> English answer.",
+  '  Spanish question -> Spanish answer. Any other language -> English answer. The tool results are in',
+  '  English: translate them only when the question is in Spanish.',
   '- Answer in the third person, in 2-4 sentences.',
   '- If they want to meet, call or contact him, do not suggest times or ask for details: tell them they',
   '  can request it with the contact form on this page, which shows his availability.',
@@ -103,11 +104,23 @@ function limiter({ windowMs, limit, message, keyGenerator }) {
   });
 }
 
+// Idioma de la respuesta, decidido en el código: con la regla solo en el prompt, qwen 7B
+// respondía en un idioma fijo (todo en español o todo en inglés según la redacción).
+// Español si hay signos o letras propios o palabras frecuentes; si no, inglés.
+const SPANISH_HINTS =
+  /[¿¡ñáéíóú]|\b(que|como|cual|donde|cuando|quien|por|para|tiene|es|su|sus|le|lo|el|la|los|las|del|y|en|un|una|trabaja|habla|hace)\b/i;
+export const detectLanguage = (message) => (SPANISH_HINTS.test(message) ? 'es' : 'en');
+
+const LANGUAGE_RULE = {
+  es: "- The user's last message is in Spanish: write your whole answer in Spanish.",
+  en: "- The user's last message is not in Spanish: write your whole answer in English.",
+};
+
 // El modelo no sabe la fecha actual (tiende a suponer la de su entrenamiento): se la damos.
-export function systemPromptFor(now) {
+export function systemPromptFor(now, language = 'en') {
   const { timeZone } = AVAILABILITY;
   const today = new Intl.DateTimeFormat('en-GB', { timeZone, dateStyle: 'full' }).format(now);
-  return `${SYSTEM_PROMPT}\n- Today is ${today} (${localDate(now, timeZone)}), Madrid time.`;
+  return `${SYSTEM_PROMPT}\n- Today is ${today} (${localDate(now, timeZone)}), Madrid time.\n${LANGUAGE_RULE[language]}`;
 }
 
 // CORS: el frontend se sirve desde otro origen (Cloudflare Pages). Solo los orígenes de la
@@ -418,7 +431,7 @@ export function createApp({
       const { reply: rawReply } = await runAgent({
         llm,
         tools,
-        system: systemPromptFor(now()),
+        system: systemPromptFor(now(), detectLanguage(message)),
         message,
         history,
         maxTokens: limits.maxTokens,

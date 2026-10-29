@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, detectContactIntent, forcedSearch, systemPromptFor } from '../app.js';
+import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPromptFor } from '../app.js';
 import { loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
@@ -215,7 +215,26 @@ describe('límites', () => {
   });
 });
 
+describe('detectLanguage', () => {
+  test('español por signos, tildes o palabras frecuentes', () => {
+    for (const m of ['¿Dónde trabaja?', 'Que le motiva', 'como trabaja en equipo', 'Habla francés?']) {
+      assert.equal(detectLanguage(m), 'es', m);
+    }
+  });
+
+  test('inglés y cualquier otro idioma → inglés', () => {
+    for (const m of ['What is his personality like?', 'Do you have his LinkedIn?', 'Quels sont ses loisirs ?']) {
+      assert.equal(detectLanguage(m), 'en', m);
+    }
+  });
+});
+
 describe('systemPromptFor', () => {
+  test('ordena el idioma de la respuesta', () => {
+    assert.match(systemPromptFor(new Date(), 'es'), /in Spanish: write your whole answer in Spanish/);
+    assert.match(systemPromptFor(new Date()), /write your whole answer in English/);
+  });
+
   test('incluye la fecha de hoy en hora de Madrid', () => {
     // 23:30 UTC del 19-10 ya es día 20 en Madrid.
     const prompt = systemPromptFor(new Date('2026-10-19T23:30:00Z'));
@@ -226,7 +245,7 @@ describe('systemPromptFor', () => {
     const prompt = systemPromptFor(new Date());
     assert.match(prompt, /search_cv/);
     assert.match(prompt, /search_knowledge/);
-    assert.match(prompt, /answer in Spanish if the user writes in Spanish, and in English otherwise/);
+    assert.match(prompt, /Spanish question -> Spanish answer. Any other language -> English answer/);
   });
 });
 
