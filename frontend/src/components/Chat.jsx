@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { sendChatMessage } from '../api.js';
 
 const GREETING =
-  "Hi! I'm Alejandro's assistant. Ask me about his experience, certifications, projects or interests.";
+  "Hi! I'm Alejandro's assistant. Ask me about his experience, certifications, projects, interests or what he is like.";
 
 const SUGGESTIONS = [
   'What does he do at IndraMind?',
@@ -82,7 +82,7 @@ export default function Chat({ onOpenContact }) {
         </span>
         <div>
           <h2 className="text-sm font-semibold">Ask my AI assistant ✨</h2>
-          <p className="text-xs text-muted-foreground">AI answers based on his CV. It can make mistakes.</p>
+          <p className="text-xs text-muted-foreground">AI answers based on his CV and notes. It can make mistakes.</p>
         </div>
       </header>
 

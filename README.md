@@ -12,7 +12,7 @@ v1.0 is the first public release and is frozen: it only receives security or bug
 
 What v1.0 includes:
 
-- **CV + chat** side by side. The agent (Claude Haiku 5.5 in production, Ollama `qwen2.5:7b` locally) answers only about the CV using tool calling (`search_cv`, keyword search over `backend/data/cv.json`).
+- **CV + chat** side by side. The agent (Claude Haiku 5.5 in production, Ollama `qwen2.5:7b` locally) answers only about Alejandro using tool calling: an orchestrator chooses between `search_cv` (keyword search over `backend/data/cv.md`) and `search_knowledge` (RAG over Markdown documents in Cloudflare R2), and replies in English or Spanish.
 - **Pre-model guard** (`guard.js`): blocks prompt manipulation and off-topic questions at zero cost.
 - **Contact form** without AI: weekly slot picker (video call, phone or email), deterministic validation, approve/reject links signed with HMAC, calendar invitations (`.ics`) and Jitsi rooms, emails via the Gmail API.
 - **Persistence** in PostgreSQL (contact requests and chat sessions), SQL migrations applied at startup.
