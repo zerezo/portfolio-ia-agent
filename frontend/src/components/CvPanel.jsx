@@ -470,7 +470,9 @@ function PersonalCard({ languages, interests }) {
 // se amplían al pulsar (proyectos y competencias en una ventana, experiencia desplegable). Todo
 // sale de /api/profile (backend/data/profile.yaml, solo lo verificado).
 export default function CvPanel({ profile, onOpenContact }) {
-  const { basics, highlights, summary, projects, experience, skills, education, certifications, languages, interests } = profile;
+  const { basics, highlights, summary, experience, skills, education, certifications, languages, interests } = profile;
+  // Durante un despliegue la web puede llegar antes que la API: sin stack, una lista vacía.
+  const projects = profile.projects.map((p) => ({ ...p, stack: p.stack ?? [] }));
   return (
     <div
       className="@container/cv flex flex-col gap-4 **:data-[slot=card]:bg-gradient-to-t **:data-[slot=card]:from-primary/5 **:data-[slot=card]:to-card **:data-[slot=card]:shadow-xs"
