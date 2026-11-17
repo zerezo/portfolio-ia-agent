@@ -2,19 +2,12 @@
 title: Sports and hobbies
 tags: sports, hobbies, free time, deporte, aficiones, tiempo libre
 ---
-<!-- Fuente: cuestionario de 2026-10-29 y CV público. -->
+<!-- Fuente: cuestionario de 2026-10-29. Los datos de sus intereses (medias maratones, capitán de
+fútbol) están en backend/data/profile.yaml (search_cv): aquí solo lo que no es CV. -->
 
 ## Cycling
 tags: cycling, bike, road bike, mountain bike, MTB, ciclismo, bici, bicicleta, carretera, montana
 Cycling is one of his main hobbies. He rides both road and mountain bike (MTB), and his ideal weekend starts with a bike ride or a run.
-
-## Running
-tags: running, half marathon, race, Behobia, correr, carrera, media maraton
-He has run four half marathons (three in Segovia and one in Madrid) and the Behobia-San Sebastián, a 20 km race.
-
-## Football
-tags: football, soccer, captain, futbol, capitan, equipo
-He played youth football during high school and was captain of his local team for several years.
 
 ## What sport gives him
 tags: why sport, benefits, consistency, challenge, por que deporte, beneficios, constancia, reto, desconectar
@@ -38,4 +31,4 @@ He is a coffee fan: he likes trying specialty coffee and different brewing metho
 
 ## Technology as a hobby
 tags: side projects, personal projects, technology, proyectos personales, tecnologia
-He also builds his own technology projects in his free time, such as this portfolio and an app to keep track of cars and their components.
+He also builds his own technology projects in his free time; the projects section of his CV lists them.

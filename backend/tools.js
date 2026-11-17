@@ -59,7 +59,7 @@ export function buildCvChunks(cv) {
     {
       section: 'profile',
       text: sentence([`${basics.name}. ${basics.headline}. Based in ${basics.location}.`, ...cv.summary.map((s) => s.text)]),
-      tags: ['about', 'summary', 'current job', 'work', 'role', 'fit', 'background'],
+      tags: ['about', 'summary', 'current job', 'work', 'role', 'fit', 'background', 'location', 'city', 'lives', 'home', 'hometown', 'origin'],
     },
     {
       section: 'contact',

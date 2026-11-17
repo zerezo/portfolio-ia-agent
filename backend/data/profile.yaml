@@ -587,19 +587,19 @@ certifications:
 interests:
   - id: interest-running
     priority: 3
-    tags: [sports, running, half marathon, perseverance]
+    tags: [sports, running, half marathon, race, perseverance, correr, carrera, media maraton]
     label: { en: Running, es: Carrera de fondo }
     text:
       en: 'Endurance running (4 half marathons: 3 in Segovia, 1 in Madrid; Behobia–San Sebastián 20 km)'
       es: Carrera de fondo (4 medias maratones, Behobia–San Sebastián 20 km)
   - id: interest-cycling
     priority: 3
-    tags: [sports, cycling]
+    tags: [sports, cycling, bike, ciclismo, bici]
     label: { en: Cycling, es: Ciclismo }
     text: { en: Cycling, es: ciclismo }
   - id: interest-football
     priority: 3
-    tags: [sports, football, soccer, leadership, teamwork, captain]
+    tags: [sports, football, soccer, leadership, teamwork, captain, futbol, capitan, equipo]
     label: { en: Football, es: Fútbol }
     text: { en: Former captain of my local football team, es: excapitán de mi equipo de fútbol local }
 

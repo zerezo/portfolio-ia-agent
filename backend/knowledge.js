@@ -126,10 +126,10 @@ export function createKnowledgeTool(source, { allowPlaceholders = true, ttlMs = 
       return searchChunks(chunks, query, MAX_RESULTS).length > 0;
     },
     description:
-      "Searches the personal knowledge base of the portfolio's owner: personality, values, motivations " +
-      'and career goals, how he works, links (LinkedIn, GitHub, social media) and frequently asked questions. ' +
-      'Use it for anything that is not in the CV. The query should be specific keywords, for example ' +
-      '"personality strengths" or "LinkedIn".',
+      "Searches the personal knowledge base of the portfolio's owner: why he chose cybersecurity and AI, " +
+      'personality, values, motivations and career goals, how he works, hobbies beyond the CV and frequently ' +
+      'asked questions (work mode, relocation). Use it for anything that is not in the CV. The query should ' +
+      'be specific keywords, for example "personality strengths" or "relocation".',
     inputSchema: {
       type: 'object',
       properties: {

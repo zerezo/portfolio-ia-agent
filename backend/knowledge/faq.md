@@ -2,7 +2,7 @@
 title: Frequently asked questions
 tags: faq, questions, preguntas, preguntas frecuentes
 ---
-<!-- Fuente: cuestionario de 2026-10-29 y CV público. -->
+<!-- Fuente: cuestionario de 2026-10-29. Los hechos del CV están en backend/data/profile.yaml (search_cv). -->
 
 ## Work mode
 tags: remote, hybrid, office, work mode, remoto, hibrido, teletrabajo, oficina, modalidad
@@ -18,7 +18,7 @@ To meet or talk with him, visitors can use the booking form on this website, whi
 
 ## Hobbies
 tags: hobbies, free time, aficiones, tiempo libre
-Outside work he rides road and mountain bike, runs (four half marathons and the Behobia-San Sebastián 20 km), and played football for years as captain of his local team. He also enjoys travelling, the mountains, watching football, cycling and motorsport, and specialty coffee.
+Outside work he rides road and mountain bike, runs and has played football (his races and his time as team captain are in his CV). He also enjoys travelling, the mountains, watching football, cycling and motorsport, and specialty coffee.
 
 ## Ideal weekend
 tags: weekend, saturday, sunday, fin de semana, sabado, domingo

@@ -134,3 +134,27 @@ describe('search_knowledge', () => {
     assert.match(await tool.run({ query: 'stubborn' }), /No results/);
   });
 });
+
+// La base de conocimiento solo guarda lo que no es CV: los hechos del CV viven en
+// data/profile.yaml (search_cv). Si se repiten aquí, acaban contradiciéndose.
+describe('knowledge/ real: sin hechos del CV duplicados', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { loadProfile } = await import('../profile/load.js');
+  const dir = new URL('../knowledge/', import.meta.url);
+  const docs = readdirSync(dir)
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => [f, readFileSync(new URL(f, dir), 'utf8').replace(/<!--[\s\S]*?-->/g, '')]);
+  const companies = loadProfile().experience.map((job) => job.company);
+
+  test('sin enlaces (van en basics.links del perfil)', () => {
+    for (const [file, text] of docs) assert.doesNotMatch(text, /https?:\/\//, file);
+  });
+
+  test('sin empresas, ubicación ni cifras de carreras del CV', () => {
+    for (const [file, text] of docs) {
+      for (const company of companies) assert.ok(!text.includes(company), `${file}: ${company}`);
+      assert.doesNotMatch(text, /\bbased (in|between)\b/i, file);
+      assert.doesNotMatch(text, /\b(two|three|four|five|six|\d+) half marathons\b/i, file);
+    }
+  });
+});

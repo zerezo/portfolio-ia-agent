@@ -2,11 +2,9 @@
 title: About Alejandro
 tags: about, sobre el
 ---
-<!-- Fuente: cuestionario de 2026-10-29 y CV público. Todo lo de este archivo es público. -->
-
-## Background
-tags: background, biography, education, where from, trayectoria, biografia, formacion, de donde es
-Alejandro is a Telecommunications Engineer from the Universidad Politécnica de Madrid, based between Segovia and Madrid (Spain). He works in cybersecurity at IndraMind Cybersecurity, in the Cyber Risk & Compliance area.
+<!-- Fuente: cuestionario de 2026-10-29. Todo lo de este archivo es público.
+Solo lo que no es CV: ubicación, puesto, formación, proyectos, intereses y enlaces están en
+backend/data/profile.yaml (search_cv). Aquí no se repiten para que no se contradigan. -->
 
 ## Why cybersecurity
 tags: why cybersecurity, GRC, risk, career change, por que ciberseguridad, riesgo, cambio

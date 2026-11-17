@@ -87,6 +87,12 @@ describe('search_cv', () => {
     assert.match(tool.run({ query: 'How does he work with enterprise clients?' }), /Germany and South Korea/);
   });
 
+  test('encuentra dónde vive con cualquier palabra habitual', () => {
+    for (const query of ['location', 'city', 'Where is he based?', 'hometown']) {
+      assert.match(firstLine(query), /\[profile\].*Based in Segovia & Madrid/, query);
+    }
+  });
+
   test('encuentra con preguntas en español (etiquetas bilingües)', () => {
     assert.match(firstLine('¿Dónde vive y qué hace ahora?'), /\[profile\].*Segovia & Madrid/);
     assert.match(tool.run({ query: '¿Qué proyectos ha construido?' }), /\[projects\]/);
