@@ -1,5 +1,6 @@
 // En local, TEST_DATABASE_URL se lee de backend/.env; en CI la define el workflow.
 import 'dotenv/config';
+import { readdirSync } from 'node:fs';
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { ContactConflictError, createPgContactStore } from '../contacts.js';
@@ -41,7 +42,10 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
     test('se pueden ejecutar varias veces sin efecto', async () => {
       await migrate(pool, { log: () => {} });
       const { rows } = await pool.query('SELECT name FROM schema_migrations');
-      assert.deepEqual(rows.map((r) => r.name), ['001_initial.sql', '002_rate_limits.sql']);
+      // Todas las del directorio, una vez cada una (sin fijar la lista: no se rompe con cada migración nueva).
+      const files = readdirSync(new URL('../db/migrations/', import.meta.url)).filter((f) => f.endsWith('.sql')).sort();
+      assert.deepEqual(rows.map((r) => r.name).sort(), files);
+      assert.ok(files.includes('003_analytics.sql'));
     });
   });
 
