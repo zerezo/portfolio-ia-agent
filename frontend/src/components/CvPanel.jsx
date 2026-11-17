@@ -338,24 +338,29 @@ function ExperienceCard({ experience, d }) {
           {expanded ? 'Hide career' : 'Career details'}
         </ExpandButton>
         <ol id={id} hidden={!expanded} className="ml-1 flex animate-in flex-col gap-4 border-l pl-4 fade-in-0 slide-in-from-top-1">
-            {experience.flatMap((j) =>
-              j.roles.map((r) => (
-                <li key={r.id} className="relative flex flex-col gap-1">
-                  <span
-                    className={cn(
-                      'absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-card bg-muted-foreground/40',
-                      !r.end && 'bg-primary',
-                    )}
-                    aria-hidden="true"
-                  />
-                  <p className="text-sm leading-snug font-medium">{r.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {j.company} · {formatPeriod(r.start, r.end)}
-                  </p>
-                  {r.bullets.length > 0 && <Bullets items={r.bullets} className="mt-1 gap-1 text-xs text-muted-foreground" />}
-                </li>
-              )),
-            )}
+            {/* Una entrada por empresa: sus puestos (la progresión) y, debajo, sus bullets. */}
+            {experience.map((j) => (
+              <li key={j.id} className="relative flex flex-col gap-1">
+                <span
+                  className={cn(
+                    'absolute top-1.5 -left-[21px] size-2.5 rounded-full border-2 border-card bg-muted-foreground/40',
+                    j.roles.some((r) => !r.end) && 'bg-primary',
+                  )}
+                  aria-hidden="true"
+                />
+                <p className="text-sm leading-snug font-semibold">{j.company}</p>
+                <ul className="flex flex-col gap-1">
+                  {j.roles.map((r) => (
+                    <li key={r.id} className="text-xs">
+                      <span className="font-medium">{r.title}</span>
+                      <span className="text-muted-foreground"> · {formatPeriod(r.start, r.end)}</span>
+                      {r.bullets.length > 0 && <Bullets items={r.bullets} className="mt-1 gap-1 text-xs text-muted-foreground" />}
+                    </li>
+                  ))}
+                </ul>
+                {(j.bullets ?? []).length > 0 && <Bullets items={j.bullets} className="mt-1 gap-1 text-xs text-muted-foreground" />}
+              </li>
+            ))}
         </ol>
       </CardContent>
     </Card>

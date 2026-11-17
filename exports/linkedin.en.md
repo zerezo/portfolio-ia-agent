@@ -10,15 +10,15 @@
 AI / Forward Deployed Engineer · I build and ship LLM agents & MCP servers · Cyber risk & compliance (DORA, ISO 27001) · Telecom Engineer (UPM)
 ```
 
-## Acerca de · 479/2600
+## Acerca de · 419/2600
 
 ```text
-I'm a telecom engineer who ships AI products end to end: a production agent with tool calling and guardrails, and my own MCP server connecting Claude to live data and external APIs. By day I work directly with enterprise clients in Germany and South Korea on cyber risk and compliance, and I automated a 2-hour reporting task down to 10 minutes. I want to be the engineer who understands what the customer really needs, builds it, and stays with it from first call to production.
+I'm a telecom engineer who ships AI products end to end: a production agent with tool calling and guardrails, and my own MCP server connecting Claude to live data and external APIs. By day I work directly with enterprise clients in Germany and South Korea on cyber risk and compliance. I want to be the engineer who understands what the customer really needs, builds it, and stays with it from first call to production.
 ```
 
 ### Aptitudes principales (5/5)
 
-- agent loops and tool calling
+- agents & tool calling
 - MCP servers
 - Claude API
 - Node.js/Express
@@ -32,13 +32,13 @@ I'm a telecom engineer who ships AI products end to end: a production agent with
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: May 2026 – Present
-- Descripción · 462/2000
+- Descripción · 489/2000
 
 ```text
-• Cybersecurity compliance for the financial-services business of a global automotive group: own analysis KPIs and review security profiles and information-protection controls.
-• Work directly with client teams in Germany and South Korea, in English.
-• Third-party risk assessments of suppliers for a major Spanish telecom operator (continuing from my internship).
-• Automated file processing and report generation, cutting a recurring 2-hour task to 10 minutes.
+• Offered a full-time analyst role before the end of my internship.
+• Cybersecurity compliance for the financial-services business of a global automotive group, client-facing in English with teams in Germany and South Korea: I own the analysis KPIs and review security profiles and information-protection controls.
+• Third-party risk assessments of suppliers for a major Spanish telecom operator, since my internship.
+• Automated the team's recurring file processing and report generation.
 ```
 
 ### Cybersecurity Intern, GRC · IndraMind Cybersecurity
@@ -47,10 +47,10 @@ I'm a telecom engineer who ships AI products end to end: a production agent with
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: Sep 2025 – May 2026
-- Descripción · 138/2000
+- Descripción · 0/2000
 
 ```text
-• Third-party supplier risk assessments for a major Spanish telecom operator; supported governance, risk and compliance work for the team.
+
 ```
 
 ### Sales representative · Fotomatón y Más

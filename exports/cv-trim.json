@@ -1,28 +1,9 @@
 {
-  "en": [
-    "intern-tprm",
-    "fotomaton-sales",
-    "fotomaton-staff",
+  "dropped": [
+    "tfg-validation",
+    "skill-gcp",
     "interest-running",
     "interest-cycling",
     "interest-football"
-  ],
-  "es": [
-    "interest-football",
-    "interest-cycling",
-    "interest-running",
-    "skill-gcp",
-    "skill-python",
-    "skill-k8s",
-    "skill-ollama",
-    "fotomaton-booth",
-    "fotomaton-staff",
-    "fotomaton-proposals",
-    "fotomaton-sales",
-    "fotomaton",
-    "intern-tprm",
-    "tfg-validation",
-    "portfolio-ci",
-    "tfg-architecture"
   ]
 }

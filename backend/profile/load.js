@@ -135,7 +135,11 @@ export function parseProfile(text) {
     projects,
     experience: data.experience.map((job) => {
       const item = inherit(job, root);
-      return { ...item, roles: job.roles.map((role) => withBullets(role, item)) };
+      return {
+        ...item,
+        roles: job.roles.map((role) => withBullets(role, item)),
+        bullets: job.bullets.map((b) => inherit(b, item)),
+      };
     }),
     education: data.education.map((e) => inherit(e, root)),
     certifications: data.certifications.map((c) => inherit(c, root)),

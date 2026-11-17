@@ -27,6 +27,7 @@ export const LABELS = {
     education: 'Education',
     certifications: 'Certifications',
     interests: 'Interests',
+    earlier: 'Earlier',
   },
   es: {
     summary: 'Perfil',
@@ -37,5 +38,6 @@ export const LABELS = {
     education: 'Formación',
     certifications: 'Certificaciones',
     interests: 'Intereses',
+    earlier: 'Antes',
   },
 };
