@@ -9,6 +9,8 @@
 #     en una página.
 #   - verified: false (o { en: true, es: false }) = pendiente de revisar: no sale en ninguna salida.
 #   - channels: dónde aparece: web, cv, linkedin, agent.
+# - stack (proyectos): tecnologías que muestra la tarjeta de la web y busca el agente; solo las que
+#   ya aparecen en los bullets verificados del proyecto.
 # - Un texto que empieza por TODO falta por escribir: no sale en ninguna salida.
 #   npm run profile:review lista los TODO y lo pendiente de revisar.
 # - Repositorio público: nada privado aquí (el teléfono no se guarda en el repo). Nunca se nombran
@@ -250,6 +252,7 @@ projects:
     name: Portfolio AI Agent
     context: { en: Live at alejandrocerezo.dev, es: En producción en alejandrocerezo.dev }
     date: '2026'
+    stack: [Claude API, Node.js/Express, React, PostgreSQL, Ollama, Cloudflare Workers, Railway, GitHub Actions]
     links:
       - { label: alejandrocerezo.dev, url: https://alejandrocerezo.dev }
       - { label: github.com/zerezo/portfolio-ia-agent, url: https://github.com/zerezo/portfolio-ia-agent }
@@ -303,6 +306,7 @@ projects:
       es: 'Entrenador: coach de entrenamiento con IA sobre un servidor MCP propio'
     context: Cloudflare
     date: '2026'
+    stack: [MCP, Claude, Cloudflare, intervals.icu]
     # El panel (entrenador.alejandrocerezo.dev) es privado: la web enlaza al caso de estudio.
     links: []
     bullets:
@@ -405,6 +409,7 @@ projects:
     name: HomeCarGarage
     context: React + Supabase
     date: '2026'
+    stack: [React, Supabase]
     links:
       - { label: homecargarage.alejandrocerezo.dev, url: https://homecargarage.alejandrocerezo.dev }
     bullets:
@@ -423,6 +428,7 @@ projects:
       en: Multi-Domain Operations Cyber-Risk Simulator
       es: Simulador de riesgos de ciberseguridad para Operaciones Multidominio
     context: { en: "Bachelor's thesis, UPM · Grade 9/10", es: 'TFG, 9/10' }
+    stack: [Python, OWL 2, Protégé, HermiT, NIST SP 800-30]
     links:
       - { label: github.com/zerezo/TFG-Alejandro-Cerezo, url: https://github.com/zerezo/TFG-Alejandro-Cerezo }
     bullets:

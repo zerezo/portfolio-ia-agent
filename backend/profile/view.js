@@ -68,6 +68,7 @@ export function profileView(profile, { channel, lang = 'en', variant } = {}) {
         name: text(p.name),
         context: text(p.context),
         date: p.date ?? null,
+        stack: p.stack,
         links: p.links,
         bullets: bullets(p.bullets),
         caseStudy: caseStudy(p.caseStudy),

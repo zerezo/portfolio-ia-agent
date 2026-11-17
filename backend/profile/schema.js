@@ -74,6 +74,8 @@ export const ProfileSchema = z.strictObject({
         name: Text,
         context: Text.optional(),
         date: str.optional(),
+        // Tecnologías del proyecto (tarjeta de la web y búsqueda del agente).
+        stack: z.array(str).default([]),
         links: z.array(Link).default([]),
         bullets: z.array(Bilingual).min(1),
         caseStudy: CaseStudy.optional(),
