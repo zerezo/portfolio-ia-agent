@@ -6,7 +6,7 @@ tags: about, sobre el
 
 ## Background
 tags: background, biography, education, where from, trayectoria, biografia, formacion, de donde es
-Alejandro is a Telecommunications Engineer from the Universidad Politécnica de Madrid, based in Segovia (Spain). He works in cybersecurity at IndraMind Cybersecurity, in the Cyber Risk & Compliance area.
+Alejandro is a Telecommunications Engineer from the Universidad Politécnica de Madrid, based between Segovia and Madrid (Spain). He works in cybersecurity at IndraMind Cybersecurity, in the Cyber Risk & Compliance area.
 
 ## Why cybersecurity
 tags: why cybersecurity, GRC, risk, career change, por que ciberseguridad, riesgo, cambio

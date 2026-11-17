@@ -12,7 +12,7 @@ v1.0 is the first public release and is frozen: it only receives security or bug
 
 What v1.0 includes:
 
-- **CV + chat** side by side. The agent (Claude Haiku 5.5 in production, Ollama `qwen2.5:7b` locally) answers only about Alejandro using tool calling: an orchestrator chooses between `search_cv` (keyword search over `backend/data/cv.md`) and `search_knowledge` (RAG over Markdown documents in Cloudflare R2), and replies in English or Spanish.
+- **CV + chat** side by side. The agent (Claude Haiku 5.5 in production, Ollama `qwen2.5:7b` locally) answers only about Alejandro using tool calling: an orchestrator chooses between `search_cv` (keyword search over the profile in `backend/data/profile.yaml`) and `search_knowledge` (RAG over Markdown documents in Cloudflare R2), and replies in English or Spanish.
 - **Pre-model guard** (`guard.js`): blocks prompt manipulation and off-topic questions at zero cost.
 - **Contact form** without AI: weekly slot picker (video call, phone or email), deterministic validation, approve/reject links signed with HMAC, calendar invitations (`.ics`) and Jitsi rooms, emails via the Gmail API.
 - **Persistence** in PostgreSQL (contact requests and chat sessions), SQL migrations applied at startup.
@@ -34,6 +34,10 @@ Browser ──► Cloudflare (DNS, WAF, Workers static assets)  alejandrocerezo.
 | `frontend/` | React + Vite + Tailwind + shadcn/ui dashboard (CV + chat, booking, architecture map); deployed to Cloudflare Workers (`wrangler.jsonc`) |
 | `.github/workflows/` | CI: install, audit, syntax check, tests (with a Postgres service), frontend build |
 
+## Editing the profile
+
+`backend/data/profile.yaml` is the single source of truth for the profile: the web page, the chat agent (`search_cv`), the PDF CV in English and Spanish, and the LinkedIn texts are all generated from it. Every statement has an id, tags, a priority (1 = always shown, 3 = first to be cut to fit one page), the channels it appears in (`web`, `cv`, `linkedin`, `agent`) and a `verified` flag; unverified statements and `TODO` texts never reach any output. To update it: edit `backend/data/profile.yaml` → `npm run cv` → `npm run linkedin` (from `backend/`; `npm run profile:check` validates the file and `npm run profile:review` lists what is pending). `npm run cv -- --variant fde` builds a CV variant that puts the matching tags first. CI fails if the schema breaks, a client name appears in any output, or the PDFs and LinkedIn texts are out of date.
+
 ## Run locally
 
 Requirements: Node 22, Docker, Ollama with `qwen2.5:7b`.
@@ -51,7 +55,7 @@ Tests: `cd backend && npm test` (no real model or email calls; PostgreSQL tests 
 
 - ✅ Dashboard-style frontend (no scroll, icon navbar) with shadcn/ui: CV + Agent, Book, interactive architecture map. Live in the `development` environment.
 - Orchestrator agent with two tools: CV lookup and a RAG over Markdown documents stored in Cloudflare R2 (accessed only from the backend).
-- CV moved out of code into a Markdown file or PostgreSQL.
+- ✅ Profile as a single source of truth (`backend/data/profile.yaml`): web, agent, PDF CV (EN/ES) and LinkedIn texts.
 - Explicit English/Spanish support in the prompt.
 
 See [PRIVACY.md](PRIVACY.md) for the privacy policy.
