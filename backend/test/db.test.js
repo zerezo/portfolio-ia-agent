@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { ContactConflictError, createPgContactStore } from '../contacts.js';
 import { createPool, migrate } from '../db.js';
 import { createPgSessionStore } from '../sessions.js';
+import { createPgRateLimitStore, purgeExpiredRateLimits } from '../ratelimit.js';
 
 // Tests contra PostgreSQL real. Solo se ejecutan con TEST_DATABASE_URL (en CI hay un servicio
 // de Postgres; en local: docker compose up -d). Vacían las tablas: no usar una base con datos reales.
@@ -23,7 +24,7 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
   });
 
   beforeEach(async () => {
-    await pool.query('TRUNCATE contact_requests, chat_sessions');
+    await pool.query('TRUNCATE contact_requests, chat_sessions, rate_limits');
   });
 
   const request = (overrides = {}) => ({
@@ -39,7 +40,7 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
     test('se pueden ejecutar varias veces sin efecto', async () => {
       await migrate(pool, { log: () => {} });
       const { rows } = await pool.query('SELECT name FROM schema_migrations');
-      assert.deepEqual(rows.map((r) => r.name), ['001_initial.sql']);
+      assert.deepEqual(rows.map((r) => r.name), ['001_initial.sql', '002_rate_limits.sql']);
     });
   });
 
@@ -138,6 +139,57 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
 
     test('un id inválido devuelve undefined sin error', async () => {
       assert.equal(await createPgSessionStore(pool).get('basura'), undefined);
+    });
+  });
+
+  describe('createPgRateLimitStore', () => {
+    const store = (prefix = 'chat-day', windowMs = 60_000) => {
+      const s = createPgRateLimitStore(pool, prefix, { secret: 'secreto-de-prueba' });
+      s.init({ windowMs });
+      return s;
+    };
+
+    test('cuenta por clave y comparte el contador entre instancias (redespliegue)', async () => {
+      assert.equal((await store().increment('203.0.113.7')).totalHits, 1);
+      assert.equal((await store().increment('203.0.113.7')).totalHits, 2);
+      assert.equal((await store().increment('198.51.100.1')).totalHits, 1);
+    });
+
+    test('los prefijos no se mezclan', async () => {
+      await store('chat-day').increment('203.0.113.7');
+      assert.equal((await store('chat-minute').increment('203.0.113.7')).totalHits, 1);
+    });
+
+    test('no guarda la IP en claro', async () => {
+      await store().increment('203.0.113.7');
+      const { rows } = await pool.query('SELECT key FROM rate_limits');
+      assert.ok(rows.every((r) => !r.key.includes('203.0.113.7')));
+    });
+
+    test('peticiones simultáneas no pierden golpes', async () => {
+      const s = store();
+      await Promise.all(Array.from({ length: 20 }, () => s.increment('203.0.113.7')));
+      assert.equal((await s.increment('203.0.113.7')).totalHits, 21);
+    });
+
+    test('al terminar la ventana el contador vuelve a 1 y la purga borra la fila', async () => {
+      const s = store('chat-minute', 1);
+      await s.increment('203.0.113.7');
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(await purgeExpiredRateLimits(pool), 1);
+      await s.increment('203.0.113.7');
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal((await s.increment('203.0.113.7')).totalHits, 1);
+    });
+
+    test('decrement y resetKey', async () => {
+      const s = store();
+      await s.increment('ip');
+      await s.increment('ip');
+      await s.decrement('ip');
+      assert.equal((await s.increment('ip')).totalHits, 2);
+      await s.resetKey('ip');
+      assert.equal((await s.increment('ip')).totalHits, 1);
     });
   });
 });

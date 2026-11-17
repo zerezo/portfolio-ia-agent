@@ -1,11 +1,15 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, detectContactIntent, forcedCvSearch, systemPromptFor } from '../app.js';
-import { loadConfig, LIMIT_PROFILES } from '../config.js';
+import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPromptFor } from '../app.js';
+import { AVAILABILITY, loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
-import { createCvTool, loadCv } from '../tools.js';
+import { createCvTool, loadProfile } from '../tools.js';
+import { createKnowledgeTool } from '../knowledge.js';
+import { createBookingTools } from '../booking.js';
+import { listFreeSlots } from '../calendar.js';
+import { fakeSource } from './fixtures.js';
 import { createReviewTokens } from '../approvals.js';
 
 // Proveedor falso: registra las llamadas y nunca contacta con ningún modelo.
@@ -35,6 +39,26 @@ function buildApp({ limits = {}, fail } = {}) {
 }
 
 describe('loadConfig', () => {
+  test('base de conocimiento local por defecto; sin ejemplos solo en producción', () => {
+    assert.deepEqual(loadConfig({}).knowledge, { source: 'local', allowPlaceholders: true });
+    assert.equal(loadConfig({ APP_ENV: 'production' }).knowledge.allowPlaceholders, false);
+    assert.equal(loadConfig({ APP_ENV: 'development' }).knowledge.allowPlaceholders, true);
+  });
+
+  test('KNOWLEDGE_SOURCE=r2 exige las claves y un id de cuenta válido', () => {
+    const r2 = {
+      KNOWLEDGE_SOURCE: 'r2',
+      R2_ACCOUNT_ID: 'a'.repeat(32),
+      R2_ACCESS_KEY_ID: 'id',
+      R2_SECRET_ACCESS_KEY: 'secreto',
+      R2_BUCKET: 'conocimiento',
+    };
+    assert.equal(loadConfig(r2).knowledge.r2.bucket, 'conocimiento');
+    assert.throws(() => loadConfig({ ...r2, R2_BUCKET: '' }), /requiere: R2_BUCKET/);
+    assert.throws(() => loadConfig({ ...r2, R2_ACCOUNT_ID: 'evil.example/x' }), /R2_ACCOUNT_ID/);
+    assert.throws(() => loadConfig({ KNOWLEDGE_SOURCE: 's3' }), /KNOWLEDGE_SOURCE inválido/);
+  });
+
   test('usa Ollama y el perfil funcional por defecto, sin API key', () => {
     const config = loadConfig({});
     assert.equal(config.profileName, 'funcional');
@@ -193,11 +217,37 @@ describe('límites', () => {
   });
 });
 
+describe('detectLanguage', () => {
+  test('español por signos, tildes o palabras frecuentes', () => {
+    for (const m of ['¿Dónde trabaja?', 'Que le motiva', 'como trabaja en equipo', 'Habla francés?']) {
+      assert.equal(detectLanguage(m), 'es', m);
+    }
+  });
+
+  test('inglés y cualquier otro idioma → inglés', () => {
+    for (const m of ['What is his personality like?', 'Do you have his LinkedIn?', 'Quels sont ses loisirs ?']) {
+      assert.equal(detectLanguage(m), 'en', m);
+    }
+  });
+});
+
 describe('systemPromptFor', () => {
+  test('ordena el idioma de la respuesta', () => {
+    assert.match(systemPromptFor(new Date(), 'es'), /in Spanish: write your whole answer in Spanish/);
+    assert.match(systemPromptFor(new Date()), /write your whole answer in English/);
+  });
+
   test('incluye la fecha de hoy en hora de Madrid', () => {
     // 23:30 UTC del 19-10 ya es día 20 en Madrid.
     const prompt = systemPromptFor(new Date('2026-10-19T23:30:00Z'));
     assert.match(prompt, /Today is Tuesday, 20 October 2026 \(2026-10-20\), Madrid time/);
+  });
+
+  test('describe las dos herramientas y los dos idiomas', () => {
+    const prompt = systemPromptFor(new Date());
+    assert.match(prompt, /search_cv/);
+    assert.match(prompt, /search_knowledge/);
+    assert.match(prompt, /Spanish question -> Spanish answer. Any other language -> English answer/);
   });
 });
 
@@ -218,8 +268,9 @@ describe('detectContactIntent', () => {
   });
 });
 
-describe('forcedCvSearch', () => {
-  const forced = forcedCvSearch(createCvTool(loadCv()));
+describe('forcedSearch', () => {
+  const knowledge = createKnowledgeTool(fakeSource());
+  const forced = forcedSearch([createCvTool(loadProfile()), knowledge]);
   const history = (question) => [
     { role: 'user', content: question },
     { role: 'assistant', content: '...' },
@@ -236,6 +287,15 @@ describe('forcedCvSearch', () => {
   test('si el mensaje solo ya encuentra algo, no arrastra el tema anterior', () => {
     const query = forced('How can I get to London from Madrid?', history('Does he like sports?')).input.query;
     assert.equal(query, 'How can I get to London from Madrid?');
+  });
+
+  test('usa la base de conocimiento si el CV no encuentra nada', async () => {
+    await knowledge.refresh();
+    assert.equal(forced('Is he stubborn?', []).name, 'search_knowledge');
+  });
+
+  test('sin resultados en ninguna, usa la primera herramienta (el CV)', () => {
+    assert.equal(forced('zzz', []).name, 'search_cv');
   });
 });
 
@@ -666,7 +726,7 @@ describe('filtro previo del chat', () => {
   function guardedApp() {
     const llm = fakeLlm();
     const config = { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 10 } };
-    const tools = [createCvTool(loadCv())];
+    const tools = [createCvTool(loadProfile())];
     const app = createApp({ llm, tools, sessions: createMemorySessionStore(), contacts: createMemoryContactStore(), config });
     return { app, llm };
   }
@@ -751,5 +811,109 @@ describe('cabeceras de seguridad de la API', () => {
     assert.equal(res.headers['x-content-type-options'], 'nosniff');
     assert.equal(res.headers['x-frame-options'], 'DENY');
     assert.equal(res.headers['cache-control'], 'no-store');
+  });
+});
+
+describe('límites persistentes', () => {
+  // Almacén compartido falso con la interfaz de ratelimit.js: sobrevive a crear otra app.
+  function sharedStores() {
+    const counts = new Map();
+    const names = [];
+    const factory = (name) => {
+      names.push(name);
+      return {
+        prefix: name,
+        localKeys: false,
+        init() {},
+        increment(key) {
+          const hits = (counts.get(`${name}:${key}`) ?? 0) + 1;
+          counts.set(`${name}:${key}`, hits);
+          return { totalHits: hits, resetTime: new Date(Date.now() + 60_000) };
+        },
+        decrement() {},
+        resetKey() {},
+      };
+    };
+    return { factory, names };
+  }
+
+  const appWith = (rateLimitStore) =>
+    createApp({
+      llm: fakeLlm(),
+      tools: [],
+      sessions: createMemorySessionStore(),
+      contacts: createMemoryContactStore(),
+      config: { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 1 } },
+      rateLimitStore,
+    });
+
+  test('el chat y el formulario usan el almacén; el anti-saturación no', () => {
+    const { factory, names } = sharedStores();
+    appWith(factory);
+    assert.deepEqual(names.sort(), ['chat-day', 'chat-global', 'chat-minute', 'contact-global', 'contact-hour']);
+  });
+
+  test('el límite se mantiene aunque la app se vuelva a crear (redespliegue)', async () => {
+    const { factory } = sharedStores();
+    await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(200);
+    await request(appWith(factory)).post('/api/chat').send({ message: 'Hola' }).expect(429);
+  });
+});
+
+describe('reservas desde el chat', () => {
+  // Modelo falso con guion: cada llamada devuelve la siguiente respuesta.
+  function scriptedLlm(script) {
+    const llm = { name: 'guion', calls: [], chat: async (params) => (llm.calls.push(params), script.shift() ?? { text: 'fin', toolCalls: [] }) };
+    return llm;
+  }
+
+  const bookingApp = (llm) => {
+    const contacts = createMemoryContactStore();
+    const now = () => new Date('2026-11-02T08:00:00Z');
+    const tools = [
+      createCvTool(loadProfile()),
+      ...createBookingTools({
+        freeSlots: async () => listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set(await contacts.takenSlotIds()) }),
+        schedule: AVAILABILITY,
+      }),
+    ];
+    const config = { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 10 } };
+    return createApp({ llm, tools, sessions: createMemorySessionStore(), contacts, config, now });
+  };
+
+  test('una petición de reunión llega al agente (no a la respuesta fija) y devuelve la propuesta', async () => {
+    const llm = scriptedLlm([
+      { text: '', toolCalls: [{ id: '1', name: 'propose_meeting', input: { mode: 'video', slot_id: '2026-11-03T17:20' } }] },
+      { text: 'Please confirm the details in the card.', toolCalls: [] },
+    ]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'Can we book a video call on Tuesday at 17:20?' }).expect(200);
+    assert.equal(res.body.action, 'propose_meeting');
+    assert.equal(res.body.proposal.slot.id, '2026-11-03T17:20');
+    assert.equal(res.body.reply, 'Please confirm the details in the card.');
+    assert.ok(llm.calls[0].tools.some((t) => t.name === 'get_availability'));
+  });
+
+  test('una respuesta corta con hora pasa el filtro y no fuerza una búsqueda en el CV', async () => {
+    const llm = scriptedLlm([{ text: 'Which mode do you prefer?', toolCalls: [] }]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'el jueves a las 5' }).expect(200);
+    assert.equal(res.body.reply, 'Which mode do you prefer?');
+    assert.equal(res.body.action, undefined);
+    assert.equal(llm.calls.length, 1);
+  });
+
+  test('si el modelo propone un hueco inventado no hay tarjeta', async () => {
+    const llm = scriptedLlm([
+      { text: '', toolCalls: [{ id: '1', name: 'propose_meeting', input: { mode: 'video', slot_id: '2026-11-03T17:10' } }] },
+      { text: 'That time is not available.', toolCalls: [] },
+    ]);
+    const res = await request(bookingApp(llm)).post('/api/chat').send({ message: 'Book a call at 17:10' }).expect(200);
+    assert.equal(res.body.action, undefined);
+  });
+
+  test('sin herramientas de reserva se mantiene la respuesta fija con el formulario', async () => {
+    const { app, llm } = buildApp();
+    const res = await request(app).post('/api/chat').send({ message: 'Can we book a call?' }).expect(200);
+    assert.equal(res.body.action, 'open_contact_form');
+    assert.equal(llm.calls.length, 0);
   });
 });

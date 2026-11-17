@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: 19 October 2026.
+Last updated: 29 October 2026.
 
 This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (the chat assistant and the contact form) processes, why, and for how long.
 
@@ -26,7 +26,7 @@ This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (
 ### Technical data
 - **Data:** the IP address you connect from.
 - **Purpose:** to apply usage limits that protect the service against abuse.
-- **Retention:** in memory only, for the duration of the limit window (24 hours at most). It is not used for any other purpose.
+- **Retention:** the IP address itself is never stored. For the chat and contact form limits, a keyed hash of it (which cannot be turned back into the IP address) is kept in the database together with a request counter, and deleted when the limit window ends (24 hours at most). A general per-minute limit is kept in memory only. It is not used for any other purpose.
 
 ## Who the data is shared with
 

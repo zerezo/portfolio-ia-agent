@@ -1,13 +1,20 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 import { createReviewTokens, randomSecret } from './approvals.js';
-import { loadConfig } from './config.js';
+import { AVAILABILITY, loadConfig } from './config.js';
 import { createMemoryContactStore, createPgContactStore } from './contacts.js';
 import { createPool, migrate } from './db.js';
 import { createMailer } from './mailer.js';
 import { createLlm } from './llm.js';
 import { createMemorySessionStore, createPgSessionStore } from './sessions.js';
-import { createCvTool, loadCv } from './tools.js';
+import { createCvTool, loadProfile } from './tools.js';
+import { profileView } from './profile/view.js';
+import { createKnowledgeTool, createLocalSource } from './knowledge.js';
+import { createR2Client } from './r2.js';
+import { createPgRateLimitStore, purgeExpiredRateLimits } from './ratelimit.js';
+import { createBookingTools } from './booking.js';
+import { listFreeSlots } from './calendar.js';
+import { createHmac } from 'node:crypto';
 
 // Cada cuánto se borran las solicitudes y sesiones caducadas.
 const PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -21,14 +28,30 @@ try {
 }
 
 const llm = createLlm(config);
-const profile = loadCv();
-const tools = [createCvTool(profile)];
+// Perfil (data/profile.yaml): un perfil inválido detiene el arranque con el motivo.
+let profile;
+try {
+  profile = loadProfile();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
+// Base de conocimiento: R2 en los entornos desplegados, carpeta knowledge/ en local. Se carga
+// al arrancar; si falla, el servidor arranca igualmente y reintenta más tarde (knowledge.js).
+const { knowledge } = config;
+const knowledgeTool = createKnowledgeTool(
+  knowledge.source === 'r2' ? createR2Client(knowledge.r2) : createLocalSource(),
+  { allowPlaceholders: knowledge.allowPlaceholders },
+);
+await knowledgeTool.refresh();
+const tools = [createCvTool(profile), knowledgeTool];
 
 // Con DATABASE_URL, PostgreSQL (los datos sobreviven a reinicios y redespliegues); sin ella,
 // memoria, solo para desarrollo.
 let pool;
 let sessions;
 let contacts;
+let rateLimitStore;
 if (config.databaseUrl) {
   pool = createPool(config.databaseUrl);
   try {
@@ -39,6 +62,10 @@ if (config.databaseUrl) {
   }
   sessions = createPgSessionStore(pool);
   contacts = createPgContactStore(pool);
+  // Límites persistentes. El HMAC de las IPs usa una clave derivada de REVIEW_SECRET (obligatorio
+  // en Railway); sin él (local), una aleatoria: los contadores se reinician al reiniciar.
+  const secret = createHmac('sha256', config.contact.reviewSecret ?? randomSecret()).update('rate-limit').digest();
+  rateLimitStore = (name) => createPgRateLimitStore(pool, name, { secret });
 } else {
   console.warn('DATABASE_URL no definida: solicitudes y sesiones en memoria (se pierden al reiniciar).');
   sessions = createMemorySessionStore();
@@ -47,9 +74,15 @@ if (config.databaseUrl) {
 
 const purge = async () => {
   try {
-    const [expiredContacts, expiredSessions] = await Promise.all([contacts.purgeExpired(), sessions.purgeExpired()]);
-    if (expiredContacts || expiredSessions) {
-      console.log(`[db] borradas ${expiredContacts} solicitudes y ${expiredSessions} sesiones caducadas`);
+    const [expiredContacts, expiredSessions, expiredLimits] = await Promise.all([
+      contacts.purgeExpired(),
+      sessions.purgeExpired(),
+      pool ? purgeExpiredRateLimits(pool) : 0,
+    ]);
+    if (expiredContacts || expiredSessions || expiredLimits) {
+      console.log(
+        `[db] borradas ${expiredContacts} solicitudes, ${expiredSessions} sesiones y ${expiredLimits} contadores caducados`,
+      );
     }
   } catch (error) {
     console.error('Error al borrar datos caducados:', error);
@@ -65,12 +98,32 @@ if (!config.contact.reviewSecret) {
 }
 const reviewTokens = createReviewTokens({ secret: config.contact.reviewSecret ?? randomSecret() });
 
-const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config });
+// Reservas desde el chat: los mismos huecos libres que el formulario (los ocupados por
+// solicitudes pendientes o aprobadas no se ofrecen).
+tools.push(
+  ...createBookingTools({
+    freeSlots: async () =>
+      listFreeSlots({ schedule: AVAILABILITY, now: new Date(), taken: new Set(await contacts.takenSlotIds()) }),
+    schedule: AVAILABILITY,
+  }),
+);
+
+const app = createApp({
+  llm,
+  tools,
+  profile: profileView(profile, { channel: 'web', lang: 'en' }),
+  sessions,
+  contacts,
+  mailer,
+  reviewTokens,
+  config,
+  rateLimitStore,
+});
 
 const server = app.listen(config.port, () => {
   console.log(
     `Servidor escuchando en el puerto ${config.port} (entorno: ${config.appEnv}, perfil: ${config.profileName}, modelo: ${llm.name}, ` +
-      `emails: ${config.contact.transport}, datos: ${pool ? 'postgres' : 'memoria'})`,
+      `conocimiento: ${knowledge.source}, emails: ${config.contact.transport}, datos y límites: ${pool ? 'postgres' : 'memoria'})`,
   );
 });
 

@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { profileView } from './profile/view.js';
 
 // Herramientas del agente. Cada una: { name, description, inputSchema, run(input) -> texto }.
 // La definición es neutral; cada adaptador de llm.js la traduce al formato de su proveedor.
 // La web está en inglés: descripciones, resultados y CV también, para que el modelo trabaje
 // en un solo idioma.
 
-// Cubre una sección completa (6 certificaciones, 5 experiencias) sin inflar el contexto.
+// Cubre una sección completa (4 proyectos, 5 puestos) sin inflar el contexto.
 const MAX_RESULTS = 6;
 
 // Minúsculas y sin tildes, para que "Behobia" o "Politécnica" se encuentren igual.
@@ -16,39 +16,83 @@ const STOPWORDS = new Set(
   (
     'the a an and or of in on at to for with by from is are was were be been has have had does do did ' +
     'he his him what which who where when how about any some it its this that as can could tell me ' +
+    'before after then than into also just only very there their they them we you your ' +
     'de la el en y los las del un una con por para que su sus al lo es tiene ha sobre como'
   ).split(' '),
 );
 
-const tokenize = (text) =>
+export const tokenize = (text) =>
   normalize(text)
     .split(/[^a-z0-9]+/)
     .filter((word) => word.length > 1 && !STOPWORDS.has(word));
 
-// Convierte el CV en fragmentos de texto autocontenidos (la misma unidad que se vectorizará con pgvector).
+// Nombres visibles de las secciones del caso de estudio (profile.yaml).
+const CASE_STUDY_TITLES = {
+  problem: 'Problem',
+  architecture: 'Architecture',
+  tools: 'Tools',
+  keyDecision: 'Key decision',
+  evals: 'Evals',
+  next: 'What comes next',
+};
+const LINK_NAMES = { website: 'Website', github: 'GitHub', linkedin: 'LinkedIn' };
+// Etiquetas en español de cada sección: el CV está en inglés y los modelos pequeños buscan a
+// veces con la pregunta tal cual ("¿dónde vive?"). Misma idea que las etiquetas bilingües de knowledge/.
+const ES_TAGS = {
+  profile: ['perfil', 'resumen', 'donde', 'vive', 'ubicacion', 'ahora', 'actualmente', 'puesto', 'encaje'],
+  contact: ['enlaces', 'contacto'],
+  skills: ['competencias', 'habilidades', 'tecnologias'],
+  languages: ['idiomas', 'ingles', 'espanol'],
+  experience: ['experiencia', 'trabajo', 'empresa', 'clientes'],
+  education: ['formacion', 'estudios', 'carrera', 'universidad'],
+  certifications: ['certificaciones', 'certificados'],
+  projects: ['proyectos', 'construido'],
+  interests: ['aficiones', 'tiempo libre', 'deportes'],
+};
+const sentence = (parts) => parts.filter(Boolean).join(' ');
+
+// Convierte la vista del agente (profile/view.js: solo lo verificado y del canal "agent") en
+// fragmentos de texto autocontenidos: la unidad de búsqueda.
 export function buildCvChunks(cv) {
+  const { basics } = cv;
   const chunks = [
     {
       section: 'profile',
-      text: `${cv.profile.name}. ${cv.profile.headline}. ${cv.profile.location}. ${cv.profile.summary}`,
-      tags: ['about', 'summary', 'current job', 'work'],
+      text: sentence([`${basics.name}. ${basics.headline}. Based in ${basics.location}.`, ...cv.summary.map((s) => s.text)]),
+      tags: ['about', 'summary', 'current job', 'work', 'role', 'fit', 'background', 'location', 'city', 'lives', 'home', 'hometown', 'origin'],
     },
-    { section: 'contact', text: `LinkedIn: ${cv.contact.linkedin}` },
-    { section: 'skills', text: `Skills: ${cv.skills.join(', ')}.` },
-    { section: 'languages', text: `Languages: ${cv.languages.map((l) => `${l.language} (${l.level})`).join(', ')}.` },
+    {
+      section: 'contact',
+      text: `${basics.links.map((l) => `${LINK_NAMES[l.id] ?? l.label}: ${l.url}`).join('. ')}.`,
+      tags: ['links', 'contact'],
+    },
+    ...cv.skills.map((group) => ({
+      section: 'skills',
+      text: `Skills, ${group.label}: ${group.items.map((s) => s.name).join(', ')}.`,
+      tags: [...group.tags, 'technologies', 'stack', 'tools'],
+    })),
+    {
+      section: 'languages',
+      text: `Languages: ${cv.languages.map((l) => `${l.name} (${l.level})`).join(', ')}.`,
+      tags: ['english', 'spanish'],
+    },
   ];
 
-  for (const e of cv.experience) {
-    chunks.push({
-      section: 'experience',
-      text: `${e.role} at ${e.company} (${e.start} - ${e.end ?? 'present'}, ${e.location}). ${e.description}`,
-      tags: [...e.tags, 'work', 'job'],
-    });
+  for (const job of cv.experience) {
+    const company = job.companyNote ? `${job.company} (${job.companyNote})` : job.company;
+    for (const role of job.roles) {
+      const where = [`${role.start} - ${role.end ?? 'present'}`, job.location, job.note].filter(Boolean).join(', ');
+      chunks.push({
+        section: 'experience',
+        text: sentence([`${role.title} at ${company} (${where}).`, ...role.bullets.map((b) => b.text)]),
+        tags: [...role.tags, 'work', 'job'],
+      });
+    }
   }
   for (const e of cv.education) {
     chunks.push({
       section: 'education',
-      text: `${e.degree}, ${e.institution} (${e.start} - ${e.end}).`,
+      text: sentence([`${e.degree}, ${e.institution} (${e.start} - ${e.end ?? 'present'}).`, e.note && `${e.note}.`]),
       tags: [...e.tags, 'degree', 'university', 'studies'],
     });
   }
@@ -56,26 +100,45 @@ export function buildCvChunks(cv) {
     chunks.push({ section: 'certifications', text: `Certification: ${c.name}.`, tags: c.tags });
   }
   for (const p of cv.projects) {
+    const about = [p.context, p.date].filter(Boolean).join(', ');
     chunks.push({
       section: 'projects',
-      text: `Project (${p.type}, ${p.status}): ${p.name}. ${p.description}${p.url ? ` ${p.url}` : ''}`,
-      tags: p.tags,
+      text: sentence([
+        `Project: ${p.name}${about ? ` (${about})` : ''}.`,
+        ...p.bullets.map((b) => b.text),
+        ...p.links.map((l) => l.url),
+      ]),
+      tags: [...p.tags, 'built', 'side project'],
     });
+    if (p.caseStudy) {
+      chunks.push({
+        section: 'projects',
+        text: sentence([
+          `Case study of the project ${p.name}.`,
+          ...p.caseStudy.sections.map((s) => `${CASE_STUDY_TITLES[s.key]}: ${s.paragraphs.join(' ')}`),
+        ]),
+        tags: [...p.tags, 'case study'],
+      });
+    }
   }
   for (const i of cv.interests) {
     chunks.push({
       section: 'interests',
-      text: `Hobbies and free time, ${i.topic}: ${i.description}`,
+      text: `Hobbies and free time, ${i.label}: ${i.text}.`,
       tags: [...i.tags, 'hobbies', 'spare time', 'personal'],
     });
   }
 
-  // Índice de palabras precalculado: sección + texto + etiquetas.
-  return chunks.map((chunk) => ({
+  return indexChunks(chunks.map((c) => ({ ...c, tags: [...(c.tags ?? []), ...ES_TAGS[c.section]] })));
+}
+
+// Índice de palabras precalculado: sección + texto + etiquetas. Lo comparten el CV y la
+// herramienta de conocimiento (knowledge.js).
+export const indexChunks = (chunks) =>
+  chunks.map((chunk) => ({
     ...chunk,
     words: new Set(tokenize(`${chunk.section} ${chunk.text} ${(chunk.tags ?? []).join(' ')}`)),
   }));
-}
 
 // Coincidencia por prefijo: "certification" encuentra "certifications". Las palabras de 1-2
 // letras solo coinciden exactas, en ambos sentidos: "it" (IT) no encuentra "items" ni "hi"
@@ -85,8 +148,8 @@ const matches = (chunk, term) =>
     (w) => w === term || (term.length >= 3 && w.startsWith(term)) || (w.length >= 3 && term.startsWith(w)),
   );
 
-// Búsqueda por palabras clave. TODO(rag): sustituir por búsqueda vectorial en pgvector.
-export function searchCv(chunks, query) {
+// Búsqueda por palabras clave (decisión v2.0: sin embeddings mientras el corpus sea pequeño).
+export function searchChunks(chunks, query, maxResults = MAX_RESULTS) {
   // Las palabras raras pesan más (tipo IDF): en "DORA experience", DORA aparece en un
   // fragmento y experience en cinco, así que el fragmento de DORA queda primero.
   const weights = tokenize(query).map((term) => {
@@ -101,18 +164,20 @@ export function searchCv(chunks, query) {
     }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, MAX_RESULTS)
+    .slice(0, maxResults)
     .map(({ chunk }) => chunk);
 }
 
-export function createCvTool(cv) {
-  const chunks = buildCvChunks(cv);
+// profile: el perfil cargado (profile/load.js). La herramienta solo ve lo publicable en el canal
+// "agent" y en inglés: lo pendiente de revisar (verified: false) no llega nunca al modelo.
+export function createCvTool(profile) {
+  const chunks = buildCvChunks(profileView(profile, { channel: 'agent', lang: 'en' }));
   const sections = [...new Set(chunks.map((c) => c.section))];
 
   return {
     name: 'search_cv',
     // Para la búsqueda forzada de app.js: ¿encuentra algo esta consulta?
-    hasResults: (query) => searchCv(chunks, query).length > 0,
+    hasResults: (query) => searchChunks(chunks, query).length > 0,
     description:
       "Searches the CV of the portfolio's owner: profile, experience, education, skills, certifications, " +
       'languages, projects, personal interests and contact. Always use it before answering any question ' +
@@ -128,7 +193,7 @@ export function createCvTool(cv) {
       if (typeof query !== 'string' || query.trim() === '') {
         return 'Error: the "query" parameter must be a non-empty string.';
       }
-      const results = searchCv(chunks, query);
+      const results = searchChunks(chunks, query);
       if (results.length === 0) {
         return `No results for "${query}". Available sections: ${sections.join(', ')}.`;
       }
@@ -144,6 +209,5 @@ export function createCvTool(cv) {
   };
 }
 
-export function loadCv(path = new URL('./data/cv.json', import.meta.url)) {
-  return JSON.parse(readFileSync(path, 'utf8'));
-}
+// El perfil se lee de data/profile.yaml (profile/load.js).
+export { loadProfile } from './profile/load.js';

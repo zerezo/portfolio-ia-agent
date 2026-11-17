@@ -1,9 +1,42 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
+import { parse as parseYaml } from 'yaml';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { markdownToHtml } from './tools/markdown.js';
 
 const PRIVACY_SOURCE = new URL('../PRIVACY.md', import.meta.url);
+// Perfil: la única fuente del título, la descripción y Open Graph de la web (y del CV).
+const PROFILE_SOURCE = new URL('../backend/data/profile.yaml', import.meta.url);
+const PROFILE_PLACEHOLDER = /<!-- profile-meta:.*-->/;
+
+const escapeAttr = (text) =>
+  String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// <title>, meta description, Open Graph y Twitter desde basics de profile.yaml. Sin og:image
+// todavía (pendiente: imagen para compartir). El backend valida el esquema en el CI.
+function profileMetaTags() {
+  const { basics } = parseYaml(readFileSync(PROFILE_SOURCE, 'utf8'));
+  const { title, description } = basics.meta;
+  const site = `${new URL(basics.links.find((l) => l.id === 'website').url).origin}/`;
+  const meta = (attr, key, value) => `<meta ${attr}="${key}" content="${escapeAttr(value)}" />`;
+  return [
+    `<title>${escapeAttr(title)}</title>`,
+    meta('name', 'description', description),
+    `<link rel="canonical" href="${escapeAttr(site)}" />`,
+    meta('property', 'og:type', 'profile'),
+    meta('property', 'og:site_name', basics.name),
+    meta('property', 'og:title', title),
+    meta('property', 'og:description', description),
+    meta('property', 'og:url', site),
+    meta('property', 'og:locale', 'en_GB'),
+    meta('name', 'twitter:card', 'summary'),
+    meta('name', 'twitter:title', title),
+    meta('name', 'twitter:description', description),
+  ].join(`
+    `);
+}
 
 // Página de la política de privacidad generada desde PRIVACY.md (la única fuente del texto).
 function privacyPage() {
@@ -63,6 +96,11 @@ function sitePages(apiUrl) {
         res.end(privacyPage());
       });
     },
+    // Metadatos de la página desde el perfil (también en desarrollo).
+    transformIndexHtml(html) {
+      if (!PROFILE_PLACEHOLDER.test(html)) throw new Error('index.html: falta el comentario profile-meta');
+      return html.replace(PROFILE_PLACEHOLDER, profileMetaTags());
+    },
     // Al compilar, se añaden al resultado privacy.html y _headers.
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'privacy.html', source: privacyPage() });
@@ -76,7 +114,9 @@ function sitePages(apiUrl) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
-    plugins: [react(), sitePages(env.VITE_API_URL)],
+    plugins: [react(), tailwindcss(), sitePages(env.VITE_API_URL)],
+    // Alias de shadcn/ui: @/components/ui/... -> src/components/ui/...
+    resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     server: {
       port: 5173,
       proxy: {

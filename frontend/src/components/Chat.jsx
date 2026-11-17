@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
+import { Bot, Send } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { sendChatMessage } from '../api.js';
+import MeetingCard from './MeetingCard.jsx';
 
 const GREETING =
-  "Hi! I'm Alejandro's assistant. Ask me about his experience, certifications, projects or interests.";
+  "Hi! I'm Alejandro's assistant. Ask me about what he has built, how he works with clients, his experience or what he is like.";
 
+// Preguntas de recruiter: el agente las responde con search_cv (data/profile.yaml).
 const SUGGESTIONS = [
-  'What does he do at IndraMind?',
-  'Which certifications does he have?',
-  'Tell me about his bachelor’s thesis',
-  'What does he do in his free time?',
+  'Why is he a good fit for a Forward Deployed Engineer role?',
+  'What has he built with LLMs?',
+  'How does he work with enterprise clients?',
+  'Tell me about the Entrenador MCP server',
 ];
 
 // El límite real lo aplica el backend; aquí evita escribir de más.
@@ -56,7 +62,7 @@ export default function Chat({ onOpenContact }) {
       const data = await sendChatMessage(message, sessionId.current);
       sessionId.current = data.sessionId;
       writeSession(data.sessionId);
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply, action: data.action }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply, action: data.action, proposal: data.proposal }]);
       if (data.action === 'open_contact_form') onOpenContact();
     } catch (err) {
       setMessages((prev) => [...prev, { role: 'error', content: err.message }]);
@@ -68,56 +74,69 @@ export default function Chat({ onOpenContact }) {
   const hasUserMessages = messages.some((m) => m.role === 'user');
 
   return (
-    <article className="panel chat-panel" aria-label="Chat with Alejandro's assistant">
-      <div className="chat-header">
-        <h2 className="panel-title">Ask the assistant</h2>
-        <p className="muted small">AI answers based on his CV. It can make mistakes.</p>
-      </div>
+    <article
+      className="flex min-h-0 w-full flex-col overflow-hidden rounded-2xl border bg-card/70 backdrop-blur"
+      aria-label="Chat with Alejandro's assistant"
+    >
+      <header className="flex items-center gap-3 border-b p-4">
+        <span className="grid size-8 place-items-center rounded-xl bg-gradient-to-br from-primary to-brand-2 text-white" aria-hidden="true">
+          <Bot className="size-4" />
+        </span>
+        <div>
+          <h2 className="text-sm font-semibold">Ask my AI assistant ✨</h2>
+          <p className="text-xs text-muted-foreground">AI answers based on his CV and notes. It can make mistakes.</p>
+        </div>
+      </header>
 
-      <ol className="chat-messages" ref={listRef} aria-live="polite">
+      <ol className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4" ref={listRef} aria-live="polite">
         {messages.map((m, i) => (
-          <li key={i} className={`message message-${m.role}`}>
+          <li
+            key={i}
+            className={cn(
+              'flex max-w-[85%] flex-col items-start gap-2 rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
+              m.role === 'user' && 'self-end rounded-br-md bg-gradient-to-br from-primary to-brand-2 text-white',
+              m.role === 'assistant' && 'rounded-bl-md bg-muted',
+              m.role === 'error' && 'bg-destructive/10 text-destructive',
+            )}
+          >
             {/* Texto plano siempre: la respuesta del modelo nunca se interpreta como HTML. */}
-            <p>{m.content}</p>
+            <p className="whitespace-pre-line">{m.content}</p>
+            {m.action === 'propose_meeting' && m.proposal && <MeetingCard proposal={m.proposal} onOpenBook={onOpenContact} />}
             {m.action === 'open_contact_form' && (
-              <button type="button" className="button button-small" onClick={onOpenContact}>
-                Open contact form
-              </button>
+              <Button size="sm" className="rounded-full" onClick={onOpenContact}>
+                Book a meeting
+              </Button>
             )}
           </li>
         ))}
-        {sending && (
-          <li className="message message-assistant message-pending">
-            <p>Thinking…</p>
-          </li>
-        )}
+        {sending && <li className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">Thinking…</li>}
       </ol>
 
       {!hasUserMessages && (
-        <ul className="suggestions" aria-label="Suggested questions">
+        <ul className="flex flex-wrap gap-2 px-4 pb-3" aria-label="Suggested questions">
           {SUGGESTIONS.map((s) => (
             <li key={s}>
-              <button type="button" className="chip" onClick={() => send(s)} disabled={sending}>
+              <Button variant="outline" size="sm" className="h-auto rounded-full py-1.5 text-xs whitespace-normal" onClick={() => send(s)} disabled={sending}>
                 {s}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
       )}
 
       <form
-        className="chat-form"
+        className="flex gap-2 border-t p-3"
         onSubmit={(e) => {
           e.preventDefault();
           send(input);
         }}
       >
-        <label htmlFor="chat-input" className="visually-hidden">
+        <label htmlFor="chat-input" className="sr-only">
           Your question
         </label>
-        <input
+        <Input
+          className="rounded-full"
           id="chat-input"
-          type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about his experience…"
@@ -125,9 +144,9 @@ export default function Chat({ onOpenContact }) {
           autoComplete="off"
           disabled={sending}
         />
-        <button type="submit" className="button" disabled={sending || !input.trim()}>
-          Send
-        </button>
+        <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={sending || !input.trim()} aria-label="Send">
+          <Send />
+        </Button>
       </form>
     </article>
   );
