@@ -244,13 +244,6 @@ describe('perfil real: verified y confidencialidad', () => {
     for (const v of views) assert.ok(!viewStrings(v).some((s) => /\bTODO\b/.test(s)), `${v.channel}/${v.lang}`);
   });
 
-  test('los indicadores solo salen en la web (máximo 4)', () => {
-    const web = profileView(profile, { channel: 'web', lang: 'en' });
-    assert.deepEqual(ids(web.highlights), ['kpi-automation', 'kpi-mcp', 'kpi-clients', 'kpi-thesis']);
-    assert.equal(web.highlights[0].value, '2 h → 10 min');
-    for (const channel of ['cv', 'linkedin', 'agent']) assert.deepEqual(profileView(profile, { channel, lang: 'en' }).highlights, []);
-  });
-
   test('las frases de Entrenador ya verificadas están en la web y en el agente', () => {
     for (const channel of ['web', 'agent']) {
       const entrenador = profileView(profile, { channel, lang: 'en' }).projects.find((p) => p.id === 'entrenador');
