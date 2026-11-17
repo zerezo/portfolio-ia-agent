@@ -1,0 +1,615 @@
+# Perfil profesional de Alejandro Cerezo: FUENTE ÚNICA de la web, del agente del chat (search_cv),
+# del CV en PDF (npm run cv) y de los textos de LinkedIn (npm run linkedin).
+#
+# Cómo se edita (el esquema está en backend/profile/schema.js; npm run profile:check lo valida):
+# - Textos: { en, es } o, si no cambian con el idioma (nombres propios), un texto simple.
+# - Cada elemento con "id" admite tags, priority, verified y channels. Si no los lleva, los hereda
+#   del elemento que lo contiene y, al final, de "defaults".
+#   - priority: 1 = imprescindible, 2 = normal, 3 = lo primero que se recorta para que el CV quepa
+#     en una página.
+#   - verified: false (o { en: true, es: false }) = pendiente de revisar: no sale en ninguna salida.
+#   - channels: dónde aparece: web, cv, linkedin, agent.
+# - Un texto que empieza por TODO falta por escribir: no sale en ninguna salida.
+#   npm run profile:review lista los TODO y lo pendiente de revisar.
+# - Repositorio público: nada privado aquí (el teléfono no se guarda en el repo). Nunca se nombran
+#   los clientes del trabajo actual: un test lo comprueba en todas las salidas.
+
+defaults:
+  channels: [web, cv, linkedin, agent]
+  verified: true
+  priority: 2
+
+basics:
+  name: Alejandro Cerezo Gilarranz
+  headline:
+    en: Forward Deployed / AI Engineer
+    es: Forward Deployed / AI Engineer
+  location:
+    en: Segovia & Madrid, Spain
+    es: Segovia y Madrid, España
+  email:
+    value: alezerezo@gmail.com
+    channels: [cv]
+  links:
+    - id: website
+      label: alejandrocerezo.dev
+      url: https://alejandrocerezo.dev
+    - id: github
+      label: github.com/zerezo
+      url: https://github.com/zerezo
+    - id: linkedin
+      label: linkedin.com/in/alejandro-cerezo-gilarranz-1145b6228
+      url: https://www.linkedin.com/in/alejandro-cerezo-gilarranz-1145b6228
+  # <title>, meta description y Open Graph de la web (solo en inglés).
+  meta:
+    title: Alejandro Cerezo · AI / Forward Deployed Engineer
+    description: >-
+      Telecommunications engineer (UPM) who ships AI products end to end. Ask the AI assistant about
+      his experience or request a meeting.
+
+summary:
+  - id: summary
+    priority: 1
+    tags: [fde, ai, security, client]
+    en: >-
+      Telecommunications engineer (UPM) who ships AI products end to end, working AI-native with Claude
+      Code. I've built and deployed a production LLM agent with tool calling, a prompt-injection guard
+      and real integrations, plus my own MCP server on Cloudflare that connects Claude to live training
+      data and external APIs. By day I work client-facing, in English, on cyber risk and compliance for
+      enterprise clients across Germany, South Korea and Spain, and I've automated reporting work from
+      2 hours down to 10 minutes. I know the security and compliance questions that decide whether an
+      AI deployment goes live.
+    es: >-
+      Ingeniero de Telecomunicación (UPM) que construye productos de IA de principio a fin, con un flujo
+      de trabajo AI-native con Claude Code. He construido y desplegado en producción un agente LLM con
+      tool calling, protección contra prompt injection e integraciones reales, además de mi propio
+      servidor MCP en Cloudflare que conecta Claude con datos de entrenamiento en tiempo real y APIs
+      externas. En mi trabajo actual trato directamente con clientes, en inglés, en riesgo y
+      cumplimiento de ciberseguridad para grandes empresas de Alemania, Corea del Sur y España, y he
+      automatizado tareas de reporting que pasaron de 2 horas a 10 minutos. Conozco las preguntas de
+      seguridad y cumplimiento que deciden si un despliegue de IA llega a producción.
+
+# Solo LinkedIn. Los textos en español y la ampliación del About los redactó Claude: pendientes de
+# revisión (verified: false) hasta que Alejandro los apruebe.
+linkedin:
+  channels: [linkedin]
+  headline:
+    id: linkedin-headline
+    verified: { en: true, es: false }
+    en: >-
+      AI / Forward Deployed Engineer · I build and ship LLM agents & MCP servers · Cyber risk &
+      compliance (DORA, ISO 27001) · Telecom Engineer (UPM)
+    es: >-
+      AI / Forward Deployed Engineer · Construyo y despliego agentes LLM y servidores MCP · Riesgo y
+      cumplimiento en ciberseguridad (DORA, ISO 27001) · Ingeniero de Telecomunicación (UPM)
+  about:
+    - id: linkedin-about-intro
+      verified: { en: true, es: false }
+      en: >-
+        I'm a telecom engineer who ships AI products end to end: a production agent with tool calling
+        and guardrails, and my own MCP server connecting Claude to live data and external APIs. By day I
+        work directly with enterprise clients in Germany and South Korea on cyber risk and compliance,
+        and I automated a 2-hour reporting task down to 10 minutes. I want to be the engineer who
+        understands what the customer really needs, builds it, and stays with it from first call to
+        production.
+      es: >-
+        Soy ingeniero de telecomunicación y construyo productos de IA de principio a fin: un agente en
+        producción con tool calling y guardrails, y mi propio servidor MCP que conecta Claude con datos
+        en tiempo real y APIs externas. En mi trabajo actual trato directamente con clientes de grandes
+        empresas en Alemania y Corea del Sur en riesgo y cumplimiento de ciberseguridad, y automaticé una
+        tarea de reporting de 2 horas hasta dejarla en 10 minutos. Quiero ser el ingeniero que entiende
+        lo que el cliente necesita de verdad, lo construye y lo acompaña desde la primera llamada hasta
+        producción.
+    - id: linkedin-about-build
+      verified: false
+      en: >-
+        What I build: my portfolio at alejandrocerezo.dev is itself a production AI agent. It answers
+        questions about my background through an agent loop with tool calling (Claude Haiku in
+        production, Ollama locally, behind a provider-agnostic backend), with a zero-cost guard that
+        blocks prompt injection before it reaches the model, rate limits, a strict CSP and a
+        meeting-request flow with HMAC-signed approvals and email through the Gmail API. I also built
+        Entrenador, a remote MCP server on Cloudflare with ~25 tools that lets Claude run my training on
+        live data and schedule workouts in intervals.icu, with the coaching methodology encoded as a
+        tool the model must consult before deciding anything. I'm now designing evals for it:
+        code-graded verdicts plus an LLM judge.
+      es: >-
+        Qué construyo: mi portfolio en alejandrocerezo.dev es en sí mismo un agente de IA en producción.
+        Responde preguntas sobre mi perfil con un bucle agéntico con tool calling (Claude Haiku en
+        producción, Ollama en local, con un backend independiente del proveedor), con un guard sin coste
+        que bloquea el prompt injection antes de llegar al modelo, rate limiting, una CSP estricta y un
+        flujo de solicitud de reuniones con aprobaciones firmadas con HMAC y emails por la Gmail API.
+        También he construido Entrenador, un servidor MCP remoto en Cloudflare con ~25 herramientas con
+        el que Claude gestiona mi entrenamiento con datos reales y programa entrenamientos en
+        intervals.icu, con la metodología de entrenamiento codificada como una herramienta que el modelo
+        debe consultar antes de decidir nada. Ahora estoy diseñando sus evals: veredictos evaluados por
+        código y un juez LLM.
+    - id: linkedin-about-clients
+      verified: false
+      en: >-
+        How I work with clients: I work in English with client teams in Germany and South Korea on
+        cybersecurity compliance for the financial-services business of a global automotive group, and
+        I run third-party risk assessments for a major Spanish telecom operator. That is where I learned
+        the security and compliance questions (ISO/IEC 27001, DORA, third-party risk) that decide whether
+        an AI deployment goes live, and where I automated file processing and report generation to cut a
+        recurring 2-hour task to 10 minutes.
+      es: >-
+        Cómo trabajo con clientes: trabajo en inglés con los equipos del cliente en Alemania y Corea del
+        Sur en el cumplimiento de ciberseguridad del negocio de servicios financieros de un grupo
+        automovilístico global, y hago evaluaciones de riesgo de proveedores para un gran operador de
+        telecomunicaciones español. Ahí he aprendido las preguntas de seguridad y cumplimiento (ISO/IEC
+        27001, DORA, riesgo de terceros) que deciden si un despliegue de IA llega a producción, y ahí
+        automaticé el procesamiento de archivos y la generación de informes para que una tarea
+        recurrente pasara de 2 horas a 10 minutos.
+    - id: linkedin-about-looking
+      verified: false
+      en: >-
+        What I'm looking for: Forward Deployed Engineer, Solutions Engineer or Applied AI roles, in
+        Madrid or remote in Europe.
+      es: >-
+        Qué busco: puestos de Forward Deployed Engineer, Solutions Engineer o Applied AI, en Madrid o en
+        remoto en Europa.
+  # Las 5 competencias destacadas del perfil (ids de skills).
+  topSkills: [skill-tool-calling, skill-mcp, skill-claude-api, skill-node, skill-iso27001]
+
+skills:
+  - id: skills-ai
+    tags: [ai, fde]
+    label: { en: AI / LLM, es: IA / LLM }
+    items:
+      - id: skill-claude-api
+        name: Claude API
+      - id: skill-tool-calling
+        name: { en: agent loops and tool calling, es: bucles agénticos y tool calling }
+      - id: skill-mcp
+        name: { en: MCP servers, es: servidores MCP }
+      - id: skill-prompting
+        name: prompt engineering
+      - id: skill-evals
+        name: { en: evals (code-graded and LLM-as-judge), es: evals (por código y LLM-as-judge) }
+      - id: skill-guardrails
+        tags: [security]
+        name: { en: input guardrails, es: guardrails }
+      - id: skill-ollama
+        priority: 3
+        name: { en: local models (Ollama), es: modelos locales (Ollama) }
+      - id: skill-claude-code
+        name: { en: AI-native development with Claude Code, es: desarrollo AI-native con Claude Code }
+  - id: skills-engineering
+    tags: [fullstack, fde]
+    label: { en: Engineering, es: Ingeniería }
+    items:
+      - id: skill-js
+        name: JavaScript
+      - id: skill-node
+        name: Node.js/Express
+      - id: skill-react
+        name: React
+      - id: skill-supabase
+        name: Supabase
+      - id: skill-postgres
+        name: PostgreSQL
+      - id: skill-rest
+        name: { en: REST APIs, es: APIs REST }
+      - id: skill-docker
+        name: Docker
+      - id: skill-k8s
+        priority: 3
+        name: { en: 'Kubernetes (GKE, academic)', es: 'Kubernetes (GKE, académico)' }
+      - id: skill-ci
+        name: { en: GitHub Actions CI, es: CI con GitHub Actions }
+      - id: skill-python
+        priority: 3
+        name:
+          en: "Python (academic: owlready2, OWL 2/Protégé)"
+          es: "Python (académico: owlready2, OWL 2/Protégé)"
+  - id: skills-cloud-security
+    tags: [security, fde]
+    label: { en: Cloud & security, es: Cloud y seguridad }
+    items:
+      - id: skill-cloudflare
+        name: Cloudflare (Workers, WAF, DNS)
+      - id: skill-railway
+        name: Railway
+      - id: skill-gcp
+        priority: 3
+        name: Google Cloud (GKE)
+      - id: skill-rate-limiting
+        name: rate limiting
+      - id: skill-csp
+        name: CSP
+      - id: skill-hmac
+        name: { en: HMAC signing, es: firmas HMAC }
+      - id: skill-iso27001
+        tags: [compliance]
+        name: ISO/IEC 27001
+      - id: skill-dora
+        tags: [compliance]
+        name: DORA
+      - id: skill-nist
+        tags: [compliance]
+        name: NIST SP 800-30
+      - id: skill-tprm
+        tags: [compliance]
+        name: { en: third-party risk, es: riesgo de terceros }
+
+languages:
+  - id: lang-es
+    name: { en: Spanish, es: Español }
+    level: { en: native, es: nativo }
+  - id: lang-en
+    tags: [client]
+    name: { en: English, es: Inglés }
+    level:
+      en: C1 – Cambridge Advanced, 190; daily working language with international clients
+      es: C1, Cambridge Advanced 190; idioma de trabajo diario con clientes internacionales
+
+projects:
+  - id: portfolio
+    priority: 1
+    tags: [ai, fde, fullstack, security]
+    name: Portfolio AI Agent
+    context: { en: Live at alejandrocerezo.dev, es: En producción en alejandrocerezo.dev }
+    date: '2026'
+    links:
+      - { label: alejandrocerezo.dev, url: https://alejandrocerezo.dev }
+      - { label: github.com/zerezo/portfolio-ia-agent, url: https://github.com/zerezo/portfolio-ia-agent }
+    bullets:
+      - id: portfolio-agent
+        priority: 1
+        en: >-
+          Built and deployed a public AI assistant that answers questions about my background through an
+          agent loop with tool calling over a structured CV; Claude Haiku in production and Ollama
+          (qwen2.5) locally, behind a provider-agnostic backend.
+        es: >-
+          Asistente de IA público que responde preguntas sobre mi perfil mediante un bucle agéntico con
+          tool calling sobre un CV estructurado; Claude Haiku en producción y Ollama (qwen2.5) en local,
+          con un backend independiente del proveedor.
+      - id: portfolio-guard
+        priority: 1
+        tags: [security]
+        en: >-
+          Added a zero-cost pre-model guard that blocks prompt injection and off-topic queries before they
+          reach the LLM, plus per-IP and global rate limits, a strict CSP, locked-down CORS and no visitor
+          content in production logs.
+        es: >-
+          Guard previo al modelo, sin coste, que bloquea prompt injection y preguntas fuera de tema antes
+          de llegar al LLM; rate limiting por IP y global, CSP estricta, CORS restringido y ningún
+          contenido de visitantes en los logs de producción.
+      - id: portfolio-meetings
+        tags: [fullstack]
+        en: >-
+          Shipped a meeting-request flow with real availability, HMAC-signed approve/reject links, .ics
+          invitations, Jitsi rooms and email through the Gmail API, with PostgreSQL persistence and
+          migrations.
+        es: >-
+          Flujo de solicitud de reuniones con disponibilidad real, enlaces de aprobación firmados con
+          HMAC, invitaciones .ics, salas Jitsi y envío de emails con la Gmail API; persistencia en
+          PostgreSQL con migraciones.
+      - id: portfolio-ci
+        priority: 3
+        tags: [fullstack]
+        en: >-
+          CI on GitHub Actions (audit, tests against a Postgres service, frontend build); React frontend
+          on Cloudflare Workers, Node/Express API on Railway.
+        es: >-
+          CI con GitHub Actions (auditoría, tests contra un servicio Postgres, build del frontend);
+          frontend React en Cloudflare Workers y API Node/Express en Railway.
+
+  - id: entrenador
+    priority: 1
+    tags: [ai, fde, mcp]
+    name:
+      en: 'Entrenador: AI training coach on a custom MCP server'
+      es: 'Entrenador: coach de entrenamiento con IA sobre un servidor MCP propio'
+    context: Cloudflare
+    date: '2026'
+    # El panel (entrenador.alejandrocerezo.dev) es privado: la web enlaza al caso de estudio.
+    links: []
+    bullets:
+      # Verificado (2026-11-17) contra el servidor MCP conectado: 24 herramientas (sincronizar,
+      # posibles_duplicados/unificar_actividades, calcular_ritmos, resumen_semanal, bienestar,
+      # programar_entrenamientos/enviar_a_intervals...) y el panel con login en Cloudflare.
+      - id: entrenador-mcp-server
+        priority: 1
+        en: >-
+          Built a remote MCP server with ~25 tools that lets Claude run my multi-sport training: syncs
+          activities, detects and merges duplicates across sources, computes paces, weekly load and
+          wellness, and schedules structured workouts directly into intervals.icu, with a
+          password-protected web panel.
+        es: >-
+          Servidor MCP remoto con ~25 herramientas con el que Claude gestiona mi entrenamiento
+          multideporte: sincroniza actividades, detecta y unifica duplicados entre fuentes, calcula
+          ritmos, carga semanal y bienestar, y programa entrenamientos estructurados directamente en
+          intervals.icu; panel web protegido.
+      # Verificado: herramienta "metodologia" (instrucciones del servidor: seguirla siempre), con
+      # progresión de volumen del 5-10 % semanal y carga aguda:crónica entre 0,8 y 1,3.
+      - id: entrenador-methodology
+        priority: 1
+        en: >-
+          Encoded a coaching methodology as a tool the model must consult before planning or analysing,
+          so decisions follow explicit rules (weekly volume progression, acute:chronic load) instead of
+          model guesswork.
+        es: >-
+          La metodología de entrenamiento está codificada como una herramienta que el modelo debe
+          consultar antes de planificar o analizar, de modo que las decisiones siguen reglas explícitas
+          (progresión de volumen, carga aguda:crónica) y no intuiciones del modelo.
+      - id: entrenador-evals
+        tags: [evals]
+        en: >-
+          Designing an eval suite for the coaching prompt: contrast-pair test cases with code-graded
+          verdicts plus an LLM judge for required and forbidden content.
+        es: >-
+          Diseño de un set de evals para el prompt de coaching: casos en pares de contraste, veredicto
+          evaluado por código y un juez LLM para el contenido obligatorio y el prohibido.
+    # Caso de estudio (web y agente). Cada sección: párrafos propios o { ref: id de un bullet }.
+    # Los párrafos propios los redactó Claude (problema: palabras de Alejandro; el resto, de la
+    # metodología del servidor): pendientes de revisión.
+    caseStudy:
+      id: entrenador-case
+      channels: [web, agent]
+      problem:
+        - id: entrenador-problem
+          verified: false
+          en: >-
+            I wanted a coach with a real methodology and proper data analysis, built on my own training
+            log, without paying for a subscription and adapted to my needs. My training was split across
+            apps: real-time logging in one, history in another. I wanted one place that combines the best
+            of Strava, intervals.icu, Hevy and the rest.
+          es: >-
+            Quería un entrenador con una metodología real y análisis de datos sobre mi propio registro de
+            entrenamientos, sin pagar una suscripción y adaptado a mis necesidades. Mi entrenamiento
+            estaba repartido entre apps: el registro en tiempo real en una y el histórico en otra. Quería
+            un único lugar que combinara lo mejor de Strava, intervals.icu, Hevy y el resto.
+      architecture:
+        - id: entrenador-architecture
+          verified: false
+          en: >-
+            A remote MCP server on Cloudflare that Claude uses as a connector, so the same coach works
+            from the desktop and from the phone. Activities come from three origins: synced from
+            intervals.icu, imported from .fit files (laps, zones and intervals) or logged by hand as a
+            provisional entry (RPE, feel and notes). A password-protected web panel shows the plan and
+            the saved analyses, and the plan reaches any calendar through an .ics feed.
+          es: >-
+            Un servidor MCP remoto en Cloudflare que Claude usa como conector, así que el mismo
+            entrenador funciona desde el ordenador y desde el móvil. Las actividades tienen tres
+            orígenes: sincronizadas desde intervals.icu, importadas de archivos .fit (vueltas, zonas y
+            series) o registradas a mano como provisionales (RPE, sensaciones y notas). Un panel web
+            protegido con contraseña muestra el plan y los análisis guardados, y el plan llega a
+            cualquier calendario con una URL .ics.
+      tools:
+        - ref: entrenador-mcp-server
+      keyDecision:
+        - ref: entrenador-methodology
+        - id: entrenador-decision-rules
+          verified: false
+          en: >-
+            The methodology is a document deployed with the server and grounded in published
+            training science (Daniels' paces, 80/20 polarised training, Gabbett's acute:chronic ratio).
+            Adjustments follow a warning system: one off-target key session is only noted, two in a row
+            adjust paces or load, and three or a red flag trigger a recovery week. Every analysis is
+            saved, so decisions are auditable.
+          es: >-
+            La metodología es un documento que se despliega con el propio servidor, basado en ciencia
+            del entrenamiento publicada (ritmos de Daniels, entrenamiento polarizado 80/20, ratio
+            agudo:crónico de Gabbett). Los ajustes siguen un sistema de avisos: una sesión clave fuera de
+            objetivo solo se anota, dos seguidas ajustan ritmos o carga, y tres o una señal roja provocan
+            una semana de descarga. Cada análisis se guarda, así que las decisiones son auditables.
+      evals:
+        - ref: entrenador-evals
+      next: TODO qué haría después (pendiente de Alejandro)
+      screenshots: TODO capturas del panel (sin datos personales)
+      video: TODO vídeo corto de una sesión de planificación
+
+  - id: homecargarage
+    tags: [fullstack]
+    name: HomeCarGarage
+    context: React + Supabase
+    date: '2026'
+    links:
+      - { label: homecargarage.alejandrocerezo.dev, url: https://homecargarage.alejandrocerezo.dev }
+    bullets:
+      - id: homecargarage-app
+        en: >-
+          Free web app to track mileage, parts and service intervals for every car in a household,
+          flagging what's due before it becomes a problem. EU-hosted data, user accounts, demo examples.
+        es: >-
+          App web gratuita para controlar kilometraje, piezas e intervalos de mantenimiento de todos los
+          coches de casa, avisando de lo pendiente antes de que sea un problema. Datos alojados en la UE,
+          cuentas de usuario y ejemplos de demo.
+
+  - id: tfg
+    tags: [security, research]
+    name:
+      en: Multi-Domain Operations Cyber-Risk Simulator
+      es: Simulador de riesgos de ciberseguridad para Operaciones Multidominio
+    context: { en: "Bachelor's thesis, UPM · Grade 9/10", es: 'TFG, 9/10' }
+    links:
+      - { label: github.com/zerezo/TFG-Alejandro-Cerezo, url: https://github.com/zerezo/TFG-Alejandro-Cerezo }
+    bullets:
+      - id: tfg-system
+        priority: 1
+        en: >-
+          Knowledge-based system that ingests a military mission scenario and computes cyber-risk
+          exposure and resilience across land, sea, air, space and cyber domains.
+        es: >-
+          Sistema basado en conocimiento que recibe un escenario de misión militar y calcula la
+          exposición a riesgos de ciberseguridad y la resiliencia en los dominios tierra, mar, aire,
+          espacio y ciberespacio.
+      - id: tfg-architecture
+        en: >-
+          Hybrid architecture: an OWL 2 DL ontology (Protégé) with the HermiT reasoner classifies assets
+          at risk; a Python orchestrator applies the NIST SP 800-30 risk matrix and feeds the results back
+          for a global mission verdict.
+        es: >-
+          Arquitectura híbrida: ontología OWL 2 DL (Protégé) con el razonador HermiT para clasificar los
+          activos en riesgo; orquestador en Python que aplica la matriz de riesgos de NIST SP 800-30 y
+          devuelve los resultados a la ontología para el veredicto global de la misión.
+      - id: tfg-validation
+        priority: 3
+        en: >-
+          Strict schema validation of scenario inputs (JSON), with an automated PDF risk report and the
+          inferred knowledge graph exported as an audit trail.
+        es: >-
+          Validación estricta de los escenarios de entrada (JSON), informe de riesgos automático en PDF y
+          exportación del grafo inferido como rastro de auditoría.
+
+experience:
+  - id: indramind
+    priority: 1
+    tags: [security, client, fde]
+    company: IndraMind Cybersecurity
+    companyNote: { en: 'Indra Group, formerly SIA', es: 'Grupo Indra, antes SIA' }
+    location: Madrid
+    roles:
+      - id: indramind-crc
+        title: CRC Analyst, Cyber Risk & Compliance
+        start: 2026-05
+        end: present
+        bullets:
+          - id: crc-compliance
+            priority: 1
+            en: >-
+              Cybersecurity compliance for the financial-services business of a global automotive group:
+              own analysis KPIs and review security profiles and information-protection controls.
+            es: >-
+              Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo
+              automovilístico global: responsable de los KPIs de análisis y de la revisión de perfiles de
+              seguridad y controles de protección de la información.
+          - id: crc-clients
+            priority: 1
+            tags: [client]
+            en: Work directly with client teams in Germany and South Korea, in English.
+            es: Trato directo con los equipos del cliente en Alemania y Corea del Sur, en inglés.
+          - id: crc-tprm
+            en: >-
+              Third-party risk assessments of suppliers for a major Spanish telecom operator (continuing
+              from my internship).
+            es: >-
+              Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español
+              (continuación de mis prácticas).
+          - id: crc-automation
+            priority: 1
+            tags: [automation]
+            en: Automated file processing and report generation, cutting a recurring 2-hour task to 10 minutes.
+            es: >-
+              Automatización del procesamiento de archivos y de la generación de informes: una tarea
+              recurrente pasó de 2 horas a 10 minutos.
+      - id: indramind-intern
+        title: { en: 'Cybersecurity Intern, GRC', es: 'Becario de Ciberseguridad, GRC' }
+        start: 2025-09
+        end: 2026-05
+        bullets:
+          - id: intern-tprm
+            priority: 3
+            en: >-
+              Third-party supplier risk assessments for a major Spanish telecom operator; supported
+              governance, risk and compliance work for the team.
+            es: >-
+              Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español;
+              apoyo en tareas de gobernanza, riesgo y cumplimiento.
+
+  - id: fotomaton
+    priority: 3
+    tags: [client, sales]
+    company: Fotomatón y Más
+    location: Madrid / Segovia
+    start: 2024-02
+    end: 2026-09
+    note: { en: 'part-time, alongside studies', es: 'a tiempo parcial, compaginado con los estudios' }
+    roles:
+      # Títulos en español traducidos por Claude (etiquetas cortas): revisar.
+      - id: fotomaton-sales
+        title: { en: Sales representative, es: Comercial }
+        start: '2025'
+        end: '2025'
+        bullets:
+          - id: fotomaton-proposals
+            en: Built tailored proposals for event clients.
+            es: Propuestas a medida para clientes de eventos.
+      - id: fotomaton-staff
+        title: { en: Event staff, es: Personal de eventos }
+        bullets:
+          - id: fotomaton-booth
+            en: Ran the photo-booth service at weddings and private events.
+            es: Atención del servicio de fotomatón en bodas y eventos privados.
+
+  # Solo web, LinkedIn y agente (no en el CV). El texto en español lo redactó Claude.
+  - id: maxieventos
+    priority: 3
+    channels: [web, linkedin, agent]
+    verified: { en: true, es: false }
+    company: Maxieventos
+    location: Segovia
+    start: 2023-05
+    end: 2024-04
+    roles:
+      - id: maxieventos-leader
+        title: { en: Activity leader and coordinator, es: Monitor y coordinador de actividades }
+        bullets:
+          - id: maxieventos-events
+            en: Activity leader and coordinator at children's events.
+            es: Monitor y coordinador de actividades en eventos infantiles.
+
+education:
+  - id: upm
+    priority: 1
+    degree:
+      en: BSc Telecommunications Technologies and Services Engineering
+      es: Grado en Ingeniería de Tecnologías y Servicios de Telecomunicación
+    institution: Universidad Politécnica de Madrid (ETSIT)
+    start: '2021'
+    end: '2026'
+    note: { en: Thesis 9/10, es: TFG 9/10 }
+
+certifications:
+  - id: cert-iso27001
+    priority: 1
+    tags: [security, compliance]
+    name: ISO/IEC 27001 Implementing Information Security
+  - id: cert-dora
+    priority: 1
+    tags: [security, compliance]
+    name: DORA (EU Digital Operational Resilience Act)
+  - id: cert-cambridge
+    tags: [client]
+    name: Cambridge C1 Advanced (190)
+  # Solo LinkedIn.
+  - id: cert-matlab
+    channels: [linkedin]
+    name: MATLAB Onramp
+  - id: cert-excel
+    channels: [linkedin]
+    name: Excel Pivot Tables
+  - id: cert-dashboards
+    channels: [linkedin]
+    name: Dashboards & Data Analysis
+
+interests:
+  - id: interest-running
+    priority: 3
+    tags: [sports, running, half marathon, perseverance]
+    label: { en: Running, es: Carrera de fondo }
+    text:
+      en: 'Endurance running (4 half marathons: 3 in Segovia, 1 in Madrid; Behobia–San Sebastián 20 km)'
+      es: Carrera de fondo (4 medias maratones, Behobia–San Sebastián 20 km)
+  - id: interest-cycling
+    priority: 3
+    tags: [sports, cycling]
+    label: { en: Cycling, es: Ciclismo }
+    text: { en: Cycling, es: ciclismo }
+  - id: interest-football
+    priority: 3
+    tags: [sports, football, soccer, leadership, teamwork, captain]
+    label: { en: Football, es: Fútbol }
+    text: { en: Former captain of my local football team, es: excapitán de mi equipo de fútbol local }
+
+# Variantes del CV por oferta: npm run cv -- --variant <nombre>. Los elementos con alguna de las
+# etiquetas suben de prioridad y van primero (proyectos y competencias). summary: { en, es } opcional
+# para sustituir el perfil solo en esa variante.
+variants:
+  fde:
+    tags: [fde, client, ai]
+  fullstack:
+    tags: [fullstack]
+  security:
+    tags: [security, compliance]
