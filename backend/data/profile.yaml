@@ -49,6 +49,30 @@ basics:
       Telecommunications engineer (UPM) who ships AI products end to end. Ask the AI assistant about
       his experience or request a meeting.
 
+# Indicadores de la cabecera del dashboard (solo la web, máximo 4). Cada cifra sale de un bullet
+# verificado: si cambia ese bullet, revisa también su indicador.
+highlights:
+  - id: kpi-automation
+    channels: [web]
+    value: 2 h → 10 min
+    label: { en: Reporting task automated, es: Tarea de reporting automatizada }
+    detail: { en: 'File processing and reports, IndraMind', es: 'Procesamiento de archivos e informes, IndraMind' }
+  - id: kpi-mcp
+    channels: [web]
+    value: ~25
+    label: { en: Tools in my MCP server, es: Herramientas en mi servidor MCP }
+    detail: { en: 'Entrenador, on Cloudflare', es: 'Entrenador, en Cloudflare' }
+  - id: kpi-clients
+    channels: [web]
+    value: DE · KR · ES
+    label: { en: Enterprise clients, es: Clientes empresariales }
+    detail: { en: Client-facing work in English, es: Trato directo con clientes en inglés }
+  - id: kpi-thesis
+    channels: [web]
+    value: 9/10
+    label: { en: Bachelor's thesis, es: TFG }
+    detail: { en: 'Telecommunications Engineering, UPM', es: 'Ingeniería de Telecomunicación, UPM' }
+
 summary:
   - id: summary
     priority: 1

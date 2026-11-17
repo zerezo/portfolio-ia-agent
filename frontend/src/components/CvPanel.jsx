@@ -15,21 +15,24 @@ import {
   ExternalLink,
   Footprints,
   FolderGit2,
+  Globe,
   GraduationCap,
   Heart,
   Languages,
   Layers,
   MapPin,
   Maximize2,
+  Plug,
   ShieldCheck,
   Sparkles,
+  Timer,
   Trophy,
   UserRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatMonth, formatPeriod } from '../format.js';
 import { CV_PDF } from '../links.js';
 import Modal from './Modal.jsx';
@@ -38,6 +41,7 @@ import { initials } from './AppShell.jsx';
 // Iconos por id del perfil (presentación; el contenido sale de /api/profile).
 const PROJECT_ICONS = { portfolio: Bot, entrenador: Activity, homecargarage: Car, tfg: ShieldCheck };
 const SKILL_ICONS = { 'skills-ai': BrainCircuit, 'skills-engineering': Code2, 'skills-cloud-security': ShieldCheck };
+const KPI_ICONS = { 'kpi-automation': Timer, 'kpi-mcp': Plug, 'kpi-clients': Globe, 'kpi-thesis': GraduationCap };
 const INTEREST_ICONS = { 'interest-running': Footprints, 'interest-cycling': Bike, 'interest-football': Trophy };
 const HEADER_LINKS = { linkedin: 'LinkedIn', github: 'GitHub' };
 const STACK_PREVIEW = 4;
@@ -116,6 +120,34 @@ function PageHeader({ basics, onOpenContact }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// Fila de indicadores (como las SectionCards de la plantilla): etiqueta, cifra grande, icono y detalle.
+function Highlights({ highlights }) {
+  if (!highlights.length) return null;
+  return (
+    <ul className="grid grid-cols-2 gap-3 @3xl/cv:grid-cols-4 @3xl/cv:gap-4" aria-label="Highlights">
+      {highlights.map((h) => {
+        const Icon = KPI_ICONS[h.id] ?? Sparkles;
+        return (
+          <li key={h.id} className="contents">
+            <Card className="@container/kpi gap-2 py-4">
+              <CardHeader className="px-4 @[14rem]/kpi:px-5">
+                <CardDescription>{h.label}</CardDescription>
+                <CardTitle className="text-base font-semibold whitespace-nowrap tabular-nums @[11rem]/kpi:text-lg @[13rem]/kpi:text-xl @[16rem]/kpi:text-2xl">{h.value}</CardTitle>
+                <CardAction>
+                  <Badge variant="outline" className="size-8 rounded-lg p-0 text-primary [&>svg]:size-4">
+                    <Icon />
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              {h.detail && <CardFooter className="px-4 text-xs text-muted-foreground @[14rem]/kpi:px-5">{h.detail}</CardFooter>}
+            </Card>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -438,12 +470,16 @@ function PersonalCard({ languages, interests }) {
 // se amplían al pulsar (proyectos y competencias en una ventana, experiencia desplegable). Todo
 // sale de /api/profile (backend/data/profile.yaml, solo lo verificado).
 export default function CvPanel({ profile, onOpenContact }) {
-  const { basics, summary, projects, experience, skills, education, certifications, languages, interests } = profile;
+  const { basics, highlights, summary, projects, experience, skills, education, certifications, languages, interests } = profile;
   return (
-    <div className="@container/cv flex flex-col gap-4" aria-label="CV">
+    <div
+      className="@container/cv flex flex-col gap-4 **:data-[slot=card]:bg-gradient-to-t **:data-[slot=card]:from-primary/5 **:data-[slot=card]:to-card **:data-[slot=card]:shadow-xs"
+      aria-label="CV"
+    >
       <PageHeader basics={basics} onOpenContact={onOpenContact} />
+      <Highlights highlights={highlights ?? []} />
       {/* Las dos columnas acaban a la misma altura: Proyectos y Competencias absorben la diferencia. */}
-      <div className="grid grid-cols-1 gap-4 *:flex *:min-w-0 *:flex-col *:gap-4 @3xl/cv:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] **:data-[slot=card]:bg-gradient-to-t **:data-[slot=card]:from-primary/5 **:data-[slot=card]:to-card **:data-[slot=card]:shadow-xs">
+      <div className="grid grid-cols-1 gap-4 *:flex *:min-w-0 *:flex-col *:gap-4 @3xl/cv:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div>
           <AboutCard summary={summary} />
           <ProjectsCard projects={projects} />
