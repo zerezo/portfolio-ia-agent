@@ -26,6 +26,7 @@
     "test": "node --test",
     "gmail:auth": "node scripts/gmail-auth.js",
     "profile:check": "node scripts/profile-check.js",
-    "profile:review": "node scripts/profile-review.js"
+    "profile:review": "node scripts/profile-review.js",
+    "cv": "node scripts/cv.js"
   }
 }

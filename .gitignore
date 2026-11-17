@@ -16,3 +16,6 @@ build/
 
 # Notas locales de Claude Code
 CLAUDE.local.md
+
+# Exportaciones del perfil sin versionar (variantes del CV)
+exports/variants/
