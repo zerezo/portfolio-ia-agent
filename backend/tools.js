@@ -36,6 +36,19 @@ const CASE_STUDY_TITLES = {
   next: 'What comes next',
 };
 const LINK_NAMES = { website: 'Website', github: 'GitHub', linkedin: 'LinkedIn' };
+// Etiquetas en español de cada sección: el CV está en inglés y los modelos pequeños buscan a
+// veces con la pregunta tal cual ("¿dónde vive?"). Misma idea que las etiquetas bilingües de knowledge/.
+const ES_TAGS = {
+  profile: ['perfil', 'resumen', 'donde', 'vive', 'ubicacion', 'ahora', 'actualmente', 'puesto', 'encaje'],
+  contact: ['enlaces', 'contacto'],
+  skills: ['competencias', 'habilidades', 'tecnologias'],
+  languages: ['idiomas', 'ingles', 'espanol'],
+  experience: ['experiencia', 'trabajo', 'empresa', 'clientes'],
+  education: ['formacion', 'estudios', 'carrera', 'universidad'],
+  certifications: ['certificaciones', 'certificados'],
+  projects: ['proyectos', 'construido'],
+  interests: ['aficiones', 'tiempo libre', 'deportes'],
+};
 const sentence = (parts) => parts.filter(Boolean).join(' ');
 
 // Convierte la vista del agente (profile/view.js: solo lo verificado y del canal "agent") en
@@ -116,7 +129,7 @@ export function buildCvChunks(cv) {
     });
   }
 
-  return indexChunks(chunks);
+  return indexChunks(chunks.map((c) => ({ ...c, tags: [...(c.tags ?? []), ...ES_TAGS[c.section]] })));
 }
 
 // Índice de palabras precalculado: sección + texto + etiquetas. Lo comparten el CV y la

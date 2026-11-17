@@ -87,6 +87,12 @@ describe('search_cv', () => {
     assert.match(tool.run({ query: 'How does he work with enterprise clients?' }), /Germany and South Korea/);
   });
 
+  test('encuentra con preguntas en español (etiquetas bilingües)', () => {
+    assert.match(firstLine('¿Dónde vive y qué hace ahora?'), /\[profile\].*Segovia & Madrid/);
+    assert.match(tool.run({ query: '¿Qué proyectos ha construido?' }), /\[projects\]/);
+    assert.match(tool.run({ query: 'aficiones' }), /\[interests\]/);
+  });
+
   test('el caso de estudio de Entrenador (lo verificado) está disponible', () => {
     assert.match(tool.run({ query: 'Entrenador case study' }), /Case study of the project Entrenador.*Key decision:/);
   });
