@@ -17,7 +17,12 @@ export default function App() {
 
   useEffect(() => {
     getProfile()
-      .then(setProfile)
+      .then((data) => {
+        // Durante un despliegue la web y la API se actualizan por separado (Cloudflare y Railway):
+        // con un /api/profile de la versión anterior se avisa en vez de romper la página.
+        if (data?.basics) setProfile(data);
+        else setError('The site is being updated. Please reload the page in a minute.');
+      })
       .catch((err) => setError(err.message));
   }, []);
 

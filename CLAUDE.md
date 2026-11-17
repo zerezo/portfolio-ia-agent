@@ -74,13 +74,13 @@ Un solo código y tres entornos; cada uno lo decide su configuración (`.env` en
 - Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway y Cloudflare despliegan `dev` en development y `main` en production.
 
 ## 7. Versiones
-- **v1.0 (congelada, 2026-10-28):** primera versión pública en `https://alejandrocerezo.dev` (API en `https://api.alejandrocerezo.dev`; dominio activo desde 2026-10-28) con todo lo descrito arriba (chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway). Solo admite correcciones de seguridad o errores; marcada con la etiqueta `v1.0.0` en `main`. `package.json` en `1.0.0`.
-- **v2.0 (completa en `dev`, sin publicar en `main` por decisión de Alejandro):** nuevas funciones según la revisión del tutor (notas locales, no versionadas). Todo probado en development:
+- **v1.0 (2026-10-28):** primera versión pública en `https://alejandrocerezo.dev` (API en `https://api.alejandrocerezo.dev`) con chat con Tool Calling sobre el CV, filtro previo, formulario con aprobación, emails por Gmail, PostgreSQL, Cloudflare + Railway. Etiqueta `v1.0.0` en `main`.
+- **v2.0 (publicada en `main` el 2026-11-17, etiqueta `v2.0.0`; `package.json` en `2.0.0`):** nuevas funciones según la revisión del tutor (notas locales, no versionadas), probadas en development antes de publicar:
   - ~~Frontend tipo dashboard~~ (2026-10-28): ver sección 3. Arquitectura con dos diagramas: agente y sistema completo (2026-10-29).
   - ~~Entornos `dev` y `prod`~~ (2026-10-28): ver sección 5.
   - ~~Agente orquestador~~ (2026-10-29) con cuatro herramientas: search_cv, search_knowledge (RAG en R2: buckets `portfolio-knowledge-dev` y `portfolio-knowledge`, tokens de solo lectura; 6 documentos reales en backend/knowledge/, solo lo que no es CV: los hechos del CV viven en profile.yaml), get_availability y propose_meeting (reserva desde el chat con confirmación del visitante).
   - ~~CV fuera del código~~ (2026-10-29): data/cv.md. Sustituido por ~~perfil como fuente única (SSOT)~~ (2026-11-17): data/profile.yaml alimenta la web, search_cv, el CV en PDF y LinkedIn; posicionamiento FDE / AI Engineer y caso de estudio de Entrenador.
   - ~~Prompt multiidioma explícito~~ (2026-10-29): idioma detectado en el código.
   - ~~Límites persistentes~~ (2026-10-29): contadores del chat y del formulario en PostgreSQL. WAF/Rate Limiting/HSTS de Cloudflare: descartados.
-  - Para publicar: variables `KNOWLEDGE_SOURCE=r2` y `R2_*` en Railway `production`, versión 2.0.0 en los package.json, PR de `dev` a `main` y comprobar en el log `6 documentos de r2:portfolio-knowledge` y la migración `002_rate_limits.sql`.
+  - Producción lee la base de conocimiento de R2 con `KNOWLEDGE_SOURCE=r2` y `R2_*` (bucket `portfolio-knowledge`); sin ellas, de la carpeta knowledge/ del repo. Comprobar en el log `6 documentos de r2:portfolio-knowledge` y la migración `002_rate_limits.sql`.
 - Al cambiar algo de la arquitectura de las secciones 2-6 en v2.0, actualizar esas secciones; esta sección solo resume versiones.
