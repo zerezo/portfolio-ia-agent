@@ -26,11 +26,16 @@ export async function runAgent({
   const messages = [...history, { role: 'user', content: message }];
   const byName = new Map(tools.map((t) => [t.name, t]));
   const toolsUsed = [];
+  // Tokens de todas las rondas: el coste real de la respuesta.
+  const usage = { inputTokens: 0, outputTokens: 0 };
 
   for (let step = 0; step <= maxSteps; step++) {
     // En la última ronda no se ofrecen herramientas: el modelo tiene que responder con lo que tiene.
     const offered = step < maxSteps ? tools : [];
-    let { text, toolCalls } = await llm.chat({ system, messages, tools: offered, maxTokens });
+    const response = await llm.chat({ system, messages, tools: offered, maxTokens });
+    let { text, toolCalls } = response;
+    usage.inputTokens += response.usage?.inputTokens ?? 0;
+    usage.outputTokens += response.usage?.outputTokens ?? 0;
 
     const forced = step === 0 && toolCalls.length === 0 && forcedFirstCall?.(message, history);
     if (forced) {
@@ -39,7 +44,7 @@ export async function runAgent({
     }
 
     if (toolCalls.length === 0) {
-      return { reply: text.trim(), toolsUsed };
+      return { reply: text.trim(), toolsUsed, usage };
     }
 
     messages.push({ role: 'assistant', content: text, toolCalls });
@@ -56,7 +61,7 @@ export async function runAgent({
   }
 
   // Solo se llega aquí si el modelo pide herramientas incluso sin ofrecérselas.
-  return { reply: '', toolsUsed };
+  return { reply: '', toolsUsed, usage };
 }
 
 // Los fallos de una herramienta se devuelven al modelo como texto: puede reintentar o explicarlo.

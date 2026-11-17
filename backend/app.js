@@ -255,6 +255,10 @@ export function createApp({
   mailer,
   reviewTokens,
   config,
+  // usage: contadores agregados de uso (usage.js) para /api/analytics. Sin él no se cuenta nada.
+  usage,
+  // analytics: get() -> datos agregados de /api/analytics (analytics.js). Sin él, la ruta no existe.
+  analytics,
   // rateLimitStore(nombre) -> almacén persistente para los límites del chat y del formulario
   // (ratelimit.js). Sin él, en memoria. El anti-saturación siempre va en memoria: protege cada
   // instancia y no consulta la base de datos en cada petición.
@@ -262,6 +266,11 @@ export function createApp({
   now = () => new Date(),
 }) {
   const persistent = (name) => rateLimitStore?.(name);
+  // Contar nunca rompe una petición: un fallo de la base de datos solo se registra.
+  const count = (metric, value = 1) => {
+    if (!usage || !value) return;
+    Promise.resolve(usage.add(metric, value, now())).catch((error) => console.error(`[uso] no se pudo contar ${metric}:`, error.message));
+  };
   // Herramientas de búsqueda (CV y base de conocimiento): las usan el filtro previo y la búsqueda forzada.
   const searchTools = tools.filter((t) => t.hasResults);
   // Reservas desde el chat (booking.js): con ellas, las peticiones de contacto llegan al agente en
@@ -318,8 +327,23 @@ export function createApp({
 
   // Perfil público para la web: la misma fuente que usa el chat (solo lo verificado).
   app.get('/api/profile', (req, res) => {
+    // Cada carga de la web pide el perfil: es el contador de visitas (sin cookies, sin IP).
+    count('page_loads');
     res.set('Cache-Control', 'public, max-age=300').json(profile);
   });
+
+  // Analítica agregada (página Analytics): solo números, sin IP ni contenido. Caché de 1 h en el
+  // servidor; el navegador y Cloudflare pueden reutilizarla 5 min.
+  if (analytics) {
+    app.get('/api/analytics', async (req, res) => {
+      try {
+        res.set('Cache-Control', 'public, max-age=300').json(await analytics.get());
+      } catch (error) {
+        console.error('[analytics] error:', error);
+        res.status(503).json({ error: 'Analytics are temporarily unavailable.' });
+      }
+    });
+  }
 
   // Disponibilidad para el formulario de contacto. Sin IA: basta el límite anti-saturación.
   app.get('/api/availability', async (req, res) => {
@@ -500,8 +524,10 @@ export function createApp({
     if (!history) {
       sessionId = await sessions.create();
       history = [];
+      count('conversations');
     }
     const message = req.body.message.trim();
+    count('messages');
 
     // Solo se guarda el turno si hubo respuesta: un fallo no deja preguntas huérfanas en el historial.
     const saveTurn = (reply) =>
@@ -523,13 +549,14 @@ export function createApp({
     const blocked = guardMessage(message, history, guardTools);
     if (blocked) {
       console.log(`[guard] mensaje bloqueado: ${blocked.reason}`);
+      count('blocked');
       await saveTurn(blocked.reply);
       return res.json({ reply: blocked.reply, sessionId });
     }
 
     try {
       const context = {};
-      const { reply: rawReply } = await runAgent({
+      const { reply: rawReply, usage: tokens } = await runAgent({
         llm,
         tools,
         system: systemPromptFor(now(), detectLanguage(message), turnRules(message, profile, now())),
@@ -541,6 +568,9 @@ export function createApp({
         context,
       });
 
+      // Tokens por modelo: el coste se calcula con su precio (costs.yaml).
+      count(`tokens_in:${llm.model}`, tokens?.inputTokens);
+      count(`tokens_out:${llm.model}`, tokens?.outputTokens);
       const reply = rawReply ? cleanReply(rawReply) : EMPTY_REPLY;
       await saveTurn(reply);
       // Propuesta de reunión (propose_meeting): el frontend muestra la tarjeta de confirmación.

@@ -28,7 +28,7 @@ describe('runAgent', () => {
   test('sin herramientas pedidas, devuelve el texto en una sola llamada', async () => {
     const llm = scriptedLlm([answer(' hola ')]);
     const result = await runAgent({ ...base, llm, tools: [echoTool()] });
-    assert.deepEqual(result, { reply: 'hola', toolsUsed: [] });
+    assert.deepEqual(result, { reply: 'hola', toolsUsed: [], usage: { inputTokens: 0, outputTokens: 0 } });
     assert.equal(llm.calls.length, 1);
   });
 
@@ -37,7 +37,7 @@ describe('runAgent', () => {
     const llm = scriptedLlm([callTool('eco', { consulta: 'DORA' }), answer('respuesta final')]);
 
     const result = await runAgent({ ...base, llm, tools: [tool] });
-    assert.deepEqual(result, { reply: 'respuesta final', toolsUsed: ['eco'] });
+    assert.deepEqual(result, { reply: 'respuesta final', toolsUsed: ['eco'], usage: { inputTokens: 0, outputTokens: 0 } });
     assert.deepEqual(tool.inputs, [{ consulta: 'DORA' }]);
     assert.deepEqual(llm.calls[1].messages.at(-1), { role: 'tool', toolCallId: 'c1', name: 'eco', content: 'dato' });
   });
@@ -48,7 +48,7 @@ describe('runAgent', () => {
     const forcedFirstCall = (message) => ({ name: 'eco', input: { consulta: message } });
 
     const result = await runAgent({ ...base, llm, tools: [tool], forcedFirstCall });
-    assert.deepEqual(result, { reply: 'con datos', toolsUsed: ['eco'] });
+    assert.deepEqual(result, { reply: 'con datos', toolsUsed: ['eco'], usage: { inputTokens: 0, outputTokens: 0 } });
     assert.deepEqual(tool.inputs, [{ consulta: 'pregunta' }]);
     // La respuesta descartada no entra en el historial.
     assert.equal(llm.calls[1].messages[1].content, '');

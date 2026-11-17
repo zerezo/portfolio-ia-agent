@@ -6,6 +6,7 @@ import { ContactConflictError, createPgContactStore } from '../contacts.js';
 import { createPool, migrate } from '../db.js';
 import { createPgSessionStore } from '../sessions.js';
 import { createPgRateLimitStore, purgeExpiredRateLimits } from '../ratelimit.js';
+import { createPgUsageStore } from '../usage.js';
 
 // Tests contra PostgreSQL real. Solo se ejecutan con TEST_DATABASE_URL (en CI hay un servicio
 // de Postgres; en local: docker compose up -d). Vacían las tablas: no usar una base con datos reales.
@@ -24,7 +25,7 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
   });
 
   beforeEach(async () => {
-    await pool.query('TRUNCATE contact_requests, chat_sessions, rate_limits');
+    await pool.query('TRUNCATE contact_requests, chat_sessions, rate_limits, usage_counters, analytics_snapshots');
   });
 
   const request = (overrides = {}) => ({
@@ -139,6 +140,22 @@ describe('PostgreSQL', { skip: !url && 'sin TEST_DATABASE_URL' }, () => {
 
     test('un id inválido devuelve undefined sin error', async () => {
       assert.equal(await createPgSessionStore(pool).get('basura'), undefined);
+    });
+  });
+
+  describe('createPgUsageStore', () => {
+    test('suma por hora (también en paralelo), totales y por día local', async () => {
+      const usage = createPgUsageStore(pool);
+      const at = new Date('2026-11-16T23:10:00Z'); // 17 en Madrid
+      await Promise.all(Array.from({ length: 5 }, () => usage.add('page_loads', 1, at)));
+      await usage.add('page_loads', 2, new Date('2026-11-16T10:00:00Z'));
+      await usage.add('tokens_out:claude-haiku-5-5', 40, at);
+      assert.deepEqual(await usage.totals(), { page_loads: 7, 'tokens_out:claude-haiku-5-5': 40 });
+      assert.deepEqual(await usage.totals(new Date('2026-11-16T23:00:00Z')), { page_loads: 5, 'tokens_out:claude-haiku-5-5': 40 });
+      assert.deepEqual(await usage.daily('page_loads', new Date('2026-11-01T00:00:00Z'), 'Europe/Madrid'), [
+        { date: '2026-11-16', value: 2 },
+        { date: '2026-11-17', value: 5 },
+      ]);
     });
   });
 
