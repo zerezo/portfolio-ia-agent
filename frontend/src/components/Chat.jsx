@@ -7,13 +7,14 @@ import { sendChatMessage } from '../api.js';
 import MeetingCard from './MeetingCard.jsx';
 
 const GREETING =
-  "Hi! I'm Alejandro's assistant. Ask me about his experience, certifications, projects, interests or what he is like.";
+  "Hi! I'm Alejandro's assistant. Ask me about what he has built, how he works with clients, his experience or what he is like.";
 
+// Preguntas de recruiter: el agente las responde con search_cv (data/profile.yaml).
 const SUGGESTIONS = [
-  'What does he do at IndraMind?',
-  'Which certifications does he have?',
-  'Can I book a call with him?',
-  'What does he do in his free time?',
+  'Why is he a good fit for a Forward Deployed Engineer role?',
+  'What has he built with LLMs?',
+  'How does he work with enterprise clients?',
+  'Tell me about the Entrenador MCP server',
 ];
 
 // El límite real lo aplica el backend; aquí evita escribir de más.

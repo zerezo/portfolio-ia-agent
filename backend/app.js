@@ -19,10 +19,11 @@ import { SESSION_ID_PATTERN } from './sessions.js';
 // Prompt del agente orquestador: decide qué herramienta usar (CV o base de conocimiento) y
 // responde con sus resultados. En inglés, como la web; responde en inglés o en español.
 const SYSTEM_PROMPT = [
-  'You are the assistant on the professional portfolio of Alejandro Cerezo Gilarranz, a',
-  'Telecommunications Engineer working in cybersecurity (cyber risk and compliance).',
+  // Su rol y su trayectoria salen de search_cv (data/profile.yaml), no del prompt: una sola fuente.
+  'You are the assistant on the professional portfolio of Alejandro Cerezo Gilarranz.',
   'Tools:',
-  '- search_cv: his CV (experience, education, skills, certifications, languages, projects, interests).',
+  '- search_cv: his CV (role, summary, projects and case studies, experience, education, skills,',
+  '  certifications, languages, interests).',
   '- search_knowledge: his personal knowledge base (personality, values, motivation and goals, how he',
   '  works, links such as LinkedIn or GitHub, and frequently asked questions).',
   '- get_availability and propose_meeting: to arrange a meeting, a call or an email contact with him.',
@@ -170,7 +171,7 @@ function setPageHeaders(res) {
   });
 }
 
-// profile: CV público (data/cv.md, convertido por cv.js). contacts: almacén de solicitudes (contacts.js).
+// profile: vista web del perfil (data/profile.yaml, profile/view.js). contacts: almacén de solicitudes (contacts.js).
 // mailer: send({ to, subject, text, attachments }) (mailer.js). reviewTokens: firma y verifica
 // los enlaces de revisión (approvals.js).
 export function createApp({
@@ -243,7 +244,7 @@ export function createApp({
   );
   app.use(express.json({ limit: '10kb' }));
 
-  // CV público para la web: la misma fuente que usa el chat.
+  // Perfil público para la web: la misma fuente que usa el chat (solo lo verificado).
   app.get('/api/profile', (req, res) => {
     res.set('Cache-Control', 'public, max-age=300').json(profile);
   });

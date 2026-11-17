@@ -5,6 +5,7 @@ import EnvBanner from './components/EnvBanner.jsx';
 import { useHashTab } from './hooks/useHashTab.js';
 import ArchitectureView from './views/ArchitectureView.jsx';
 import BookView from './views/BookView.jsx';
+import CaseStudyView from './views/CaseStudyView.jsx';
 import CvAgentView from './views/CvAgentView.jsx';
 
 const TAB_IDS = TABS.map((t) => t.id);
@@ -12,7 +13,7 @@ const TAB_IDS = TABS.map((t) => t.id);
 export default function App() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
-  const [tab, goTo] = useHashTab(TAB_IDS);
+  const [tab, goTo, sub] = useHashTab(TAB_IDS);
 
   useEffect(() => {
     getProfile()
@@ -37,9 +38,12 @@ export default function App() {
       </p>
     );
   } else {
+    // #cv/<id>: caso de estudio de un proyecto, si lo tiene (si no, el CV).
+    const study = tab === 'cv' && sub ? profile.projects.find((p) => p.id === sub && p.caseStudy) : null;
     content = (
       <AppShell profile={profile} tab={tab} onTab={goTo}>
-        {tab === 'cv' && <CvAgentView profile={profile} onOpenContact={openContact} />}
+        {study && <CaseStudyView project={study} />}
+        {tab === 'cv' && !study && <CvAgentView profile={profile} onOpenContact={openContact} />}
         {tab === 'calendar' && <BookView />}
         {tab === 'architecture' && <ArchitectureView />}
       </AppShell>

@@ -5,7 +5,7 @@ import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPro
 import { AVAILABILITY, loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
-import { createCvTool, loadCv } from '../tools.js';
+import { createCvTool, loadProfile } from '../tools.js';
 import { createKnowledgeTool } from '../knowledge.js';
 import { createBookingTools } from '../booking.js';
 import { listFreeSlots } from '../calendar.js';
@@ -270,7 +270,7 @@ describe('detectContactIntent', () => {
 
 describe('forcedSearch', () => {
   const knowledge = createKnowledgeTool(fakeSource());
-  const forced = forcedSearch([createCvTool(loadCv()), knowledge]);
+  const forced = forcedSearch([createCvTool(loadProfile()), knowledge]);
   const history = (question) => [
     { role: 'user', content: question },
     { role: 'assistant', content: '...' },
@@ -726,7 +726,7 @@ describe('filtro previo del chat', () => {
   function guardedApp() {
     const llm = fakeLlm();
     const config = { trustProxy: 1, limits: { ...LIMIT_PROFILES.funcional, chatPerMinute: 10 } };
-    const tools = [createCvTool(loadCv())];
+    const tools = [createCvTool(loadProfile())];
     const app = createApp({ llm, tools, sessions: createMemorySessionStore(), contacts: createMemoryContactStore(), config });
     return { app, llm };
   }
@@ -871,7 +871,7 @@ describe('reservas desde el chat', () => {
     const contacts = createMemoryContactStore();
     const now = () => new Date('2026-11-02T08:00:00Z');
     const tools = [
-      createCvTool(loadCv()),
+      createCvTool(loadProfile()),
       ...createBookingTools({
         freeSlots: async () => listFreeSlots({ schedule: AVAILABILITY, now: now(), taken: new Set(await contacts.takenSlotIds()) }),
         schedule: AVAILABILITY,

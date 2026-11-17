@@ -49,10 +49,10 @@ export default function AppShell({ profile, tab, onTab, children }) {
       <aside className="hidden w-20 shrink-0 flex-col items-center gap-6 py-4 md:flex" aria-label="Main">
         <span
           className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-brand-2 text-sm font-bold text-white"
-          title={profile.profile.name}
+          title={profile.basics.name}
           aria-hidden="true"
         >
-          {initials(profile.profile.name)}
+          {initials(profile.basics.name)}
         </span>
 
         <nav className="flex flex-col gap-4" aria-label="Sections">

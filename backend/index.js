@@ -7,7 +7,8 @@ import { createPool, migrate } from './db.js';
 import { createMailer } from './mailer.js';
 import { createLlm } from './llm.js';
 import { createMemorySessionStore, createPgSessionStore } from './sessions.js';
-import { createCvTool, loadCv } from './tools.js';
+import { createCvTool, loadProfile } from './tools.js';
+import { profileView } from './profile/view.js';
 import { createKnowledgeTool, createLocalSource } from './knowledge.js';
 import { createR2Client } from './r2.js';
 import { createPgRateLimitStore, purgeExpiredRateLimits } from './ratelimit.js';
@@ -27,7 +28,14 @@ try {
 }
 
 const llm = createLlm(config);
-const profile = loadCv();
+// Perfil (data/profile.yaml): un perfil inválido detiene el arranque con el motivo.
+let profile;
+try {
+  profile = loadProfile();
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 // Base de conocimiento: R2 en los entornos desplegados, carpeta knowledge/ en local. Se carga
 // al arrancar; si falla, el servidor arranca igualmente y reintenta más tarde (knowledge.js).
 const { knowledge } = config;
@@ -100,7 +108,17 @@ tools.push(
   }),
 );
 
-const app = createApp({ llm, tools, profile, sessions, contacts, mailer, reviewTokens, config, rateLimitStore });
+const app = createApp({
+  llm,
+  tools,
+  profile: profileView(profile, { channel: 'web', lang: 'en' }),
+  sessions,
+  contacts,
+  mailer,
+  reviewTokens,
+  config,
+  rateLimitStore,
+});
 
 const server = app.listen(config.port, () => {
   console.log(

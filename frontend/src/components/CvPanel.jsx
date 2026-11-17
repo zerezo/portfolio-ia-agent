@@ -1,25 +1,21 @@
-import { CalendarDays, GraduationCap, MapPin, Sparkles } from 'lucide-react';
+import { ArrowRight, CalendarDays, Download, GraduationCap, MapPin, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { formatMonth } from '../format.js';
+import { formatPeriod } from '../format.js';
+import { CV_PDF } from '../links.js';
 import { initials } from './AppShell.jsx';
 
 const EMOJI = { running: '🏃', cycling: '🚴', football: '⚽' };
-const emoji = (text) => EMOJI[text.toLowerCase()] ?? '✨';
-
-// "IndraMind Cybersecurity (Indra Group, formerly SIA)" -> "IndraMind Cybersecurity".
-const shortName = (text) => text.split(' (')[0];
+const emoji = (label) => EMOJI[label.toLowerCase()] ?? '✨';
 const year = (value) => (value ? value.slice(0, 4) : 'now');
-// "2025–2026", o "2025" si empieza y acaba el mismo año.
-const years = (start, end) => (year(start) === year(end) ? year(start) : `${year(start)}–${year(end)}`);
+// Enlaces de la cabecera: la propia web no se enlaza a sí misma.
+const HEADER_LINKS = { linkedin: 'LinkedIn', github: 'GitHub' };
 
 function Tile({ title, className, children }) {
   return (
     <section
-      className={cn(
-        'flex min-h-0 flex-col gap-2 overflow-hidden rounded-2xl border bg-card/70 p-3.5 backdrop-blur',
-        className,
-      )}
+      className={cn('flex min-w-0 flex-col gap-2 rounded-2xl border bg-card/70 p-3.5 backdrop-blur', className)}
+      aria-label={title}
     >
       {title && <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</h3>}
       {children}
@@ -28,142 +24,204 @@ function Tile({ title, className, children }) {
 }
 
 const Chip = ({ children, className }) => (
-  <li className={cn('rounded-full bg-muted px-2.5 py-0.5 text-xs whitespace-nowrap', className)}>{children}</li>
+  <li className={cn('rounded-full bg-muted px-2.5 py-0.5 text-xs', className)}>{children}</li>
 );
 
-// CV en formato bento: lo esencial en tarjetas pequeñas que caben en una pantalla. El detalle
-// (descripciones, certificaciones completas) lo da el asistente.
+const Bullets = ({ items }) => (
+  <ul className="flex list-disc flex-col gap-1 pl-4 text-xs leading-relaxed text-muted-foreground marker:text-primary/60">
+    {items.map((b) => (
+      <li key={b.id}>{b.text}</li>
+    ))}
+  </ul>
+);
+
+const External = ({ href, children, className }) => (
+  <a className={cn('hover:text-primary hover:underline', className)} href={href} target="_blank" rel="noreferrer">
+    {children}
+  </a>
+);
+
+function Project({ project }) {
+  return (
+    <li className="flex flex-col gap-1.5 rounded-xl border bg-background/40 p-3">
+      <div className="flex items-baseline gap-2">
+        <h4 className="min-w-0 flex-1 font-semibold leading-snug">{project.name}</h4>
+        {project.date && <span className="shrink-0 text-[11px] text-muted-foreground">{project.date}</span>}
+      </div>
+      {project.context && <p className="text-xs font-medium text-primary">{project.context}</p>}
+      <Bullets items={project.bullets} />
+      {(project.links.length > 0 || project.caseStudy) && (
+        <p className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-1 text-xs">
+          {project.caseStudy && (
+            <a className="inline-flex items-center gap-1 font-medium text-primary hover:underline" href={`#cv/${project.id}`}>
+              Case study <ArrowRight className="size-3" />
+            </a>
+          )}
+          {project.links.map((l) => (
+            <External key={l.url} href={l.url} className="text-muted-foreground">
+              {l.label} ↗
+            </External>
+          ))}
+        </p>
+      )}
+    </li>
+  );
+}
+
+function Job({ job }) {
+  return (
+    <li className="flex flex-col gap-2">
+      <div>
+        <p className="font-semibold leading-snug">
+          {job.company}
+          {job.companyNote && <span className="font-normal text-muted-foreground"> ({job.companyNote})</span>}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {[job.location, job.note].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+      <ol className="flex flex-col gap-2.5 border-l pl-3">
+        {job.roles.map((role) => (
+          <li key={role.id} className="relative flex flex-col gap-1">
+            <span
+              className={cn(
+                'absolute top-1.5 -left-[16.5px] size-2 rounded-full bg-muted-foreground/40',
+                !role.end && 'bg-primary',
+              )}
+              aria-hidden="true"
+            />
+            <p className="font-medium leading-snug">
+              {role.title} <span className="text-xs font-normal text-muted-foreground">· {formatPeriod(role.start, role.end)}</span>
+            </p>
+            {role.bullets.length > 0 && <Bullets items={role.bullets} />}
+          </li>
+        ))}
+      </ol>
+    </li>
+  );
+}
+
+// CV de la web, generado desde backend/data/profile.yaml (vía /api/profile, solo lo verificado).
+// Orden: cabecera, About, Projects, Experience, Skills, Education y lo personal. El panel hace
+// scroll dentro de su mitad; la página no.
 export default function CvPanel({ profile, onOpenContact }) {
-  const { name, headline, location } = profile.profile;
-  const current = profile.experience.find((e) => !e.end);
-  const degree = profile.education[0];
+  const { basics, summary, projects, experience, skills, education, certifications, languages, interests } = profile;
+  const links = basics.links.filter((l) => HEADER_LINKS[l.id]);
 
   return (
-    <div
-      className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 md:h-full md:grid-rows-[auto_auto_minmax(0,1fr)_auto]"
-      aria-label="CV"
-    >
-      <Tile className="col-span-full flex-row items-center gap-4">
-        <span
-          className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-brand-2 text-lg font-bold text-white md:hidden"
-          aria-hidden="true"
-        >
-          {initials(name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="bg-gradient-to-r from-primary to-brand-2 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-            {name}
-          </h2>
-          <p className="truncate text-muted-foreground" title={headline}>
-            {shortName(headline.split('|')[0].trim())}
-          </p>
-          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="size-3" /> {location.split(',')[0]}, Spain
-          </p>
+    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2" aria-label="CV">
+      <Tile className="col-span-full gap-3">
+        <div className="flex items-center gap-4">
+          <span
+            className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-brand-2 text-lg font-bold text-white md:hidden"
+            aria-hidden="true"
+          >
+            {initials(basics.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="bg-gradient-to-r from-primary to-brand-2 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+              {basics.name}
+            </h2>
+            <p className="font-medium">{basics.headline}</p>
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3" /> {basics.location}
+            </p>
+          </div>
         </div>
-        <div className="hidden shrink-0 flex-col gap-2 sm:flex">
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" className="rounded-full" onClick={onOpenContact}>
             <CalendarDays /> Book a call
           </Button>
           <Button asChild size="sm" variant="outline" className="rounded-full">
-            <a href={profile.contact.linkedin} target="_blank" rel="noreferrer">
-              LinkedIn ↗
+            <a href={CV_PDF.en} download>
+              <Download /> Download CV
             </a>
           </Button>
+          <Button asChild size="sm" variant="outline" className="rounded-full">
+            <a href={CV_PDF.es} download hrefLang="es" aria-label="Download CV in Spanish">
+              <Download /> CV en español
+            </a>
+          </Button>
+          {links.map((l) => (
+            <Button key={l.id} asChild size="sm" variant="ghost" className="rounded-full">
+              <a href={l.url} target="_blank" rel="noreferrer">
+                {HEADER_LINKS[l.id]} ↗
+              </a>
+            </Button>
+          ))}
         </div>
       </Tile>
 
-      {current && (
-        <Tile title="Now">
-          <p className="font-semibold leading-snug">{current.role}</p>
-          <p className="text-xs text-muted-foreground">
-            {shortName(current.company)} · since {formatMonth(current.start)}
+      <Tile title="About" className="col-span-full">
+        {summary.map((s) => (
+          <p key={s.id} className="leading-relaxed text-muted-foreground">
+            {s.text}
           </p>
-        </Tile>
-      )}
-      {degree && (
-        <Tile title="Studied">
-          <p className="flex items-start gap-1.5 font-semibold leading-snug" title={degree.degree}>
-            <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span className="line-clamp-2">{degree.degree.replace(/^Bachelor's Degree in /, '')}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {shortName(degree.institution)} · {year(degree.end)}
-          </p>
-        </Tile>
-      )}
+        ))}
+      </Tile>
 
-      <Tile title="Journey">
-        <ol className="flex flex-col gap-2">
-          {profile.experience.map((e) => (
-            <li key={`${e.company}-${e.role}`} className="flex gap-2">
-              <span
-                className={cn('mt-1.5 size-1.5 shrink-0 rounded-full bg-muted-foreground/40', !e.end && 'bg-primary')}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium" title={e.role}>
-                  {e.role}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {shortName(e.company)} · {years(e.start, e.end)}
-                </p>
-              </div>
-            </li>
+      <Tile title="Projects" className="col-span-full">
+        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {projects.map((p) => (
+            <Project key={p.id} project={p} />
+          ))}
+        </ul>
+      </Tile>
+
+      <Tile title="Experience" className="col-span-full">
+        <ol className="flex flex-col gap-4">
+          {experience.map((job) => (
+            <Job key={job.id} job={job} />
           ))}
         </ol>
       </Tile>
 
-      <Tile title="Building">
-        <ul className="flex flex-col gap-3">
-          {profile.projects.map((p) => (
-            <li key={p.name} className="flex flex-col gap-0.5">
-              <div className="flex items-baseline gap-2">
-                <span className="min-w-0 flex-1 truncate font-medium" title={p.name}>
-                  {p.url ? (
-                    <a className="hover:text-primary hover:underline" href={p.url} target="_blank" rel="noreferrer">
-                      {p.name}
-                    </a>
-                  ) : (
-                    p.name
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
-                    p.status === 'in progress' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {p.status === 'in progress' ? 'building' : 'shipped'}
-                </span>
-              </div>
-              <p className="line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
+      <Tile title="Skills">
+        {skills.map((group) => (
+          <div key={group.id} className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium">{group.label}</p>
+            <ul className="flex flex-wrap gap-1.5">
+              {group.items.map((s) => (
+                <Chip key={s.id}>{s.name}</Chip>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </Tile>
+
+      <Tile title="Education & certifications">
+        {education.map((e) => (
+          <div key={e.id}>
+            <p className="flex items-start gap-1.5 font-semibold leading-snug">
+              <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
+              {e.degree}
+            </p>
+            <p className="pl-5.5 text-xs text-muted-foreground">
+              {e.institution} · {year(e.start)}–{year(e.end)}
+              {e.note && ` · ${e.note}`}
+            </p>
+          </div>
+        ))}
+        <ul className="mt-1 flex flex-col gap-1">
+          {certifications.map((c) => (
+            <li key={c.id} className="flex items-start gap-1.5 text-xs">
+              <Sparkles className="mt-0.5 size-3 shrink-0 text-brand-2" />
+              {c.name}
             </li>
           ))}
         </ul>
       </Tile>
 
-      <Tile title="Skills & certs">
+      <Tile title="Languages & interests" className="col-span-full">
         <ul className="flex flex-wrap gap-1.5">
-          {profile.skills.map((s) => (
-            <Chip key={s}>{s.replace(/ \(.*\)$/, '')}</Chip>
-          ))}
-        </ul>
-        <p className="mt-auto flex items-center gap-1 text-xs text-muted-foreground">
-          <Sparkles className="size-3 text-brand-2" />
-          {profile.certifications.length} certifications, incl. {profile.certifications[0].name.split(':')[0]}
-        </p>
-      </Tile>
-
-      <Tile title="Off the clock">
-        <ul className="flex flex-wrap gap-1.5">
-          {profile.interests.map((i) => (
-            <Chip key={i.topic}>
-              {emoji(i.topic)} {i.topic}
+          {languages.map((l) => (
+            <Chip key={l.id}>
+              💬 {l.name} · {l.level.split(/[;,]/)[0]}
             </Chip>
           ))}
-          {profile.languages.map((l) => (
-            <Chip key={l.language}>
-              💬 {l.language} · {l.level.split(',')[0]}
+          {interests.map((i) => (
+            <Chip key={i.id}>
+              <span aria-hidden="true">{emoji(i.label)}</span> {i.text}
             </Chip>
           ))}
         </ul>

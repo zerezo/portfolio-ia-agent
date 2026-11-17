@@ -8,7 +8,8 @@ const PANES = [
   { id: 'chat', label: 'Assistant' },
 ];
 
-// CV a la izquierda y chat a la derecha, al 50 %. Cada mitad desplaza su propio contenido.
+// CV a la izquierda y chat a la derecha, al 50 %. Cada mitad desplaza su propio contenido (la
+// página nunca hace scroll).
 // En el móvil no caben las dos: un selector muestra una u otra (el chat no se desmonta, así
 // la conversación se conserva al cambiar).
 export default function CvAgentView({ profile, onOpenContact }) {
@@ -36,7 +37,7 @@ export default function CvAgentView({ profile, onOpenContact }) {
 
       <div
         className={cn(
-          'min-h-0 flex-1 overflow-y-auto md:block md:overflow-hidden',
+          'min-h-0 flex-1 overflow-y-auto md:block md:pr-1',
           pane !== 'cv' && 'hidden',
         )}
       >

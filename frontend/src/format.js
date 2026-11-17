@@ -8,7 +8,9 @@ export function formatMonth(value) {
   );
 }
 
-export const formatPeriod = (start, end) => `${formatMonth(start)} – ${formatMonth(end)}`;
+// "May 2026 – Present"; un solo valor si empieza y acaba igual ("2025").
+export const formatPeriod = (start, end) =>
+  start === end ? formatMonth(start) : `${formatMonth(start)} – ${formatMonth(end)}`;
 
 // Zona horaria del visitante, o null si el navegador no la expone.
 export function visitorTimeZone() {
