@@ -89,7 +89,7 @@ describe('search_cv', () => {
 
   test('encuentra dónde vive con cualquier palabra habitual', () => {
     for (const query of ['location', 'city', 'Where is he based?', 'hometown']) {
-      assert.match(firstLine(query), /\[profile\].*Based in Segovia & Madrid/, query);
+      assert.match(firstLine(query), /\[profile\].*Based in Madrid, Spain/, query);
     }
   });
 
@@ -99,9 +99,20 @@ describe('search_cv', () => {
   });
 
   test('encuentra con preguntas en español (etiquetas bilingües)', () => {
-    assert.match(firstLine('¿Dónde vive y qué hace ahora?'), /\[profile\].*Segovia & Madrid/);
+    assert.match(firstLine('¿Dónde vive y qué hace ahora?'), /\[profile\].*Madrid, Spain/);
     assert.match(tool.run({ query: '¿Qué proyectos ha construido?' }), /\[projects\]/);
     assert.match(tool.run({ query: 'aficiones' }), /\[interests\]/);
+  });
+
+  test('el caso de estudio lleva su enlace para que el agente lo dé', () => {
+    assert.match(tool.run({ query: 'Entrenador case study' }), /https:\/\/alejandrocerezo\.dev\/#cv\/entrenador/);
+  });
+
+  test('la experiencia muestra la progresión en IndraMind y sin las cifras retiradas', () => {
+    const result = tool.run({ query: 'IndraMind experience internship analyst' });
+    assert.match(result, /CRC Analyst, Cyber Risk & Compliance \(2026-05 - present\), then Cybersecurity Intern, GRC/);
+    assert.match(result, /Offered a full-time analyst role before the end of my internship/);
+    assert.doesNotMatch(tool.run({ query: 'automation reporting hours minutes' }), /2 hours|2-hour|10 minutes/);
   });
 
   test('el caso de estudio de Entrenador (lo verificado) está disponible', () => {

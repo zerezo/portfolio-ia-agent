@@ -28,6 +28,7 @@
     "profile:check": "node scripts/profile-check.js",
     "profile:review": "node scripts/profile-review.js",
     "cv": "node scripts/cv.js",
-    "linkedin": "node scripts/linkedin.js"
+    "linkedin": "node scripts/linkedin.js",
+    "eval:agent": "node scripts/eval-agent.js"
   }
 }

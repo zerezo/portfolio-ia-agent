@@ -15,6 +15,7 @@ import {
 } from './review.js';
 import { guardMessage } from './guard.js';
 import { SESSION_ID_PATTERN } from './sessions.js';
+import { formatMonth } from './profile/format.js';
 
 // Prompt del agente orquestador: decide qué herramienta usar (CV o base de conocimiento) y
 // responde con sus resultados. En inglés, como la web; responde en inglés o en español.
@@ -40,6 +41,14 @@ const SYSTEM_PROMPT = [
   '- Never invent dates, companies, figures, links or opinions. Do not add your own judgements or',
   '  comments (for example which certification matters most): only report what the tools say.',
   '- Distinguish work experience from certifications and education: a certification is not experience.',
+  '- Speak about the facts directly. Never use phrases such as "according to his CV", "based on the',
+  '  information provided", "he describes himself as" or "the tools say".',
+  '- Be concrete: name the projects, technologies and results that the tools return. When a project or',
+  '  its case study is relevant, include its link exactly as the tools give it.',
+  '- Do not volunteer weaknesses, gaps or limitations that were not asked about.',
+  '- If asked how many years of experience he has, answer honestly and with context: work it out from',
+  '  the dates of his roles (internship, then analyst) and mention the projects he runs in production.',
+  '- When the question is about his fit for a role, end by offering to book a call with him.',
   '- If a search returns nothing, try again with different keywords before giving up.',
   "- Language: reply in the language of the user's last message. English question -> English answer.",
   '  Spanish question -> Spanish answer. Any other language -> English answer. The tool results are in',
@@ -130,11 +139,74 @@ const LANGUAGE_RULE = {
   en: "- The user's last message is not in Spanish: write your whole answer in English.",
 };
 
+// Instrucciones para este turno, decididas en el código como el idioma: los modelos pequeños las
+// siguen mucho mejor que una regla general del prompt (lo mostró npm run eval:agent).
+const FIT_QUESTION =
+  /\b(fit|good match|suit(able|ed)?|right (person|candidate)|hire him|why (should|would) (we|i|you) hire)\b|encaj|adecuad|por qu[eé] contratar/i;
+const EXPERIENCE_QUESTION =
+  /\b(years? of experience|how (many|much) (years|experience)|how long has he (been )?work|seniority|experience level)\b|a[nñ]os de experiencia|cu[aá]nt[oa]s? (a[nñ]os|experiencia|tiempo lleva)/i;
+export const isFitQuestion = (message) => FIT_QUESTION.test(message);
+export const isExperienceQuestion = (message) => EXPERIENCE_QUESTION.test(message);
+
+// Su experiencia en su empresa actual, calculada desde las fechas del perfil (vista web): el modelo
+// no la calcula (qwen dijo "1,5 años" con 14 meses).
+export function experienceFact(profile, now) {
+  const job = profile?.experience?.find((j) => j.roles.some((r) => !r.end));
+  if (!job) return null;
+  const roles = [...job.roles].sort((a, b) => a.start.localeCompare(b.start));
+  const [year, month = 1] = roles[0].start.split('-').map(Number);
+  const months = (now.getUTCFullYear() - year) * 12 + now.getUTCMonth() + 1 - month;
+  const path = roles.map((r) => `${r.title} from ${formatMonth(r.start, 'en')}`).join(', then ');
+  return `He has worked at ${job.company} since ${formatMonth(roles[0].start, 'en')}, about ${months} months (${path}).`;
+}
+
+// Coletillas al principio de la respuesta ("Based on the information provided in his CV, …"): se
+// quitan en el código, por si el modelo no sigue la regla.
+const FILLER_START =
+  /^\s*(?:(?:according to|based on)\s+(?:the\s+)?(?:information\s+(?:provided\s+)?(?:in\s+)?)?(?:his|the)\s+(?:cv|profile|resume|résumé|information|tools?)[^,.]*,\s*|seg[uú]n\s+(?:su|el)\s+(?:cv|perfil)[^,.]*,\s*)/i;
+export function cleanReply(text) {
+  const cleaned = text.replace(FILLER_START, '');
+  return cleaned === text ? text : cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
 // El modelo no sabe la fecha actual (tiende a suponer la de su entrenamiento): se la damos.
-export function systemPromptFor(now, language = 'en') {
+// extra: instrucciones de este turno (encaje con un rol, años de experiencia).
+export function systemPromptFor(now, language = 'en', extra = []) {
   const { timeZone } = AVAILABILITY;
   const today = new Intl.DateTimeFormat('en-GB', { timeZone, dateStyle: 'full' }).format(now);
-  return `${SYSTEM_PROMPT}\n- Today is ${today} (${localDate(now, timeZone)}), Madrid time.\n${LANGUAGE_RULE[language]}`;
+  return [
+    SYSTEM_PROMPT,
+    `- Today is ${today} (${localDate(now, timeZone)}), Madrid time.`,
+    LANGUAGE_RULE[language],
+    ...extra,
+  ].join('\n');
+}
+
+// Instrucciones de este turno según la pregunta.
+export function turnRules(message, profile, now) {
+  const rules = [];
+  if (isExperienceQuestion(message)) {
+    const fact = experienceFact(profile, now);
+    if (fact) {
+      rules.push(
+        `- This question is about his experience. Fact computed from his CV dates: ${fact} Give this ` +
+          'figure honestly and add that he also builds and runs projects in production.',
+      );
+    }
+  }
+  if (isFitQuestion(message)) {
+    rules.push('- This question is about his fit for a role: end your answer by offering to book a call with him.');
+  }
+  // Proyecto nombrado en la pregunta: su enlace (el caso de estudio si lo tiene).
+  const site = profile?.basics?.links?.find((l) => l.id === 'website')?.url;
+  const asked = normalize(message);
+  for (const p of profile?.projects ?? []) {
+    const name = normalize(p.name.split(': ')[0]);
+    if (name.length < 4 || !asked.includes(name)) continue;
+    const link = p.caseStudy && site ? `${site}/#cv/${p.id}` : p.links[0]?.url;
+    if (link) rules.push(`- The question mentions ${p.name.split(': ')[0]}: include this link in your answer: ${link}`);
+  }
+  return rules;
 }
 
 // CORS: el frontend se sirve desde otro origen (Cloudflare Pages). Solo los orígenes de la
@@ -460,7 +532,7 @@ export function createApp({
       const { reply: rawReply } = await runAgent({
         llm,
         tools,
-        system: systemPromptFor(now(), detectLanguage(message)),
+        system: systemPromptFor(now(), detectLanguage(message), turnRules(message, profile, now())),
         message,
         history,
         maxTokens: limits.maxTokens,
@@ -469,7 +541,7 @@ export function createApp({
         context,
       });
 
-      const reply = rawReply || EMPTY_REPLY;
+      const reply = rawReply ? cleanReply(rawReply) : EMPTY_REPLY;
       await saveTurn(reply);
       // Propuesta de reunión (propose_meeting): el frontend muestra la tarjeta de confirmación.
       const { proposal } = context;
