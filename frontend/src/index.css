@@ -91,6 +91,13 @@
 }
 
 @layer base {
+  /* Monitores grandes a resolución nativa (27" a 2560x1440): todo escala un 25 % (Tailwind usa
+     rem), para que el dashboard llene la pantalla y se lea sin acercarse. */
+  @media (min-width: 2400px) and (min-height: 1300px) {
+    html {
+      font-size: 20px;
+    }
+  }
   * {
     @apply border-border outline-ring/50;
   }

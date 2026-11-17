@@ -16,7 +16,8 @@ export default function CvAgentView({ profile, onOpenContact }) {
   const [pane, setPane] = useState('cv');
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3 md:grid md:grid-cols-2 md:gap-4 md:p-4 2xl:grid-cols-[1.2fr_1fr]">
+    // Chat: la mitad en tablet, 22rem en portátil y un cuarto del ancho desde 1536 px (monitor de 27").
+    <div className="flex h-full flex-col gap-3 p-3 md:grid md:grid-cols-2 md:gap-4 md:p-4 lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,3fr)_minmax(22rem,1fr)]">
       <div className="grid grid-cols-2 rounded-full bg-muted p-1 md:hidden" role="tablist" aria-label="View">
         {PANES.map((p) => (
           <button
@@ -37,7 +38,7 @@ export default function CvAgentView({ profile, onOpenContact }) {
 
       <div
         className={cn(
-          'min-h-0 flex-1 overflow-y-auto md:block md:pr-1',
+          'min-h-0 flex-1 overflow-y-auto md:block md:pr-2',
           pane !== 'cv' && 'hidden',
         )}
       >

@@ -105,6 +105,7 @@ export function buildCvChunks(cv) {
       section: 'projects',
       text: sentence([
         `Project: ${p.name}${about ? ` (${about})` : ''}.`,
+        p.stack.length ? `Stack: ${p.stack.join(', ')}.` : '',
         ...p.bullets.map((b) => b.text),
         ...p.links.map((l) => l.url),
       ]),

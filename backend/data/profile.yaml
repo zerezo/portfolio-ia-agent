@@ -9,6 +9,8 @@
 #     en una página.
 #   - verified: false (o { en: true, es: false }) = pendiente de revisar: no sale en ninguna salida.
 #   - channels: dónde aparece: web, cv, linkedin, agent.
+# - stack (proyectos): tecnologías que muestra la tarjeta de la web y busca el agente; solo las que
+#   ya aparecen en los bullets verificados del proyecto.
 # - Un texto que empieza por TODO falta por escribir: no sale en ninguna salida.
 #   npm run profile:review lista los TODO y lo pendiente de revisar.
 # - Repositorio público: nada privado aquí (el teléfono no se guarda en el repo). Nunca se nombran
@@ -46,6 +48,30 @@ basics:
     description: >-
       Telecommunications engineer (UPM) who ships AI products end to end. Ask the AI assistant about
       his experience or request a meeting.
+
+# Indicadores de la cabecera del dashboard (solo la web, máximo 4). Cada cifra sale de un bullet
+# verificado: si cambia ese bullet, revisa también su indicador.
+highlights:
+  - id: kpi-automation
+    channels: [web]
+    value: 2 h → 10 min
+    label: { en: Reporting task automated, es: Tarea de reporting automatizada }
+    detail: { en: 'File processing and reports, IndraMind', es: 'Procesamiento de archivos e informes, IndraMind' }
+  - id: kpi-mcp
+    channels: [web]
+    value: ~25
+    label: { en: Tools in my MCP server, es: Herramientas en mi servidor MCP }
+    detail: { en: 'Entrenador, on Cloudflare', es: 'Entrenador, en Cloudflare' }
+  - id: kpi-clients
+    channels: [web]
+    value: DE · KR · ES
+    label: { en: Enterprise clients, es: Clientes empresariales }
+    detail: { en: Client-facing work in English, es: Trato directo con clientes en inglés }
+  - id: kpi-thesis
+    channels: [web]
+    value: 9/10
+    label: { en: Bachelor's thesis, es: TFG }
+    detail: { en: 'Telecommunications Engineering, UPM', es: 'Ingeniería de Telecomunicación, UPM' }
 
 summary:
   - id: summary
@@ -250,6 +276,7 @@ projects:
     name: Portfolio AI Agent
     context: { en: Live at alejandrocerezo.dev, es: En producción en alejandrocerezo.dev }
     date: '2026'
+    stack: [Claude API, Node.js/Express, React, PostgreSQL, Ollama, Cloudflare Workers, Railway, GitHub Actions]
     links:
       - { label: alejandrocerezo.dev, url: https://alejandrocerezo.dev }
       - { label: github.com/zerezo/portfolio-ia-agent, url: https://github.com/zerezo/portfolio-ia-agent }
@@ -303,6 +330,7 @@ projects:
       es: 'Entrenador: coach de entrenamiento con IA sobre un servidor MCP propio'
     context: Cloudflare
     date: '2026'
+    stack: [MCP, Claude, Cloudflare, intervals.icu]
     # El panel (entrenador.alejandrocerezo.dev) es privado: la web enlaza al caso de estudio.
     links: []
     bullets:
@@ -405,6 +433,7 @@ projects:
     name: HomeCarGarage
     context: React + Supabase
     date: '2026'
+    stack: [React, Supabase]
     links:
       - { label: homecargarage.alejandrocerezo.dev, url: https://homecargarage.alejandrocerezo.dev }
     bullets:
@@ -423,6 +452,7 @@ projects:
       en: Multi-Domain Operations Cyber-Risk Simulator
       es: Simulador de riesgos de ciberseguridad para Operaciones Multidominio
     context: { en: "Bachelor's thesis, UPM · Grade 9/10", es: 'TFG, 9/10' }
+    stack: [Python, OWL 2, Protégé, HermiT, NIST SP 800-30]
     links:
       - { label: github.com/zerezo/TFG-Alejandro-Cerezo, url: https://github.com/zerezo/TFG-Alejandro-Cerezo }
     bullets:

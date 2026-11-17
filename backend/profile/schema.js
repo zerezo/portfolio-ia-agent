@@ -59,6 +59,8 @@ export const ProfileSchema = z.strictObject({
     links: z.array(Item({ label: str, url: Url })).min(1),
     meta: z.strictObject({ title: str, description: str.max(200, 'meta description: 200 caracteres como máximo') }),
   }),
+  // Indicadores de la cabecera del dashboard (web): cifra, etiqueta y detalle.
+  highlights: z.array(Item({ value: str, label: Text, detail: Text.optional() })).max(4).default([]),
   summary: z.array(Bilingual).min(1),
   linkedin: z.strictObject({
     ...meta,
@@ -74,6 +76,8 @@ export const ProfileSchema = z.strictObject({
         name: Text,
         context: Text.optional(),
         date: str.optional(),
+        // Tecnologías del proyecto (tarjeta de la web y búsqueda del agente).
+        stack: z.array(str).default([]),
         links: z.array(Link).default([]),
         bullets: z.array(Bilingual).min(1),
         caseStudy: CaseStudy.optional(),

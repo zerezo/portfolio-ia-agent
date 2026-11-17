@@ -59,6 +59,10 @@ export function profileView(profile, { channel, lang = 'en', variant } = {}) {
       links: basics.links.filter(shown).map(({ id, label, url }) => ({ id, label, url })),
       ...(channel === 'web' && { meta: basics.meta }),
     },
+    highlights: profile.highlights
+      .filter(shown)
+      .map((h) => ({ ...base(h), value: h.value, label: text(h.label), detail: text(h.detail) }))
+      .filter((h) => h.label),
     summary: chosen?.summary
       ? [{ id: `summary-${variant}`, priority: 1, tags: chosen.tags, text: chosen.summary[lang] }]
       : bullets(profile.summary),
@@ -68,6 +72,7 @@ export function profileView(profile, { channel, lang = 'en', variant } = {}) {
         name: text(p.name),
         context: text(p.context),
         date: p.date ?? null,
+        stack: p.stack,
         links: p.links,
         bullets: bullets(p.bullets),
         caseStudy: caseStudy(p.caseStudy),

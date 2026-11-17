@@ -93,6 +93,11 @@ describe('search_cv', () => {
     }
   });
 
+  test('encuentra los proyectos por su stack', () => {
+    assert.match(tool.run({ query: 'Supabase' }), /\[projects\] Project: HomeCarGarage.*Stack: React, Supabase/);
+    assert.match(tool.run({ query: 'HermiT reasoner' }), /Cyber-Risk Simulator/);
+  });
+
   test('encuentra con preguntas en español (etiquetas bilingües)', () => {
     assert.match(firstLine('¿Dónde vive y qué hace ahora?'), /\[profile\].*Segovia & Madrid/);
     assert.match(tool.run({ query: '¿Qué proyectos ha construido?' }), /\[projects\]/);
