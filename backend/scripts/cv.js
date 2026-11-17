@@ -2,8 +2,10 @@
 //
 //   npm run cv                        -> frontend/public/cv/cv-alejandro-cerezo-{en,es}.pdf (los de la web)
 //   npm run cv -- --variant fde       -> exports/variants/cv-alejandro-cerezo-fde-{en,es}.pdf (sin versionar)
-//   npm run cv -- --check             -> los regenera aparte, los valida y comprueba que los de la web
-//                                        están al día (mismo texto). Lo usa el CI.
+//   npm run cv -- --check             -> los regenera aparte con los mismos recortes (exports/cv-trim.json),
+//                                        los valida y comprueba que los de la web están al día (mismo
+//                                        texto). Lo usa el CI. Los recortes se guardan porque Linux
+//                                        (Liberation Sans) y Windows (Arial) no parten las líneas igual.
 //
 // Usa el Chrome instalado (playwright-core no descarga navegadores). Otra ruta: CHROME_PATH.
 // Si no cabe en una página, recorta por prioridad (profile/cv-html.js) y avisa de lo recortado.
@@ -23,6 +25,7 @@ import { LANGS } from '../profile/schema.js';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const WEB_DIR = join(ROOT, 'frontend', 'public', 'cv');
 const VARIANT_DIR = join(ROOT, 'exports', 'variants');
+const TRIM_FILE = join(ROOT, 'exports', 'cv-trim.json');
 const MAX_PAGES = 1;
 
 const args = process.argv.slice(2);
@@ -57,7 +60,8 @@ async function validate(buffer, view) {
 
 // Recorta en orden de prioridad hasta que cabe; después intenta devolver lo recortado, de lo más
 // importante a lo menos, por si algo pequeño (una afición) se quitó sin hacer falta.
-async function render(browser, view) {
+// fixed: recortes ya decididos (--check): se imprime con ellos, sin volver a buscar.
+async function render(browser, view, fixed) {
   const page = await browser.newPage();
   const print = async (dropped) => {
     await page.setContent(cvHtml(view, { dropped }), { waitUntil: 'load' });
@@ -65,6 +69,10 @@ async function render(browser, view) {
     return { buffer, fits: (await pdfText(buffer)).pages <= MAX_PAGES };
   };
   try {
+    if (fixed) {
+      const { buffer } = await print(new Set(fixed));
+      return { buffer, dropped: fixed };
+    }
     const dropped = new Set();
     const candidates = trimCandidates(view);
     let result = await print(dropped);
@@ -101,10 +109,14 @@ async function main() {
     process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' },
   );
   const problems = [];
+  const trims = {};
+  const recorded = check && existsSync(TRIM_FILE) ? JSON.parse(readFileSync(TRIM_FILE, 'utf8')) : {};
+  if (check && !existsSync(TRIM_FILE)) problems.push('falta exports/cv-trim.json (npm run cv)');
   try {
     for (const lang of LANGS) {
       const view = profileView(profile, { channel: 'cv', lang, variant });
-      const { buffer, dropped } = await render(browser, view);
+      const { buffer, dropped } = await render(browser, view, check ? (recorded[lang] ?? []) : undefined);
+      trims[lang] = dropped;
       const { pages, text, errors } = await validate(buffer, view);
       const path = join(outDir, fileName(lang));
       writeFileSync(path, buffer);
@@ -127,7 +139,11 @@ async function main() {
     console.error(problems.join('\n'));
     process.exit(1);
   }
-  if (!check) console.log(`Guardados en ${outDir}`);
+  if (!check) {
+    if (!variant) writeFileSync(TRIM_FILE, `${JSON.stringify(trims, null, 2)}
+`);
+    console.log(`Guardados en ${outDir}`);
+  }
 }
 
 main().catch((error) => {

@@ -69,7 +69,7 @@ Un solo código y tres entornos; cada uno lo decide su configuración (`.env` en
 - Iniciar el servidor local de desarrollo: cd backend && npm run dev (requiere Ollama en marcha y el modelo descargado: `ollama pull qwen2.5:7b`).
 - Iniciar el frontend: cd frontend && npm run dev (http://localhost:5173; /api se redirige al backend).
 - Base de datos local: docker compose up -d (parar: docker compose down; borrar datos: docker compose down -v).
-- Perfil (SSOT): editar backend/data/profile.yaml → `cd backend && npm run profile:check` → `npm run cv` (PDF EN/ES en frontend/public/cv; `-- --variant fde` para variantes en exports/variants) → `npm run linkedin` (exports/linkedin.{en,es}.md). `npm run profile:review` lista los TODO y lo pendiente de verificar. El CI comprueba con `--check` que PDF y textos están al día.
+- Perfil (SSOT): editar backend/data/profile.yaml → `cd backend && npm run profile:check` → `npm run cv` (PDF EN/ES en frontend/public/cv; `-- --variant fde` para variantes en exports/variants) → `npm run linkedin` (exports/linkedin.{en,es}.md). `npm run profile:review` lista los TODO y lo pendiente de verificar. El CI comprueba con `--check` que PDF y textos están al día (el PDF con los recortes guardados en exports/cv-trim.json: Linux y Windows no parten las líneas igual).
 - Ejecutar los tests: cd backend && npm test (los de PostgreSQL solo se ejecutan con TEST_DATABASE_URL, base `portfolio_test`; en CI hay un Postgres de servicio).
 - Flujo de Git seguro: commit en dev, git push origin dev y PR de dev a main (main está protegida: sin push directo, CI obligatorio). Railway y Cloudflare despliegan `dev` en development y `main` en production.
 
