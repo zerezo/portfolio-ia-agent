@@ -101,8 +101,24 @@ function sitePages(apiUrl) {
       if (!PROFILE_PLACEHOLDER.test(html)) throw new Error('index.html: falta el comentario profile-meta');
       return html.replace(PROFILE_PLACEHOLDER, profileMetaTags());
     },
-    // Al compilar, se añaden al resultado privacy.html y _headers.
-    generateBundle() {
+    // Al compilar, se añaden al resultado privacy.html y _headers, y la última copia del perfil y
+    // de la analítica (la web las enseña si la API no responde).
+    async generateBundle() {
+      if (apiUrl) {
+        for (const [path, key] of [
+          ['/api/profile', 'profile-snapshot'],
+          ['/api/analytics', 'analytics-snapshot'],
+        ]) {
+          try {
+            const res = await fetch(`${apiUrl.replace(/\/+$/, '')}${path}`, { signal: AbortSignal.timeout(8000) });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            this.emitFile({ type: 'asset', fileName: `${key}.json`, source: JSON.stringify({ data, savedAt: new Date().toISOString() }) });
+          } catch (error) {
+            this.warn(`Sin copia de ${path} en la web: ${error.message}`);
+          }
+        }
+      }
       this.emitFile({ type: 'asset', fileName: 'privacy.html', source: privacyPage() });
       this.emitFile({ type: 'asset', fileName: '_headers', source: securityHeaders(apiUrl) });
     },

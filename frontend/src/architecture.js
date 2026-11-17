@@ -213,6 +213,32 @@ const SYSTEM_NODES = [
     tech: ['Tool calling', 'Human in the loop'],
     security: 'The model never books anything or sees the visitor’s email: the card sends the request through the same validated endpoint as the Book page.',
   },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    sub: 'Usage · cost · visits',
+    group: 'railway',
+    x: 200,
+    y: 430,
+    preview: 'Real usage and running cost of each project, behind the Analytics page.',
+    what: 'The API counts page loads, conversations, messages, guard blocks and model tokens per hour (numbers only). /api/analytics turns them into usage, live AI cost (tokens × model price) and visits per day, adds the counts of the other projects and the hosting costs kept in a config file, and caches the result for an hour.',
+    why: 'Shows that the projects are in production with real usage and a controlled cost. If a source fails, its last value is served with its time; the web keeps a snapshot for when the API is down.',
+    tech: ['Hourly counters', 'PostgreSQL', 'Hand-rolled SVG chart'],
+    security: 'Aggregates only: no IPs, cookies or conversation content. A test fails if the endpoint returns anything but numbers, dates and known labels.',
+  },
+  {
+    id: 'project_stats',
+    label: 'Project stats',
+    sub: 'Entrenador · Supabase',
+    group: 'external',
+    x: 20,
+    y: 540,
+    preview: 'Aggregated counts from the other projects in production.',
+    what: 'Entrenador exposes activities, plans and workouts sent as counts behind its own token; HomeCarGarage answers users and cars through a Supabase function that returns two counts and nothing else.',
+    why: 'Each project keeps its data; the portfolio only asks for totals, at most once an hour.',
+    tech: ['Cloudflare Worker + D1', 'Supabase RPC'],
+    security: 'Counts only; anything else in a response is discarded. No service keys in the portfolio.',
+  },
 ];
 
 // Flechas: de -> a, con una etiqueta corta. dashed = flujo indirecto (despliegue).
@@ -234,6 +260,9 @@ const SYSTEM_EDGES = [
   { from: 'api', to: 'db', label: 'sessions' },
   { from: 'contact', to: 'db', label: 'requests' },
   { from: 'contact', to: 'gmail', label: 'emails' },
+  { from: 'api', to: 'analytics', label: '/api/analytics' },
+  { from: 'analytics', to: 'db', label: 'counters' },
+  { from: 'analytics', to: 'project_stats', label: 'counts only' },
 ];
 
 // Diagrama del agente: el recorrido de un mensaje del chat, del filtro a las herramientas.

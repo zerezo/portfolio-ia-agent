@@ -3,6 +3,7 @@ import { getProfile } from './api.js';
 import AppShell, { TABS } from './components/AppShell.jsx';
 import EnvBanner from './components/EnvBanner.jsx';
 import { useHashTab } from './hooks/useHashTab.js';
+import AnalyticsView from './views/AnalyticsView.jsx';
 import ArchitectureView from './views/ArchitectureView.jsx';
 import BookView from './views/BookView.jsx';
 import CaseStudyView from './views/CaseStudyView.jsx';
@@ -50,6 +51,7 @@ export default function App() {
         {study && <CaseStudyView project={study} />}
         {tab === 'cv' && !study && <CvAgentView profile={profile} onOpenContact={openContact} />}
         {tab === 'calendar' && <BookView />}
+        {tab === 'analytics' && <AnalyticsView profile={profile} />}
         {tab === 'architecture' && <ArchitectureView />}
       </AppShell>
     );

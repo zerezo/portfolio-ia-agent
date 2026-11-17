@@ -17,6 +17,8 @@ What v2.0 includes:
 - **Booking** without AI on the Book page: deterministic validation, approve/reject links signed with HMAC, calendar invitations (`.ics`) and Jitsi rooms, emails via the Gmail API.
 - **Persistence** in PostgreSQL (contact requests, chat sessions and rate-limit counters), SQL migrations applied at startup.
 - **Security**: rate limits per IP and global (persistent), strict CSP and security headers, CORS limited to the frontend, no visitor content in production logs, client names never published (checked in CI).
+- **Analytics page**: real usage and running cost of each project in production (conversations, guard blocks, live AI cost from the tokens used, Entrenador and HomeCarGarage counts) and visits per day, from aggregated counters only (no cookies, no IPs, no content). If the API is down, the last snapshot is shown with its time.
+- **Agent evals**: `npm run eval:agent` runs recruiter questions against the real model with code-graded checks (manual, outside CI).
 - **Environments**: `development` and `production`, each with its own Railway service, database, keys and R2 bucket.
 
 v1.0 (tag `v1.0.0`, 2026-10-28) was the first public release: CV page + chat with tool calling over the CV, guard, booking form with approval, Gmail, PostgreSQL, Cloudflare + Railway.
