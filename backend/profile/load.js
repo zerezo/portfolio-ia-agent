@@ -121,7 +121,6 @@ export function parseProfile(text) {
       ...data.basics,
       links: data.basics.links.map((l) => inherit(l, root)),
     },
-    highlights: data.highlights.map((h) => inherit(h, root)),
     summary: data.summary.map((s) => inherit(s, root)),
     linkedin: {
       ...linkedin,
