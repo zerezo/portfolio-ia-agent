@@ -24,7 +24,10 @@ describe('CV en PDF: plantilla', () => {
     assert.match(en, /<h2>Projects<\/h2>[\s\S]*<h2>Experience<\/h2>/);
     assert.match(es, /<h2>Proyectos<\/h2>[\s\S]*<h2>Experiencia<\/h2>/);
     assert.match(en, /alezerezo@gmail\.com/);
-    assert.match(es, /Segovia y Madrid, España/);
+    assert.match(es, /Madrid, España/);
+    assert.match(en, /<b>Earlier:<\/b> Sales &amp; client service, Fotomatón y Más/);
+    assert.match(es, /<b>Antes:<\/b> Comercial y atención al cliente/);
+    assert.match(en, /CRC Analyst, Cyber Risk &amp; Compliance · <span class="nw">May 2026 – Present<\/span> · Cybersecurity Intern, GRC/);
     assert.doesNotMatch(en + es, /\+34|651/);
     assert.doesNotMatch(en, /Maxieventos|MATLAB/);
   });
@@ -59,9 +62,10 @@ describe('CV en PDF: orden de recorte', () => {
 
   test('dentro de cada prioridad, recorta desde el final del CV', () => {
     const ids = trimCandidates(view()).map((c) => c.id);
-    assert.ok(ids.indexOf('interest-football') < ids.indexOf('fotomaton'));
-    // Los dos son bullets de prioridad 2: el del TFG está más abajo, así que se recorta antes.
+    assert.ok(ids.indexOf('interest-football') < ids.indexOf('tfg-validation'));
+    // El TFG (prioridad 3) se recorta antes que HomeCarGarage (2) y que Fotomatón, que no se recorta.
     assert.ok(ids.indexOf('tfg-architecture') < ids.indexOf('homecargarage-app'));
+    assert.ok(!ids.includes('fotomaton'));
     // Los bullets heredan la prioridad del proyecto: los del portfolio (1) no se recortan.
     assert.ok(!ids.includes('portfolio-meetings'));
   });
@@ -69,7 +73,7 @@ describe('CV en PDF: orden de recorte', () => {
   test('una variante protege lo etiquetado: sube un punto de prioridad', () => {
     const base = trimCandidates(view()).map((c) => c.id);
     const fde = trimCandidates(view('en', 'fde')).map((c) => c.id);
-    assert.ok(base.includes('fotomaton') && !fde.includes('fotomaton'));
+    assert.ok(base.includes('skill-ollama') && !fde.includes('skill-ollama'));
   });
 });
 

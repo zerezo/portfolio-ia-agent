@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 // Interfaz común de proveedores:
-//   chat({ system, messages, tools, maxTokens }) -> { text, toolCalls: [{ id, name, input }] }
+//   chat({ system, messages, tools, maxTokens }) -> { text, toolCalls: [{ id, name, input }], usage }
+//   usage: { inputTokens, outputTokens } de la llamada (para el coste en /api/analytics).
 // Mensajes en formato neutral:
 //   { role: 'user', content }
 //   { role: 'assistant', content, toolCalls }
@@ -26,6 +27,7 @@ export function createOllamaLlm({ url, model, timeoutMs = 120 * 1000, fetchFn = 
 
   return {
     name: `ollama:${model}`,
+    model,
     async chat({ system, messages, tools = [], maxTokens }) {
       let res;
       try {
@@ -57,8 +59,9 @@ export function createOllamaLlm({ url, model, timeoutMs = 120 * 1000, fetchFn = 
         throw Object.assign(new Error(`Ollama devolvió ${res.status}: ${detail}`), { status: res.status });
       }
 
-      const { message = {} } = await res.json();
+      const { message = {}, prompt_eval_count: inputTokens = 0, eval_count: outputTokens = 0 } = await res.json();
       return {
+        usage: { inputTokens, outputTokens },
         text: message.content ?? '',
         // Ollama no asigna ids a las llamadas: se generan para poder emparejar resultados.
         toolCalls: (message.tool_calls ?? []).map((c, i) => ({
@@ -104,6 +107,7 @@ export function createAnthropicLlm({ apiKey, model, client }) {
 
   return {
     name: `anthropic:${model}`,
+    model,
     async chat({ system, messages, tools = [], maxTokens }) {
       const response = await anthropic.messages.create({
         model,
@@ -118,7 +122,14 @@ export function createAnthropicLlm({ apiKey, model, client }) {
           tools: tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema })),
         }),
       });
+      // Sin caché de prompts: la entrada facturada es input_tokens (más las de caché, si algún día se usa).
+      const { usage = {} } = response;
       return {
+        usage: {
+          inputTokens:
+            (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0),
+          outputTokens: usage.output_tokens ?? 0,
+        },
         text: response.content
           .filter((block) => block.type === 'text')
           .map((block) => block.text)

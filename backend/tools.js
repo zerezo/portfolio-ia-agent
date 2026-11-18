@@ -55,6 +55,8 @@ const sentence = (parts) => parts.filter(Boolean).join(' ');
 // fragmentos de texto autocontenidos: la unidad de búsqueda.
 export function buildCvChunks(cv) {
   const { basics } = cv;
+  // Enlace al caso de estudio en la web: el agente lo da cuando el proyecto es relevante.
+  const site = basics.links.find((l) => l.id === 'website')?.url;
   const chunks = [
     {
       section: 'profile',
@@ -78,16 +80,19 @@ export function buildCvChunks(cv) {
     },
   ];
 
+  // Un fragmento por empresa: los puestos con sus fechas (la progresión) y todos los bullets.
   for (const job of cv.experience) {
     const company = job.companyNote ? `${job.company} (${job.companyNote})` : job.company;
-    for (const role of job.roles) {
-      const where = [`${role.start} - ${role.end ?? 'present'}`, job.location, job.note].filter(Boolean).join(', ');
-      chunks.push({
-        section: 'experience',
-        text: sentence([`${role.title} at ${company} (${where}).`, ...role.bullets.map((b) => b.text)]),
-        tags: [...role.tags, 'work', 'job'],
-      });
-    }
+    const roles = job.roles.map((r) => `${r.title} (${r.start} - ${r.end ?? 'present'})`).join(', then ');
+    chunks.push({
+      section: 'experience',
+      text: sentence([
+        `${company}, ${[job.location, job.note].filter(Boolean).join(', ')}: ${roles}.`,
+        ...job.roles.flatMap((r) => r.bullets.map((b) => b.text)),
+        ...job.bullets.map((b) => b.text),
+      ]),
+      tags: [...job.tags, ...job.roles.flatMap((r) => r.tags), 'work', 'job'],
+    });
   }
   for (const e of cv.education) {
     chunks.push({
@@ -108,6 +113,7 @@ export function buildCvChunks(cv) {
         p.stack.length ? `Stack: ${p.stack.join(', ')}.` : '',
         ...p.bullets.map((b) => b.text),
         ...p.links.map((l) => l.url),
+        p.caseStudy && site ? `Case study: ${site}/#cv/${p.id}` : '',
       ]),
       tags: [...p.tags, 'built', 'side project'],
     });
@@ -115,7 +121,7 @@ export function buildCvChunks(cv) {
       chunks.push({
         section: 'projects',
         text: sentence([
-          `Case study of the project ${p.name}.`,
+          `Case study of the project ${p.name}${site ? ` (${site}/#cv/${p.id})` : ''}.`,
           ...p.caseStudy.sections.map((s) => `${CASE_STUDY_TITLES[s.key]}: ${s.paragraphs.join(' ')}`),
         ]),
         tags: [...p.tags, 'case study'],

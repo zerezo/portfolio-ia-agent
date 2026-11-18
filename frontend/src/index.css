@@ -27,6 +27,9 @@
   --ring: #0f6e66;
   /* Segundo color del degradado de marca (verde azulado → violeta). */
   --brand-2: #7c3aed;
+  /* Gráficas: el verde azulado de marca con la saturación y luminosidad que pasan el validador
+     de paletas (skill dataviz) sobre la tarjeta clara (#ffffff) y la oscura (#171a20). */
+  --chart-1: #0d9488;
   --glow-1: rgb(20 184 166 / 14%);
   --glow-2: rgb(124 58 237 / 12%);
   color-scheme: light;
@@ -55,6 +58,7 @@
     --input: #343a45;
     --ring: #4fc3b5;
     --brand-2: #a78bfa;
+    --chart-1: #20a99a;
     --glow-1: rgb(45 212 191 / 12%);
     --glow-2: rgb(167 139 250 / 12%);
     color-scheme: dark;
@@ -88,6 +92,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-brand-2: var(--brand-2);
+  --color-chart-1: var(--chart-1);
 }
 
 @layer base {

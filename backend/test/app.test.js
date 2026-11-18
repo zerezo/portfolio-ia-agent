@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPromptFor } from '../app.js';
+import { createApp, detectContactIntent, detectLanguage, forcedSearch, systemPromptFor, cleanReply, experienceFact, isExperienceQuestion, isFitQuestion, turnRules } from '../app.js';
 import { AVAILABILITY, loadConfig, LIMIT_PROFILES } from '../config.js';
 import { createMemorySessionStore } from '../sessions.js';
 import { createMemoryContactStore } from '../contacts.js';
@@ -248,6 +248,17 @@ describe('systemPromptFor', () => {
     assert.match(prompt, /search_cv/);
     assert.match(prompt, /search_knowledge/);
     assert.match(prompt, /Spanish question -> Spanish answer. Any other language -> English answer/);
+  });
+
+  test('reglas de estilo para recruiters (auditoría)', () => {
+    const prompt = systemPromptFor(new Date());
+    assert.match(prompt, /Never use phrases such as "according to his CV"/);
+    assert.match(prompt, /Do not volunteer weaknesses/);
+    assert.match(prompt, /years of experience he has, answer honestly and with context/);
+    assert.match(prompt, /fit for a role, end by offering to book a call/);
+    assert.match(prompt, /include its link exactly as the tools give it/);
+    // El prompt no fija cifras ni frases del CV: salen de las herramientas.
+    assert.doesNotMatch(prompt, /little professional experience|2 hours|IndraMind/);
   });
 });
 
@@ -915,5 +926,55 @@ describe('reservas desde el chat', () => {
     const res = await request(app).post('/api/chat').send({ message: 'Can we book a call?' }).expect(200);
     assert.equal(res.body.action, 'open_contact_form');
     assert.equal(llm.calls.length, 0);
+  });
+});
+
+describe('instrucciones por turno (auditoría)', () => {
+  const web = { experience: [
+    { company: 'ACME', roles: [{ title: 'Analyst', start: '2026-05', end: null }, { title: 'Intern', start: '2025-09', end: '2026-05' }] },
+  ] };
+  const now = new Date('2026-11-17T12:00:00Z');
+
+  test('detecta preguntas de encaje y de años de experiencia (es/en)', () => {
+    for (const q of ['Why is he a good fit for an FDE role?', '¿Por qué encaja en el puesto?', 'Would he suit a Solutions Engineer role?']) {
+      assert.ok(isFitQuestion(q), q);
+    }
+    for (const q of ['How many years of experience does he have?', '¿Cuántos años de experiencia tiene?']) {
+      assert.ok(isExperienceQuestion(q), q);
+    }
+    assert.ok(!isFitQuestion('What has he built?') && !isExperienceQuestion('What has he built?'));
+  });
+
+  test('la experiencia se calcula desde las fechas del perfil', () => {
+    assert.equal(
+      experienceFact(web, now),
+      'He has worked at ACME since Sep 2025, about 14 months (Intern from Sep 2025, then Analyst from May 2026).',
+    );
+  });
+
+  test('las reglas del turno: dato de experiencia y ofrecer llamada', () => {
+    assert.match(turnRules('How many years of experience does he have?', web, now).join(' '), /about 14 months/);
+    assert.match(turnRules('Is he a good fit for an FDE role?', web, now).join(' '), /offering to book a call/);
+    assert.deepEqual(turnRules('What has he built?', web, now), []);
+  });
+
+  test('si nombra un proyecto, el turno lleva su enlace (el caso de estudio si lo tiene)', () => {
+    const profile = {
+      basics: { links: [{ id: 'website', url: 'https://ana.dev' }] },
+      projects: [
+        { id: 'coach', name: 'Coach: an MCP server', caseStudy: { sections: [] }, links: [] },
+        { id: 'garage', name: 'Garage', links: [{ url: 'https://garage.ana.dev' }] },
+      ],
+    };
+    assert.match(turnRules('Tell me about the Coach MCP server', profile, now).join(), /https:\/\/ana\.dev\/#cv\/coach/);
+    assert.match(turnRules('¿Qué es Garage?', profile, now).join(), /https:\/\/garage\.ana\.dev/);
+    assert.deepEqual(turnRules('What has he built?', profile, now), []);
+  });
+
+  test('quita las coletillas del principio de la respuesta', () => {
+    assert.equal(cleanReply('Based on the information provided in his CV, he built X.'), 'He built X.');
+    assert.equal(cleanReply('According to his CV, he works at ACME.'), 'He works at ACME.');
+    assert.equal(cleanReply('Según su CV, trabaja en ACME.'), 'Trabaja en ACME.');
+    assert.equal(cleanReply('He built X according to plan.'), 'He built X according to plan.');
   });
 });

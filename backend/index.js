@@ -15,6 +15,8 @@ import { createPgRateLimitStore, purgeExpiredRateLimits } from './ratelimit.js';
 import { createBookingTools } from './booking.js';
 import { listFreeSlots } from './calendar.js';
 import { createHmac } from 'node:crypto';
+import { createMemoryUsageStore, createPgUsageStore } from './usage.js';
+import { createAnalytics, createMemorySnapshotStore, createPgSnapshotStore, createSources, loadCosts } from './analytics.js';
 
 // Cada cuánto se borran las solicitudes y sesiones caducadas.
 const PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -52,6 +54,8 @@ let pool;
 let sessions;
 let contacts;
 let rateLimitStore;
+let usage;
+let snapshots;
 if (config.databaseUrl) {
   pool = createPool(config.databaseUrl);
   try {
@@ -62,6 +66,8 @@ if (config.databaseUrl) {
   }
   sessions = createPgSessionStore(pool);
   contacts = createPgContactStore(pool);
+  usage = createPgUsageStore(pool);
+  snapshots = createPgSnapshotStore(pool);
   // Límites persistentes. El HMAC de las IPs usa una clave derivada de REVIEW_SECRET (obligatorio
   // en Railway); sin él (local), una aleatoria: los contadores se reinician al reiniciar.
   const secret = createHmac('sha256', config.contact.reviewSecret ?? randomSecret()).update('rate-limit').digest();
@@ -70,6 +76,8 @@ if (config.databaseUrl) {
   console.warn('DATABASE_URL no definida: solicitudes y sesiones en memoria (se pierden al reiniciar).');
   sessions = createMemorySessionStore();
   contacts = createMemoryContactStore();
+  usage = createMemoryUsageStore();
+  snapshots = createMemorySnapshotStore();
 }
 
 const purge = async () => {
@@ -118,6 +126,15 @@ const app = createApp({
   reviewTokens,
   config,
   rateLimitStore,
+  usage,
+  // costs.yaml mal formado: el servidor no arranca (mejor que enseñar costes falsos).
+  analytics: createAnalytics({
+    usage,
+    costs: loadCosts(),
+    sources: createSources(config.analytics),
+    snapshots,
+    timeZone: AVAILABILITY.timeZone,
+  }),
 });
 
 const server = app.listen(config.port, () => {

@@ -17,6 +17,24 @@ const SUGGESTIONS = [
   'Tell me about the Entrenador MCP server',
 ];
 
+// URL https del texto del asistente como enlaces (sin interpretar HTML). La puntuación final
+// ("…/entrenador.") no forma parte del enlace.
+const URL_PATTERN = /(https:\/\/[^\s<>"'()]+)/g;
+export function linkify(text) {
+  return text.split(URL_PATTERN).map((part, i) => {
+    if (i % 2 === 0) return part;
+    const [, url, tail] = part.match(/^(.*?)([.,;:!?]*)$/);
+    return (
+      <span key={i}>
+        <a className="font-medium underline underline-offset-2" href={url} target="_blank" rel="noreferrer">
+          {url}
+        </a>
+        {tail}
+      </span>
+    );
+  });
+}
+
 // El límite real lo aplica el backend; aquí evita escribir de más.
 const MAX_LENGTH = 500;
 const SESSION_KEY = 'chatSessionId';
@@ -99,8 +117,9 @@ export default function Chat({ onOpenContact }) {
               m.role === 'error' && 'bg-destructive/10 text-destructive',
             )}
           >
-            {/* Texto plano siempre: la respuesta del modelo nunca se interpreta como HTML. */}
-            <p className="whitespace-pre-line">{m.content}</p>
+            {/* Texto plano siempre: la respuesta del modelo nunca se interpreta como HTML; solo las
+                URL https se convierten en enlaces. */}
+            <p className="whitespace-pre-line">{m.role === 'assistant' ? linkify(m.content) : m.content}</p>
             {m.action === 'propose_meeting' && m.proposal && <MeetingCard proposal={m.proposal} onOpenBook={onOpenContact} />}
             {m.action === 'open_contact_form' && (
               <Button size="sm" className="rounded-full" onClick={onOpenContact}>

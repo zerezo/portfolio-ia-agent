@@ -14,7 +14,7 @@
 
 ### Aptitudes principales (5/5)
 
-- bucles agénticos y tool calling
+- agentes y tool calling
 - servidores MCP
 - Claude API
 - Node.js/Express
@@ -28,13 +28,13 @@
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: mayo 2026 – actualidad
-- Descripción · 571/2000
+- Descripción · 609/2000
 
 ```text
-• Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo automovilístico global: responsable de los KPIs de análisis y de la revisión de perfiles de seguridad y controles de protección de la información.
-• Trato directo con los equipos del cliente en Alemania y Corea del Sur, en inglés.
-• Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español (continuación de mis prácticas).
-• Automatización del procesamiento de archivos y de la generación de informes: una tarea recurrente pasó de 2 horas a 10 minutos.
+• Me ofrecieron el puesto de analista a jornada completa antes de terminar las prácticas.
+• Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo automovilístico global, de cara al cliente y en inglés con equipos de Alemania y Corea del Sur: responsable de los KPIs de análisis y de la revisión de perfiles de seguridad y controles de protección de la información.
+• Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español, desde las prácticas.
+• Automatización del procesamiento recurrente de archivos y de la generación de informes del equipo.
 ```
 
 ### Becario de Ciberseguridad, GRC · IndraMind Cybersecurity
@@ -43,10 +43,10 @@
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: sept 2025 – mayo 2026
-- Descripción · 146/2000
+- Descripción · 0/2000
 
 ```text
-• Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español; apoyo en tareas de gobernanza, riesgo y cumplimiento.
+
 ```
 
 ### Comercial · Fotomatón y Más

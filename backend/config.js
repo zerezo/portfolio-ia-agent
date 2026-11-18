@@ -112,8 +112,30 @@ function loadLlmConfig(env) {
   };
 }
 
+// Fuentes externas de /api/analytics (opcionales: sin ellas la tarjeta enseña "—").
+//   ENTRENADOR_STATS_URL + ENTRENADOR_STATS_TOKEN: conteos del Entrenador (token compartido).
+//   HOMECARGARAGE_SUPABASE_URL + HOMECARGARAGE_SUPABASE_ANON_KEY: RPC public_stats (clave pública).
+function loadAnalyticsConfig(env) {
+  const pair = (urlName, secretName) => {
+    const url = env[urlName];
+    const secret = env[secretName];
+    if (!url && !secret) return null;
+    if (!url || !secret) throw new Error(`${urlName} y ${secretName} van juntas`);
+    if (!/^https:\/\/[^\s/]+(\/\S*)?$/.test(url)) throw new Error(`${urlName} debe ser una URL https://`);
+    return { url: url.replace(/\/$/, ''), secret };
+  };
+  const entrenador = pair('ENTRENADOR_STATS_URL', 'ENTRENADOR_STATS_TOKEN');
+  if (entrenador && entrenador.secret.length < 32) throw new Error('ENTRENADOR_STATS_TOKEN debe tener al menos 32 caracteres');
+  const homecargarage = pair('HOMECARGARAGE_SUPABASE_URL', 'HOMECARGARAGE_SUPABASE_ANON_KEY');
+  return {
+    entrenador: entrenador && { url: entrenador.url, token: entrenador.secret },
+    homecargarage: homecargarage && { url: homecargarage.url, anonKey: homecargarage.secret },
+  };
+}
+
 export function loadConfig(env = process.env) {
   const llm = loadLlmConfig(env);
+  const analytics = loadAnalyticsConfig(env);
   const knowledge = loadKnowledgeConfig(env);
 
   const appEnv = env.APP_ENV || 'local';
@@ -196,6 +218,7 @@ export function loadConfig(env = process.env) {
 
   return {
     llm,
+    analytics,
     // Los documentos de ejemplo (placeholder) nunca se sirven en producción.
     knowledge: { ...knowledge, allowPlaceholders: appEnv !== 'production' },
     appEnv,

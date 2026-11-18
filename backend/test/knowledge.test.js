@@ -158,3 +158,17 @@ describe('knowledge/ real: sin hechos del CV duplicados', async () => {
     }
   });
 });
+
+// Auditoría: la pregunta de encaje no debe traer la sección de debilidades (el agente no las
+// adelanta); si preguntan por ellas, sí.
+describe('knowledge/ real: preguntas de recruiter', async () => {
+  const tool = createKnowledgeTool(createLocalSource());
+  await tool.refresh();
+  test('"good fit for an FDE role" no recupera la debilidad', async () => {
+    const result = String(await tool.run({ query: 'Why is he a good fit for a Forward Deployed Engineer role?' }));
+    assert.doesNotMatch(result, /Weakness|little professional experience/);
+  });
+  test('si preguntan por su punto débil, se encuentra', async () => {
+    assert.match(String(await tool.run({ query: 'What is his weakness?' })), /Weakness/);
+  });
+});

@@ -27,8 +27,8 @@ basics:
     en: Forward Deployed / AI Engineer
     es: Forward Deployed / AI Engineer
   location:
-    en: Segovia & Madrid, Spain
-    es: Segovia y Madrid, España
+    en: Madrid, Spain
+    es: Madrid, España
   email:
     value: alezerezo@gmail.com
     channels: [cv]
@@ -54,22 +54,15 @@ summary:
     priority: 1
     tags: [fde, ai, security, client]
     en: >-
-      Telecommunications engineer (UPM) who ships AI products end to end, working AI-native with Claude
-      Code. I've built and deployed a production LLM agent with tool calling, a prompt-injection guard
-      and real integrations, plus my own MCP server on Cloudflare that connects Claude to live training
-      data and external APIs. By day I work client-facing, in English, on cyber risk and compliance for
-      enterprise clients across Germany, South Korea and Spain, and I've automated reporting work from
-      2 hours down to 10 minutes. I know the security and compliance questions that decide whether an
-      AI deployment goes live.
+      Telecom engineer (UPM) building LLM agents and MCP integrations in production with Claude Code,
+      and working client-facing in English with enterprise teams in Germany and South Korea on
+      cybersecurity compliance. I bring both halves of the FDE job: shipping the integration and
+      getting it through the security review.
     es: >-
-      Ingeniero de Telecomunicación (UPM) que construye productos de IA de principio a fin, con un flujo
-      de trabajo AI-native con Claude Code. He construido y desplegado en producción un agente LLM con
-      tool calling, protección contra prompt injection e integraciones reales, además de mi propio
-      servidor MCP en Cloudflare que conecta Claude con datos de entrenamiento en tiempo real y APIs
-      externas. En mi trabajo actual trato directamente con clientes, en inglés, en riesgo y
-      cumplimiento de ciberseguridad para grandes empresas de Alemania, Corea del Sur y España, y he
-      automatizado tareas de reporting que pasaron de 2 horas a 10 minutos. Conozco las preguntas de
-      seguridad y cumplimiento que deciden si un despliegue de IA llega a producción.
+      Ingeniero de Telecomunicación (UPM) que construye agentes LLM e integraciones MCP en producción
+      con Claude Code, y que trabaja de cara al cliente, en inglés, con equipos de grandes empresas de
+      Alemania y Corea del Sur en cumplimiento de ciberseguridad. Aporto las dos mitades del trabajo de
+      un FDE: construir la integración y conseguir que pase la revisión de seguridad.
 
 # Solo LinkedIn. Los textos en español y la ampliación del About los redactó Claude: pendientes de
 # revisión (verified: false) hasta que Alejandro los apruebe.
@@ -90,16 +83,16 @@ linkedin:
       en: >-
         I'm a telecom engineer who ships AI products end to end: a production agent with tool calling
         and guardrails, and my own MCP server connecting Claude to live data and external APIs. By day I
-        work directly with enterprise clients in Germany and South Korea on cyber risk and compliance,
-        and I automated a 2-hour reporting task down to 10 minutes. I want to be the engineer who
+        work directly with enterprise clients in Germany and South Korea on cyber risk and compliance.
+        I want to be the engineer who
         understands what the customer really needs, builds it, and stays with it from first call to
         production.
       es: >-
         Soy ingeniero de telecomunicación y construyo productos de IA de principio a fin: un agente en
         producción con tool calling y guardrails, y mi propio servidor MCP que conecta Claude con datos
         en tiempo real y APIs externas. En mi trabajo actual trato directamente con clientes de grandes
-        empresas en Alemania y Corea del Sur en riesgo y cumplimiento de ciberseguridad, y automaticé una
-        tarea de reporting de 2 horas hasta dejarla en 10 minutos. Quiero ser el ingeniero que entiende
+        empresas en Alemania y Corea del Sur en riesgo y cumplimiento de ciberseguridad. Quiero ser el
+        ingeniero que entiende
         lo que el cliente necesita de verdad, lo construye y lo acompaña desde la primera llamada hasta
         producción.
     - id: linkedin-about-build
@@ -132,16 +125,15 @@ linkedin:
         cybersecurity compliance for the financial-services business of a global automotive group, and
         I run third-party risk assessments for a major Spanish telecom operator. That is where I learned
         the security and compliance questions (ISO/IEC 27001, DORA, third-party risk) that decide whether
-        an AI deployment goes live, and where I automated file processing and report generation to cut a
-        recurring 2-hour task to 10 minutes.
+        an AI deployment goes live, and where I automated the team's recurring file processing and report
+        generation.
       es: >-
         Cómo trabajo con clientes: trabajo en inglés con los equipos del cliente en Alemania y Corea del
         Sur en el cumplimiento de ciberseguridad del negocio de servicios financieros de un grupo
         automovilístico global, y hago evaluaciones de riesgo de proveedores para un gran operador de
         telecomunicaciones español. Ahí he aprendido las preguntas de seguridad y cumplimiento (ISO/IEC
         27001, DORA, riesgo de terceros) que deciden si un despliegue de IA llega a producción, y ahí
-        automaticé el procesamiento de archivos y la generación de informes para que una tarea
-        recurrente pasara de 2 horas a 10 minutos.
+        automaticé el procesamiento recurrente de archivos y la generación de informes del equipo.
     - id: linkedin-about-looking
       verified: false
       en: >-
@@ -161,21 +153,19 @@ skills:
       - id: skill-claude-api
         name: Claude API
       - id: skill-tool-calling
-        name: { en: agent loops and tool calling, es: bucles agénticos y tool calling }
+        name: { en: agents & tool calling, es: agentes y tool calling }
       - id: skill-mcp
         name: { en: MCP servers, es: servidores MCP }
-      - id: skill-prompting
-        name: prompt engineering
       - id: skill-evals
-        name: { en: evals (code-graded and LLM-as-judge), es: evals (por código y LLM-as-judge) }
+        name: { en: 'evals (code-graded, LLM-as-judge)', es: 'evals (por código, LLM-as-judge)' }
       - id: skill-guardrails
         tags: [security]
-        name: { en: input guardrails, es: guardrails }
+        name: guardrails
+      - id: skill-claude-code
+        name: Claude Code
       - id: skill-ollama
         priority: 3
-        name: { en: local models (Ollama), es: modelos locales (Ollama) }
-      - id: skill-claude-code
-        name: { en: AI-native development with Claude Code, es: desarrollo AI-native con Claude Code }
+        name: Ollama
   - id: skills-engineering
     tags: [fullstack, fde]
     label: { en: Engineering, es: Ingeniería }
@@ -186,41 +176,30 @@ skills:
         name: Node.js/Express
       - id: skill-react
         name: React
-      - id: skill-supabase
-        name: Supabase
       - id: skill-postgres
         name: PostgreSQL
+      - id: skill-supabase
+        name: Supabase
       - id: skill-rest
         name: { en: REST APIs, es: APIs REST }
       - id: skill-docker
         name: Docker
-      - id: skill-k8s
-        priority: 3
-        name: { en: 'Kubernetes (GKE, academic)', es: 'Kubernetes (GKE, académico)' }
       - id: skill-ci
-        name: { en: GitHub Actions CI, es: CI con GitHub Actions }
+        name: GitHub Actions
       - id: skill-python
         priority: 3
-        name:
-          en: "Python (academic: owlready2, OWL 2/Protégé)"
-          es: "Python (académico: owlready2, OWL 2/Protégé)"
+        name: { en: Python (academic), es: Python (académico) }
   - id: skills-cloud-security
     tags: [security, fde]
     label: { en: Cloud & security, es: Cloud y seguridad }
     items:
       - id: skill-cloudflare
-        name: Cloudflare (Workers, WAF, DNS)
+        name: Cloudflare (Workers, WAF)
       - id: skill-railway
         name: Railway
       - id: skill-gcp
         priority: 3
-        name: Google Cloud (GKE)
-      - id: skill-rate-limiting
-        name: rate limiting
-      - id: skill-csp
-        name: CSP
-      - id: skill-hmac
-        name: { en: HMAC signing, es: firmas HMAC }
+        name: { en: GCP/GKE (academic), es: GCP/GKE (académico) }
       - id: skill-iso27001
         tags: [compliance]
         name: ISO/IEC 27001
@@ -353,7 +332,7 @@ projects:
       channels: [web, agent]
       problem:
         - id: entrenador-problem
-          verified: false
+          verified: true
           en: >-
             I wanted a coach with a real methodology and proper data analysis, built on my own training
             log, without paying for a subscription and adapted to my needs. My training was split across
@@ -366,7 +345,7 @@ projects:
             un único lugar que combinara lo mejor de Strava, intervals.icu, Hevy y el resto.
       architecture:
         - id: entrenador-architecture
-          verified: false
+          verified: true
           en: >-
             A remote MCP server on Cloudflare that Claude uses as a connector, so the same coach works
             from the desktop and from the phone. Activities come from three origins: synced from
@@ -385,7 +364,7 @@ projects:
       keyDecision:
         - ref: entrenador-methodology
         - id: entrenador-decision-rules
-          verified: false
+          verified: true
           en: >-
             The methodology is a document deployed with the server and grounded in published
             training science (Daniels' paces, 80/20 polarised training, Gabbett's acute:chronic ratio).
@@ -442,6 +421,7 @@ projects:
           exposición a riesgos de ciberseguridad y la resiliencia en los dominios tierra, mar, aire,
           espacio y ciberespacio.
       - id: tfg-architecture
+        priority: 3
         en: >-
           Hybrid architecture: an OWL 2 DL ontology (Protégé) with the HermiT reasoner classifies assets
           at risk; a Python orchestrator applies the NIST SP 800-30 risk matrix and feeds the results back
@@ -471,57 +451,54 @@ experience:
         title: CRC Analyst, Cyber Risk & Compliance
         start: 2026-05
         end: present
-        bullets:
-          - id: crc-compliance
-            priority: 1
-            en: >-
-              Cybersecurity compliance for the financial-services business of a global automotive group:
-              own analysis KPIs and review security profiles and information-protection controls.
-            es: >-
-              Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo
-              automovilístico global: responsable de los KPIs de análisis y de la revisión de perfiles de
-              seguridad y controles de protección de la información.
-          - id: crc-clients
-            priority: 1
-            tags: [client]
-            en: Work directly with client teams in Germany and South Korea, in English.
-            es: Trato directo con los equipos del cliente en Alemania y Corea del Sur, en inglés.
-          - id: crc-tprm
-            en: >-
-              Third-party risk assessments of suppliers for a major Spanish telecom operator (continuing
-              from my internship).
-            es: >-
-              Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español
-              (continuación de mis prácticas).
-          - id: crc-automation
-            priority: 1
-            tags: [automation]
-            en: Automated file processing and report generation, cutting a recurring 2-hour task to 10 minutes.
-            es: >-
-              Automatización del procesamiento de archivos y de la generación de informes: una tarea
-              recurrente pasó de 2 horas a 10 minutos.
       - id: indramind-intern
         title: { en: 'Cybersecurity Intern, GRC', es: 'Becario de Ciberseguridad, GRC' }
         start: 2025-09
         end: 2026-05
-        bullets:
-          - id: intern-tprm
-            priority: 3
-            en: >-
-              Third-party supplier risk assessments for a major Spanish telecom operator; supported
-              governance, risk and compliance work for the team.
-            es: >-
-              Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español;
-              apoyo en tareas de gobernanza, riesgo y cumplimiento.
+    bullets:
+      - id: indramind-offer
+        priority: 1
+        en: Offered a full-time analyst role before the end of my internship.
+        es: Me ofrecieron el puesto de analista a jornada completa antes de terminar las prácticas.
+      - id: crc-compliance
+        priority: 1
+        tags: [client]
+        en: >-
+          Cybersecurity compliance for the financial-services business of a global automotive group,
+          client-facing in English with teams in Germany and South Korea: I own the analysis KPIs and
+          review security profiles and information-protection controls.
+        es: >-
+          Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo
+          automovilístico global, de cara al cliente y en inglés con equipos de Alemania y Corea del Sur:
+          responsable de los KPIs de análisis y de la revisión de perfiles de seguridad y controles de
+          protección de la información.
+      - id: crc-tprm
+        en: Third-party risk assessments of suppliers for a major Spanish telecom operator, since my internship.
+        es: >-
+          Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español,
+          desde las prácticas.
+      - id: crc-automation
+        priority: 1
+        tags: [automation]
+        en: Automated the team's recurring file processing and report generation.
+        es: Automatización del procesamiento recurrente de archivos y de la generación de informes del equipo.
 
   - id: fotomaton
-    priority: 3
+    priority: 2
     tags: [client, sales]
     company: Fotomatón y Más
     location: Madrid / Segovia
     start: 2024-02
     end: 2026-09
     note: { en: 'part-time, alongside studies', es: 'a tiempo parcial, compaginado con los estudios' }
+    # En el CV, una sola línea en lugar de los puestos (textos de Alejandro).
+    cvLine:
+      en: >-
+        Sales & client service, Fotomatón y Más (part-time, 2024–2026): tailored proposals for event
+        clients; ran on-site photo-booth service at weddings and private events.
+      es: >-
+        Comercial y atención al cliente, Fotomatón y Más (a tiempo parcial, 2024–2026): propuestas a
+        medida para clientes de eventos; servicio de fotomatón en bodas y eventos privados.
     roles:
       # Títulos en español traducidos por Claude (etiquetas cortas): revisar.
       - id: fotomaton-sales

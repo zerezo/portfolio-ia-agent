@@ -19,3 +19,6 @@ CLAUDE.local.md
 
 # Exportaciones del perfil sin versionar (variantes del CV)
 exports/variants/
+
+# Datos privados (teléfono) y CV privado: nunca al repo, que es público
+private/

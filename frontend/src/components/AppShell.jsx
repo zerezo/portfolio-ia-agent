@@ -1,10 +1,11 @@
-import { CalendarDays, Code2, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
+import { CalendarDays, ChartColumn, Code2, LayoutGrid, Network, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIVACY_URL, SOURCE_URL } from '../links.js';
 
 export const TABS = [
   { id: 'cv', label: 'Me', icon: LayoutGrid },
   { id: 'calendar', label: 'Book', icon: CalendarDays },
+  { id: 'analytics', label: 'Analytics', icon: ChartColumn },
   { id: 'architecture', label: 'Stack', icon: Network },
 ];
 
@@ -74,7 +75,7 @@ export default function AppShell({ profile, tab, onTab, children }) {
       <main className="min-h-0 min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-10 grid h-16 grid-cols-3 border-t bg-card/80 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 grid h-16 grid-cols-4 border-t bg-card/80 backdrop-blur md:hidden"
         aria-label="Sections"
       >
         {TABS.map((t) => (

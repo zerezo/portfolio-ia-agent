@@ -28,11 +28,15 @@ const history = [
 
 describe('Ollama', () => {
   test('envía sistema, mensajes y límite de tokens; devuelve el texto', async () => {
-    const fetchFn = fakeFetch(Response.json({ message: { role: 'assistant', content: 'respuesta' } }));
+    const fetchFn = fakeFetch(
+      Response.json({ message: { role: 'assistant', content: 'respuesta' }, prompt_eval_count: 120, eval_count: 30 }),
+    );
     const llm = createOllamaLlm({ url: 'http://ollama:11434', model: 'm', fetchFn });
 
     const result = await llm.chat({ system: 'sistema', messages: [history[0]], maxTokens: 300 });
-    assert.deepEqual(result, { text: 'respuesta', toolCalls: [] });
+    // Los tokens de Ollama (prompt_eval_count / eval_count) se devuelven para la analítica.
+    assert.deepEqual(result, { text: 'respuesta', toolCalls: [], usage: { inputTokens: 120, outputTokens: 30 } });
+    assert.equal(llm.model, 'm');
     const [{ url, body }] = fetchFn.calls;
     assert.equal(url, 'http://ollama:11434/api/chat');
     assert.equal(body.model, 'm');
@@ -78,6 +82,21 @@ describe('Anthropic', () => {
     const calls = [];
     return { calls, messages: { create: async (p) => (calls.push(p), { content }) } };
   }
+
+  test('devuelve los tokens de usage (entrada con caché incluida y salida)', async () => {
+    const client = {
+      messages: {
+        create: async () => ({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 900, cache_creation_input_tokens: 50, cache_read_input_tokens: 50, output_tokens: 120 },
+        }),
+      },
+    };
+    const llm = createAnthropicLlm({ model: 'claude-x', client });
+    const result = await llm.chat({ system: 's', messages: [history[0]], maxTokens: 300 });
+    assert.deepEqual(result.usage, { inputTokens: 1000, outputTokens: 120 });
+    assert.equal(llm.model, 'claude-x');
+  });
 
   test('une los bloques de texto y extrae las llamadas a herramientas', async () => {
     const client = fakeClient([

@@ -42,8 +42,9 @@ export function linkedinMarkdown(view) {
 
   out.push('## Experiencia', '');
   for (const job of view.experience) {
-    for (const role of job.roles) {
-      const description = bulletList(role.bullets);
+    for (const [i, role] of job.roles.entries()) {
+      // Los bullets de la empresa van en el puesto actual (el primero).
+      const description = bulletList([...role.bullets, ...(i === 0 ? job.bullets : [])]);
       out.push(
         `### ${role.title} · ${job.company}`,
         '',

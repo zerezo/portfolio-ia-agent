@@ -18,6 +18,7 @@ h2 { margin: 5pt 0 2pt; padding-bottom: 0.5pt; border-bottom: 0.75pt solid #888;
 h3 { margin: 3pt 0 0; font-size: 9.4pt; }
 h3 .meta, .role .meta { font-weight: normal; color: #444; }
 .role { margin: 1.5pt 0 0; font-weight: bold; }
+.earlier { margin: 3pt 0 0; }
 p { margin: 0 0 1pt; }
 ul { margin: 0.5pt 0 0; padding-left: 10pt; }
 li { margin: 0 0 0.5pt; }
@@ -26,8 +27,9 @@ a { color: inherit; text-decoration: none; }
 a, .nw { white-space: nowrap; }
 `;
 
-// dropped: ids recortados para que quepa en una página (scripts/cv.js).
-export function cvHtml(view, { dropped = new Set() } = {}) {
+// dropped: ids recortados para que quepa en una página (scripts/cv.js). phone: solo en la variante
+// privada (npm run cv -- --private); nunca sale del repo.
+export function cvHtml(view, { dropped = new Set(), phone } = {}) {
   const { lang, basics } = view;
   const L = LABELS[lang];
   const keep = (item) => !dropped.has(item.id);
@@ -49,6 +51,7 @@ export function cvHtml(view, { dropped = new Set() } = {}) {
 
   const contact = [
     escape(basics.location),
+    phone && `<a href="tel:${escape(phone.replace(/\s+/g, ''))}">${escape(phone)}</a>`,
     basics.email && `<a href="mailto:${escape(basics.email)}">${escape(basics.email)}</a>`,
     ...basics.links.map((l) => `<a href="${escape(l.url)}">${escape(l.label)}</a>`),
   ]
@@ -67,15 +70,23 @@ export function cvHtml(view, { dropped = new Set() } = {}) {
   const experience = view.experience
     .filter(keep)
     .map((job) => {
-      const roles = job.roles
-        .filter(keep)
-        .map(
-          (role) =>
-            `<p class="role">${escape(role.title)}${meta([period(role.start, role.end)])}</p>${bullets(role.bullets)}`,
-        )
-        .join('');
+      // Empleo secundario: una sola línea ("Earlier: …").
+      if (job.cvLine) return `<p class="earlier"><b>${L.earlier}:</b> ${escape(job.cvLine)}</p>`;
       const company = job.companyNote ? `${job.company} (${job.companyNote})` : job.company;
-      return roles ? `<h3>${escape(company)}${meta([job.location, job.note])}</h3>${roles}` : '';
+      const header = `<h3>${escape(company)}${meta([job.location, job.note])}</h3>`;
+      const roles = job.roles.filter(keep);
+      if (!roles.length) return '';
+      // Bullets de la empresa: los puestos en una línea (la progresión) y los bullets debajo.
+      if (job.bullets.length) {
+        const line = roles.map((r) => `${escape(r.title)} · ${period(r.start, r.end).html}`).join(' · ');
+        return `${header}<p class="role">${line}</p>${bullets(job.bullets)}`;
+      }
+      return (
+        header +
+        roles
+          .map((r) => `<p class="role">${escape(r.title)}${meta([period(r.start, r.end)])}</p>${bullets(r.bullets)}`)
+          .join('')
+      );
     })
     .join('');
 
@@ -132,6 +143,7 @@ export function trimCandidates(view) {
   }
   for (const job of view.experience) {
     add(job, false);
+    job.bullets.forEach((b) => add(b, true));
     for (const role of job.roles) {
       add(role, false);
       role.bullets.forEach((b) => add(b, true));

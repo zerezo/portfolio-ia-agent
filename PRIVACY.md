@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: 29 October 2026.
+Last updated: 17 November 2026.
 
 This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (the chat assistant and the contact form) processes, why, and for how long.
 
@@ -22,6 +22,15 @@ This policy explains what personal data Alejandro Cerezo Gilarranz's portfolio (
 - **Purpose:** to handle your contact request: notify Alejandro, confirm or decline the meeting and send you the calendar invitation.
 - **Legal basis:** your consent, given by ticking the box on the form. You can withdraw it at any time by writing to the contact address.
 - **Retention:** requests are deleted automatically after 30 days.
+
+### Usage statistics (Analytics page)
+- **Data:** hourly counters of page loads, conversations, chat messages, messages blocked by the pre-model filter and AI tokens used. Only numbers: no cookies, no IP address, no conversation content and nothing that could identify a visitor.
+- **Purpose:** to show, on the Analytics page, that the projects are in use and what they cost to run.
+- **Retention:** the counters are aggregated and anonymous, so they are kept for as long as the page exists.
+- **No tracking:** the site uses no cookies and no third-party analytics or tracking scripts.
+
+### Your browser's storage
+- The site keeps in your browser a copy of the public CV and of the public Analytics figures, so they can still be shown if the server is temporarily unavailable, and, while the tab is open, the identifier of your chat conversation. None of this contains personal data and it never leaves your browser except to continue your own conversation.
 
 ### Technical data
 - **Data:** the IP address you connect from.

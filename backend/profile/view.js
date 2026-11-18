@@ -97,7 +97,9 @@ export function profileView(profile, { channel, lang = 'en', variant } = {}) {
           start: job.start ?? starts[0],
           end: job.end ? present(job.end) : ends.includes(null) ? null : ends.sort().at(-1),
           note: text(job.note),
+          cvLine: text(job.cvLine),
           roles,
+          bullets: bullets(job.bullets),
         };
       })
       .filter((job) => job.roles.length),

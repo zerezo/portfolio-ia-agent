@@ -38,11 +38,12 @@ const CaseStudy = Item({
   video: str.optional(),
 });
 
+// Los bullets pueden ir en cada puesto o en la empresa (una entrada con varios puestos).
 const Role = Item({
   title: Text,
   start: DateStr.optional(),
   end: End.optional(),
-  bullets: z.array(Bilingual).min(1),
+  bullets: z.array(Bilingual).default([]),
 });
 
 export const ProfileSchema = z.strictObject({
@@ -91,7 +92,10 @@ export const ProfileSchema = z.strictObject({
         start: DateStr.optional(),
         end: End.optional(),
         note: Text.optional(),
+        // CV en PDF: una línea en lugar de los puestos (empleos secundarios).
+        cvLine: Text.optional(),
         roles: z.array(Role).min(1),
+        bullets: z.array(Bilingual).default([]),
       }),
     )
     .min(1),
