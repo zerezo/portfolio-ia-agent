@@ -146,6 +146,18 @@ describe('createSources', () => {
     assert.equal(calls[0].init.headers.apikey, 'anon');
   });
 
+  test('HomeCarGarage: la clave publishable va solo en apikey; la anon (JWT), también en Authorization', async () => {
+    const run = async (anonKey) => {
+      const { fetchFn, calls } = fakeFetch({ users: 1, vehicles: 1 });
+      await createSources({ homecargarage: { url: 'https://abc.supabase.co', anonKey } }, fetchFn).homecargarage();
+      return calls[0].init.headers;
+    };
+    const publishable = await run('sb_publishable_abc');
+    assert.equal(publishable.apikey, 'sb_publishable_abc');
+    assert.equal(publishable.Authorization, undefined);
+    assert.equal((await run('eyJhbGciOi.x.y')).Authorization, 'Bearer eyJhbGciOi.x.y');
+  });
+
   test('un valor que no es un número invalida la respuesta', async () => {
     const { fetchFn } = fakeFetch({ users: 'muchos', vehicles: 2 });
     const sources = createSources({ homecargarage: { url: 'https://abc.supabase.co', anonKey: 'anon' } }, fetchFn);

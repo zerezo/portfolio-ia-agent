@@ -104,13 +104,19 @@ export function createSources({ entrenador, homecargarage }, fetchFn = fetch) {
       entrenador: async () =>
         counts(await fetchJson(fetchFn, entrenador.url, { headers: { Authorization: `Bearer ${entrenador.token}` } }), ENTRENADOR_KEYS),
     }),
-    // RPC public_stats de Supabase: función de solo conteos accesible con la clave pública (anon).
+    // RPC public_stats de Supabase: función de solo conteos accesible con la clave pública. La
+    // clave nueva (sb_publishable_…) no es un JWT y va solo en `apikey`; la antigua (anon, JWT)
+    // también en Authorization.
     ...(homecargarage && {
       homecargarage: async () =>
         counts(
           await fetchJson(fetchFn, `${homecargarage.url}/rest/v1/rpc/public_stats`, {
             method: 'POST',
-            headers: { apikey: homecargarage.anonKey, Authorization: `Bearer ${homecargarage.anonKey}`, 'Content-Type': 'application/json' },
+            headers: {
+              apikey: homecargarage.anonKey,
+              ...(homecargarage.anonKey.startsWith('eyJ') && { Authorization: `Bearer ${homecargarage.anonKey}` }),
+              'Content-Type': 'application/json',
+            },
             body: '{}',
           }),
           HOMECARGARAGE_KEYS,
