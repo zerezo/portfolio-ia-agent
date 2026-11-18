@@ -54,15 +54,21 @@ summary:
     priority: 1
     tags: [fde, ai, security, client]
     en: >-
-      Telecom engineer (UPM) building LLM agents and MCP integrations in production with Claude Code,
-      and working client-facing in English with enterprise teams in Germany and South Korea on
-      cybersecurity compliance. I bring both halves of the FDE job: shipping the integration and
-      getting it through the security review.
+      Telecommunications engineer (ETSIT-UPM), currently working at IndraMind Cybersecurity. I work
+      with international clients on regulatory compliance and on protecting their most valuable
+      asset, their information, dealing in English with their teams in different countries. On the
+      side, I design LLM agents and MCP servers with Claude Code to solve real problems, always
+      starting by understanding the problem first-hand and seeing the solution through to the end.
+      What drives me most is building value from scratch around what the client needs, and I'm eager
+      to grow on the business side.
     es: >-
-      Ingeniero de Telecomunicación (UPM) que construye agentes LLM e integraciones MCP en producción
-      con Claude Code, y que trabaja de cara al cliente, en inglés, con equipos de grandes empresas de
-      Alemania y Corea del Sur en cumplimiento de ciberseguridad. Aporto las dos mitades del trabajo de
-      un FDE: construir la integración y conseguir que pase la revisión de seguridad.
+      Ingeniero de Telecomunicación (ETSIT-UPM). Actualmente trabajando en IndraMind Cybersecurity.
+      Trabajo con clientes internacionales a nivel normativo y protegiendo su activo más valioso, la
+      información, tratando en inglés con sus equipos de distintos países. En paralelo diseño
+      agentes LLM y servidores MCP con Claude Code para resolver problemas reales, empezando siempre
+      por entender el problema de primera mano y llevando la solución hasta el final. Lo que más me
+      motiva es crear valor desde cero a partir de lo que necesita el cliente, y tengo ganas de
+      crecer en la parte de negocio.
 
 # Solo LinkedIn. Los textos en español y la ampliación del About los redactó Claude: pendientes de
 # revisión (verified: false) hasta que Alejandro los apruebe.
@@ -295,27 +301,26 @@ projects:
       - id: entrenador-mcp-server
         priority: 1
         en: >-
-          Built a remote MCP server with ~25 tools that lets Claude run my multi-sport training: syncs
-          activities, detects and merges duplicates across sources, computes paces, weekly load and
-          wellness, and schedules structured workouts directly into intervals.icu, with a
-          password-protected web panel.
+          Built a remote MCP server with ~25 tools that Claude uses to run my multi-sport training.
+          It syncs activities, merges duplicates across sources, computes paces, weekly load and
+          wellness, and pushes structured workouts to intervals.icu.
         es: >-
-          Servidor MCP remoto con ~25 herramientas con el que Claude gestiona mi entrenamiento
-          multideporte: sincroniza actividades, detecta y unifica duplicados entre fuentes, calcula
-          ritmos, carga semanal y bienestar, y programa entrenamientos estructurados directamente en
-          intervals.icu; panel web protegido.
+          Construí un servidor MCP remoto con ~25 herramientas que Claude usa para gestionar mi
+          entrenamiento multideporte. Sincroniza actividades, unifica duplicados entre fuentes,
+          calcula ritmos, carga semanal y bienestar, y envía entrenamientos estructurados a
+          intervals.icu.
       # Verificado: herramienta "metodologia" (instrucciones del servidor: seguirla siempre), con
       # progresión de volumen del 5-10 % semanal y carga aguda:crónica entre 0,8 y 1,3.
       - id: entrenador-methodology
         priority: 1
         en: >-
-          Encoded a coaching methodology as a tool the model must consult before planning or analysing,
-          so decisions follow explicit rules (weekly volume progression, acute:chronic load) instead of
-          model guesswork.
+          The coaching methodology lives in a tool the model has to read before planning or
+          analysing, so every decision follows explicit rules on volume progression and
+          acute:chronic load.
         es: >-
-          La metodología de entrenamiento está codificada como una herramienta que el modelo debe
-          consultar antes de planificar o analizar, de modo que las decisiones siguen reglas explícitas
-          (progresión de volumen, carga aguda:crónica) y no intuiciones del modelo.
+          La metodología de entrenamiento vive en una herramienta que el modelo tiene que leer antes
+          de planificar o analizar, así que cada decisión sigue reglas explícitas de progresión de
+          volumen y carga aguda:crónica.
       - id: entrenador-evals
         tags: [evals]
         en: >-
@@ -394,12 +399,12 @@ projects:
     bullets:
       - id: homecargarage-app
         en: >-
-          Free web app to track mileage, parts and service intervals for every car in a household,
-          flagging what's due before it becomes a problem. EU-hosted data, user accounts, demo examples.
+          Free web app where a household logs mileage, parts and service intervals for its cars and
+          sees what maintenance is due. EU-hosted data, user accounts, demo examples.
         es: >-
-          App web gratuita para controlar kilometraje, piezas e intervalos de mantenimiento de todos los
-          coches de casa, avisando de lo pendiente antes de que sea un problema. Datos alojados en la UE,
-          cuentas de usuario y ejemplos de demo.
+          App web gratuita en la que un hogar registra el kilometraje, las piezas y los intervalos
+          de mantenimiento de sus coches y ve qué revisiones tocan. Datos alojados en la UE, cuentas
+          de usuario y ejemplos de demo.
 
   - id: tfg
     tags: [security, research]
@@ -464,14 +469,14 @@ experience:
         priority: 1
         tags: [client]
         en: >-
-          Cybersecurity compliance for the financial-services business of a global automotive group,
-          client-facing in English with teams in Germany and South Korea: I own the analysis KPIs and
-          review security profiles and information-protection controls.
+          Cybersecurity compliance for the financial-services business of a global automotive group.
+          I own the analysis KPIs and review security profiles and information-protection controls,
+          working in English with teams in Germany and South Korea.
         es: >-
           Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo
-          automovilístico global, de cara al cliente y en inglés con equipos de Alemania y Corea del Sur:
-          responsable de los KPIs de análisis y de la revisión de perfiles de seguridad y controles de
-          protección de la información.
+          automovilístico global. Soy responsable de los KPIs de análisis y reviso perfiles de
+          seguridad y controles de protección de la información, trabajando en inglés con equipos de
+          Alemania y Corea del Sur.
       - id: crc-tprm
         en: Third-party risk assessments of suppliers for a major Spanish telecom operator, since my internship.
         es: >-
