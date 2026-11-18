@@ -133,7 +133,8 @@ describe('search_cv', () => {
     for (const { id, node } of pending) {
       if (node.en) assert.ok(!results.includes(node.en.trim()), id);
     }
-    assert.doesNotMatch(results, /subscription|Hevy|Gabbett|remote in Europe/);
+    // Textos aún sin verificar (About de LinkedIn); los del caso de Entrenador ya están verificados.
+    assert.doesNotMatch(results, /remote in Europe|What I build:/);
   });
 
   test('un bullet con verified: false no llega al agente; al verificarlo, sí', () => {
