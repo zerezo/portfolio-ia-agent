@@ -332,7 +332,7 @@ projects:
       channels: [web, agent]
       problem:
         - id: entrenador-problem
-          verified: false
+          verified: true
           en: >-
             I wanted a coach with a real methodology and proper data analysis, built on my own training
             log, without paying for a subscription and adapted to my needs. My training was split across
@@ -345,7 +345,7 @@ projects:
             un único lugar que combinara lo mejor de Strava, intervals.icu, Hevy y el resto.
       architecture:
         - id: entrenador-architecture
-          verified: false
+          verified: true
           en: >-
             A remote MCP server on Cloudflare that Claude uses as a connector, so the same coach works
             from the desktop and from the phone. Activities come from three origins: synced from
@@ -364,7 +364,7 @@ projects:
       keyDecision:
         - ref: entrenador-methodology
         - id: entrenador-decision-rules
-          verified: false
+          verified: true
           en: >-
             The methodology is a document deployed with the server and grounded in published
             training science (Daniels' paces, 80/20 polarised training, Gabbett's acute:chronic ratio).

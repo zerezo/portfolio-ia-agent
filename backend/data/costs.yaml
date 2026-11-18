@@ -1,23 +1,23 @@
 # Costes de la página Analytics. Los de hosting los mantiene Alejandro a mano: al cambiar algo,
 # actualiza los importes y la fecha "updated" (se muestra en la web). null = sin dato: la web
 # enseña "—", nunca un número inventado. Importes mensuales en USD (lo anual, dividido entre 12).
-updated: 2026-11-17
+updated: 2026-11-18
 currency: USD
 
 # Hosting mensual por proyecto. Cada línea es un servicio de la factura.
 hosting:
   portfolio:
-    railway: null          # plan de Railway (API + PostgreSQL de producción y development)
-    cloudflare: null       # Workers de la web (producción y dev) y R2
+    railway: 5          # plan de Railway (API + PostgreSQL de producción y development)
+    cloudflare: 0       # Workers de la web (producción y dev) y R2
   entrenador:
-    cloudflare: null       # Worker + D1 del Entrenador
+    cloudflare: 0       # Worker + D1 del Entrenador
   homecargarage:
-    supabase: null         # proyecto de Supabase
-    cloudflare: null       # Worker de la web
+    supabase: 0         # proyecto de Supabase
+    cloudflare: 0    # Worker de la web
 
 # Gastos compartidos entre proyectos (se suman al total, no a una tarjeta).
 shared:
-  domain: null             # alejandrocerezo.dev (renovación anual / 12)
+  domain: 1             # alejandrocerezo.dev (renovación anual / 12)
 
 # Precio de los modelos por millón de tokens, para el coste de IA calculado en vivo con los tokens
 # que registra el backend. Fuente: referencia oficial de precios de Anthropic (consultada el

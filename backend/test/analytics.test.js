@@ -41,11 +41,13 @@ describe('aiCost', () => {
 });
 
 describe('costs.yaml', () => {
-  test('el real es válido; sin datos de hosting se queda en null', () => {
+  test('el real es válido: importes numéricos o null y precio del modelo de producción', () => {
     const costs = loadCosts();
     assert.equal(costs.currency, 'USD');
     assert.deepEqual(costs.models['claude-haiku-5-5'], { input: 0.1, output: 0.5 });
-    assert.equal(costs.hosting.portfolio.railway, null);
+    for (const lines of [...Object.values(costs.hosting), costs.shared]) {
+      for (const value of Object.values(lines)) assert.ok(value === null || (typeof value === 'number' && value >= 0));
+    }
   });
 });
 
@@ -69,7 +71,8 @@ describe('createAnalytics', () => {
   });
 
   test('sin datos de hosting el coste es null ("—"), nunca 0 inventado', async () => {
-    const analytics = createAnalytics({ usage: await seededUsage(), costs: loadCosts(), timeZone: TZ, now: () => NOW });
+    const costs = { ...COSTS, hosting: { ...COSTS.hosting, portfolio: { railway: null, cloudflare: 0 } } };
+    const analytics = createAnalytics({ usage: await seededUsage(), costs, timeZone: TZ, now: () => NOW });
     const data = await analytics.get();
     assert.equal(data.projects.portfolio.cost.hosting, null);
     assert.equal(data.projects.portfolio.cost.total, null);
