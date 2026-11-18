@@ -332,8 +332,8 @@ export function createApp({
     res.set('Cache-Control', 'public, max-age=300').json(profile);
   });
 
-  // Analítica agregada (página Analytics): solo números, sin IP ni contenido. Caché de 1 h en el
-  // servidor; el navegador y Cloudflare pueden reutilizarla 5 min.
+  // Analítica agregada (página Analytics): solo números, sin IP ni contenido. Caché en el servidor
+  // de 1 h para los contadores propios y 24 h para las fuentes externas; el navegador, 5 min.
   if (analytics) {
     app.get('/api/analytics', async (req, res) => {
       try {

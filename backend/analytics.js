@@ -7,10 +7,13 @@ import { z } from 'zod';
 //   - Entrenador y HomeCarGarage: conteos de sus servidores (solo números). Si una fuente falla se
 //     sirve su último dato bueno (tabla analytics_snapshots) con su hora; si nunca respondió, null.
 //   - Hosting: data/costs.yaml, que mantiene Alejandro a mano (null = sin dato: la web enseña "—").
-// Caché de 1 hora: las fuentes externas no se consultan en cada visita.
+// Dos cachés (decisión de Alejandro, 2026-11-18): las fuentes externas, 24 horas (una consulta al
+// día como mucho por entorno: D1 y Supabase cobran o limitan por consulta y no se cargan los otros
+// proyectos); los contadores propios (visitas y chat), 1 hora.
 
 export const COSTS_PATH = new URL('./data/costs.yaml', import.meta.url);
-const TTL_MS = 60 * 60 * 1000;
+const SOURCES_TTL_MS = 24 * 60 * 60 * 1000;
+const USAGE_TTL_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 5000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHART_DAYS = 28;
@@ -153,8 +156,26 @@ export function createPgSnapshotStore(pool) {
   };
 }
 
+// Memoriza una función asíncrona durante `ttl` ms; las peticiones simultáneas comparten la misma
+// llamada. Si falla, no se guarda nada y la siguiente petición lo vuelve a intentar.
+function memoize(fn, ttl, now) {
+  let cache = null; // { value, at } | null
+  let pending = null;
+  return async () => {
+    if (cache && now().getTime() - cache.at < ttl) return cache.value;
+    pending ??= fn()
+      .then((value) => {
+        cache = { value, at: now().getTime() };
+        return value;
+      })
+      .finally(() => {
+        pending = null;
+      });
+    return pending;
+  };
+}
+
 export function createAnalytics({ usage, costs, sources = {}, snapshots = createMemorySnapshotStore(), timeZone, now = () => new Date() }) {
-  let cache = null; // { value, at, pending }
 
   async function external(name) {
     const fetchSource = sources[name];
@@ -207,9 +228,18 @@ export function createAnalytics({ usage, costs, sources = {}, snapshots = create
     };
   }
 
+  const ownCached = memoize(async () => ({ at: now(), data: await own(now()) }), USAGE_TTL_MS, now);
+  const externalCached = memoize(
+    async () => {
+      const [entrenador, homecargarage] = await Promise.all([external('entrenador'), external('homecargarage')]);
+      return { entrenador, homecargarage };
+    },
+    SOURCES_TTL_MS,
+    now,
+  );
+
   async function build() {
-    const at = now();
-    const [usageData, entrenador, homecargarage] = await Promise.all([own(at), external('entrenador'), external('homecargarage')]);
+    const [{ at, data: usageData }, { entrenador, homecargarage }] = await Promise.all([ownCached(), externalCached()]);
     const hosting = Object.fromEntries(
       Object.entries(costs.hosting).map(([project, lines]) => [project, round(sumKnown(Object.values(lines)), 2)]),
     );
@@ -237,18 +267,5 @@ export function createAnalytics({ usage, costs, sources = {}, snapshots = create
     };
   }
 
-  return {
-    async get() {
-      if (cache?.value && now().getTime() - cache.at < TTL_MS) return cache.value;
-      if (!cache?.pending) {
-        const pending = build().finally(() => {
-          if (cache?.pending === pending) cache.pending = null;
-        });
-        cache = { ...cache, pending };
-      }
-      const value = await cache.pending;
-      cache = { value, at: now().getTime(), pending: null };
-      return value;
-    },
-  };
+  return { get: build };
 }

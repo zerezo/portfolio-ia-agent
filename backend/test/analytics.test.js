@@ -107,18 +107,49 @@ describe('createAnalytics', () => {
     assert.equal(data.projects.portfolio.status, 'ok');
   });
 
-  test('caché de 1 hora: no vuelve a consultar las fuentes antes', async () => {
+  test('fuentes externas en caché de 24 horas: no se vuelven a consultar antes', async () => {
     let calls = 0;
     let at = NOW;
     const sources = { homecargarage: async () => (calls++, { users: 3, vehicles: 5 }) };
     const analytics = createAnalytics({ usage: createMemoryUsageStore(), costs: COSTS, sources, timeZone: TZ, now: () => at });
     await analytics.get();
-    at = new Date(NOW.getTime() + 59 * 60 * 1000);
+    at = new Date(NOW.getTime() + 23 * 60 * 60 * 1000);
     await analytics.get();
     assert.equal(calls, 1);
-    at = new Date(NOW.getTime() + 61 * 60 * 1000);
+    at = new Date(NOW.getTime() + 24 * 60 * 60 * 1000 + 60 * 1000);
     await analytics.get();
     assert.equal(calls, 2);
+  });
+
+  test('las visitas y el chat propios se actualizan cada hora, sin esperar al día de las fuentes', async () => {
+    let calls = 0;
+    let at = NOW;
+    const usage = createMemoryUsageStore();
+    const sources = { homecargarage: async () => (calls++, { users: 3, vehicles: 5 }) };
+    const analytics = createAnalytics({ usage, costs: COSTS, sources, timeZone: TZ, now: () => at });
+    assert.equal((await analytics.get()).visits.total, 0);
+    await usage.add('page_loads', 1, NOW);
+    at = new Date(NOW.getTime() + 59 * 60 * 1000);
+    assert.equal((await analytics.get()).visits.total, 0); // dentro de la hora: el mismo dato
+    at = new Date(NOW.getTime() + 61 * 60 * 1000);
+    const data = await analytics.get();
+    assert.equal(data.visits.total, 1);
+    assert.equal(data.generatedAt, at.toISOString());
+    assert.equal(calls, 1); // las fuentes externas siguen en caché
+  });
+
+  test('si los contadores fallan no se guarda el error: la siguiente petición lo reintenta', async () => {
+    const usage = createMemoryUsageStore();
+    const totals = usage.totals;
+    let fail = true;
+    usage.totals = async (...args) => {
+      if (fail) throw new Error('base de datos caída');
+      return totals(...args);
+    };
+    const analytics = createAnalytics({ usage, costs: COSTS, timeZone: TZ, now: () => NOW });
+    await assert.rejects(analytics.get(), /caída/);
+    fail = false;
+    assert.equal((await analytics.get()).projects.portfolio.status, 'ok');
   });
 });
 
