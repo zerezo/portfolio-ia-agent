@@ -120,6 +120,37 @@ describe('createAnalytics', () => {
     await analytics.get();
     assert.equal(calls, 2);
   });
+
+  test('las visitas y el chat propios se actualizan cada minuto, sin esperar a la hora de las fuentes', async () => {
+    let calls = 0;
+    let at = NOW;
+    const usage = createMemoryUsageStore();
+    const sources = { homecargarage: async () => (calls++, { users: 3, vehicles: 5 }) };
+    const analytics = createAnalytics({ usage, costs: COSTS, sources, timeZone: TZ, now: () => at });
+    assert.equal((await analytics.get()).visits.total, 0);
+    await usage.add('page_loads', 1, NOW);
+    at = new Date(NOW.getTime() + 30 * 1000);
+    assert.equal((await analytics.get()).visits.total, 0); // dentro del minuto: el mismo dato
+    at = new Date(NOW.getTime() + 61 * 1000);
+    const data = await analytics.get();
+    assert.equal(data.visits.total, 1);
+    assert.equal(data.generatedAt, at.toISOString());
+    assert.equal(calls, 1); // las fuentes externas siguen en caché
+  });
+
+  test('si los contadores fallan no se guarda el error: la siguiente petición lo reintenta', async () => {
+    const usage = createMemoryUsageStore();
+    const totals = usage.totals;
+    let fail = true;
+    usage.totals = async (...args) => {
+      if (fail) throw new Error('base de datos caída');
+      return totals(...args);
+    };
+    const analytics = createAnalytics({ usage, costs: COSTS, timeZone: TZ, now: () => NOW });
+    await assert.rejects(analytics.get(), /caída/);
+    fail = false;
+    assert.equal((await analytics.get()).projects.portfolio.status, 'ok');
+  });
 });
 
 describe('createSources', () => {
@@ -213,7 +244,7 @@ describe('GET /api/analytics: sin datos personales', () => {
       analytics,
     });
     const res = await request(app).get('/api/analytics').expect(200);
-    assert.match(res.headers['cache-control'], /max-age=300/);
+    assert.match(res.headers['cache-control'], /max-age=60/);
     assert.deepEqual(walk(res.body, '$', []), []);
     assert.doesNotMatch(JSON.stringify(res.body), /@|\b\d{1,3}(\.\d{1,3}){3}\b/);
   });

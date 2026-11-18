@@ -221,7 +221,7 @@ const SYSTEM_NODES = [
     x: 200,
     y: 430,
     preview: 'Real usage and running cost of each project, behind the Analytics page.',
-    what: 'The API counts page loads, conversations, messages, guard blocks and model tokens per hour (numbers only). /api/analytics turns them into usage, live AI cost (tokens × model price) and visits per day, adds the counts of the other projects and the hosting costs kept in a config file, and caches the result for an hour.',
+    what: 'The API counts page loads, conversations, messages, guard blocks and model tokens per hour (numbers only). /api/analytics turns them into usage, live AI cost (tokens × model price) and visits per day, adds the counts of the other projects and the hosting costs kept in a config file, and caches the counts of the other projects for an hour (its own counters, for a minute).',
     why: 'Shows that the projects are in production with real usage and a controlled cost. If a source fails, its last value is served with its time; the web keeps a snapshot for when the API is down.',
     tech: ['Hourly counters', 'PostgreSQL', 'Hand-rolled SVG chart'],
     security: 'Aggregates only: no IPs, cookies or conversation content. A test fails if the endpoint returns anything but numbers, dates and known labels.',
