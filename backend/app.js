@@ -333,11 +333,11 @@ export function createApp({
   });
 
   // Analítica agregada (página Analytics): solo números, sin IP ni contenido. Caché en el servidor
-  // de 1 min para los contadores propios y 1 h para las fuentes externas; el navegador, 1 min.
+  // de 1 h para los contadores propios y 24 h para las fuentes externas; el navegador, 5 min.
   if (analytics) {
     app.get('/api/analytics', async (req, res) => {
       try {
-        res.set('Cache-Control', 'public, max-age=60').json(await analytics.get());
+        res.set('Cache-Control', 'public, max-age=300').json(await analytics.get());
       } catch (error) {
         console.error('[analytics] error:', error);
         res.status(503).json({ error: 'Analytics are temporarily unavailable.' });

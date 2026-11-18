@@ -7,13 +7,13 @@ import { z } from 'zod';
 //   - Entrenador y HomeCarGarage: conteos de sus servidores (solo números). Si una fuente falla se
 //     sirve su último dato bueno (tabla analytics_snapshots) con su hora; si nunca respondió, null.
 //   - Hosting: data/costs.yaml, que mantiene Alejandro a mano (null = sin dato: la web enseña "—").
-// Dos cachés: las fuentes externas, 1 hora (no se consultan en cada visita: D1 y Supabase cobran o
-// limitan por consulta); los contadores propios, 1 minuto (casi en vivo, y una ráfaga de visitas no
-// se convierte en una ráfaga de consultas a PostgreSQL).
+// Dos cachés (decisión de Alejandro, 2026-11-18): las fuentes externas, 24 horas (una consulta al
+// día como mucho por entorno: D1 y Supabase cobran o limitan por consulta y no se cargan los otros
+// proyectos); los contadores propios (visitas y chat), 1 hora.
 
 export const COSTS_PATH = new URL('./data/costs.yaml', import.meta.url);
-const SOURCES_TTL_MS = 60 * 60 * 1000;
-const USAGE_TTL_MS = 60 * 1000;
+const SOURCES_TTL_MS = 24 * 60 * 60 * 1000;
+const USAGE_TTL_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 5000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHART_DAYS = 28;
