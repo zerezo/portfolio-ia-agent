@@ -32,11 +32,11 @@ I'm a telecom engineer who ships AI products end to end: a production agent with
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: May 2026 – Present
-- Descripción · 489/2000
+- Descripción · 483/2000
 
 ```text
 • Offered a full-time analyst role before the end of my internship.
-• Cybersecurity compliance for the financial-services business of a global automotive group, client-facing in English with teams in Germany and South Korea: I own the analysis KPIs and review security profiles and information-protection controls.
+• Cybersecurity compliance for the financial-services business of a global automotive group. I own the analysis KPIs and review security profiles and information-protection controls, working in English with teams in Germany and South Korea.
 • Third-party risk assessments of suppliers for a major Spanish telecom operator, since my internship.
 • Automated the team's recurring file processing and report generation.
 ```
@@ -108,12 +108,12 @@ Live at alejandrocerezo.dev
 ### Entrenador: AI training coach on a custom MCP server
 
 - Fechas: 2026
-- Descripción · 668/2000
+- Descripción · 586/2000
 
 ```text
 Cloudflare
-• Built a remote MCP server with ~25 tools that lets Claude run my multi-sport training: syncs activities, detects and merges duplicates across sources, computes paces, weekly load and wellness, and schedules structured workouts directly into intervals.icu, with a password-protected web panel.
-• Encoded a coaching methodology as a tool the model must consult before planning or analysing, so decisions follow explicit rules (weekly volume progression, acute:chronic load) instead of model guesswork.
+• Built a remote MCP server with ~25 tools that Claude uses to run my multi-sport training. It syncs activities, merges duplicates across sources, computes paces, weekly load and wellness, and pushes structured workouts to intervals.icu.
+• The coaching methodology lives in a tool the model has to read before planning or analysing, so every decision follows explicit rules on volume progression and acute:chronic load.
 • Designing an eval suite for the coaching prompt: contrast-pair test cases with code-graded verdicts plus an LLM judge for required and forbidden content.
 ```
 
@@ -121,11 +121,11 @@ Cloudflare
 
 - Fechas: 2026
 - URL: https://homecargarage.alejandrocerezo.dev
-- Descripción · 202/2000
+- Descripción · 184/2000
 
 ```text
 React + Supabase
-• Free web app to track mileage, parts and service intervals for every car in a household, flagging what's due before it becomes a problem. EU-hosted data, user accounts, demo examples.
+• Free web app where a household logs mileage, parts and service intervals for its cars and sees what maintenance is due. EU-hosted data, user accounts, demo examples.
 ```
 
 ### Multi-Domain Operations Cyber-Risk Simulator

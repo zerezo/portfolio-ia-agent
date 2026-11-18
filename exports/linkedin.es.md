@@ -28,11 +28,11 @@
 - Empresa: IndraMind Cybersecurity
 - Ubicación: Madrid
 - Fechas: mayo 2026 – actualidad
-- Descripción · 609/2000
+- Descripción · 592/2000
 
 ```text
 • Me ofrecieron el puesto de analista a jornada completa antes de terminar las prácticas.
-• Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo automovilístico global, de cara al cliente y en inglés con equipos de Alemania y Corea del Sur: responsable de los KPIs de análisis y de la revisión de perfiles de seguridad y controles de protección de la información.
+• Cumplimiento de ciberseguridad para el negocio de servicios financieros de un grupo automovilístico global. Soy responsable de los KPIs de análisis y reviso perfiles de seguridad y controles de protección de la información, trabajando en inglés con equipos de Alemania y Corea del Sur.
 • Evaluaciones de riesgo de proveedores para un gran operador de telecomunicaciones español, desde las prácticas.
 • Automatización del procesamiento recurrente de archivos y de la generación de informes del equipo.
 ```
@@ -92,12 +92,12 @@ En producción en alejandrocerezo.dev
 ### Entrenador: coach de entrenamiento con IA sobre un servidor MCP propio
 
 - Fechas: 2026
-- Descripción · 747/2000
+- Descripción · 669/2000
 
 ```text
 Cloudflare
-• Servidor MCP remoto con ~25 herramientas con el que Claude gestiona mi entrenamiento multideporte: sincroniza actividades, detecta y unifica duplicados entre fuentes, calcula ritmos, carga semanal y bienestar, y programa entrenamientos estructurados directamente en intervals.icu; panel web protegido.
-• La metodología de entrenamiento está codificada como una herramienta que el modelo debe consultar antes de planificar o analizar, de modo que las decisiones siguen reglas explícitas (progresión de volumen, carga aguda:crónica) y no intuiciones del modelo.
+• Construí un servidor MCP remoto con ~25 herramientas que Claude usa para gestionar mi entrenamiento multideporte. Sincroniza actividades, unifica duplicados entre fuentes, calcula ritmos, carga semanal y bienestar, y envía entrenamientos estructurados a intervals.icu.
+• La metodología de entrenamiento vive en una herramienta que el modelo tiene que leer antes de planificar o analizar, así que cada decisión sigue reglas explícitas de progresión de volumen y carga aguda:crónica.
 • Diseño de un set de evals para el prompt de coaching: casos en pares de contraste, veredicto evaluado por código y un juez LLM para el contenido obligatorio y el prohibido.
 ```
 
@@ -105,11 +105,11 @@ Cloudflare
 
 - Fechas: 2026
 - URL: https://homecargarage.alejandrocerezo.dev
-- Descripción · 248/2000
+- Descripción · 229/2000
 
 ```text
 React + Supabase
-• App web gratuita para controlar kilometraje, piezas e intervalos de mantenimiento de todos los coches de casa, avisando de lo pendiente antes de que sea un problema. Datos alojados en la UE, cuentas de usuario y ejemplos de demo.
+• App web gratuita en la que un hogar registra el kilometraje, las piezas y los intervalos de mantenimiento de sus coches y ve qué revisiones tocan. Datos alojados en la UE, cuentas de usuario y ejemplos de demo.
 ```
 
 ### Simulador de riesgos de ciberseguridad para Operaciones Multidominio
